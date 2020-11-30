@@ -1,0 +1,4 @@
+{
+    "inputFilePath": "./contracts/Router.sol",
+    "outputDir": "./flattened_contracts"
+}
