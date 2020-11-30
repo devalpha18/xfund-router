@@ -1,0 +1,40 @@
+{
+  "name": "xfund-router",
+  "version": "0.0.1",
+  "description": "xFUND Router & Data Consumer Solidity Smart Contracts",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --exit --recursive",
+    "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unification-com/xfund-router.git"
+  },
+  "author": "Codegnosis",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/unification-com/xfund-router/issues"
+  },
+  "homepage": "https://github.com/unification-com/xfund-router#readme",
+  "dependencies": {
+    "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/contracts": "^3.3.0"
+  },
+  "devDependencies": {
+    "@openzeppelin/test-environment": "^0.1.4",
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "@poanet/solidity-flattener": "^3.0.5",
+    "@truffle/hdwallet-provider": "^1.0.43",
+    "chai": "^4.2.0",
+    "dotenv": "^8.2.0",
+    "ganache-cli": "^6.10.1",
+    "mocha": "^8.1.1",
+    "uuid": "^8.3.0",
+    "web3": "^1.2.11"
+  },
+  "resolutions": {
+    "**/**/elliptic": "^6.5.3",
+    "**/**/lodash": "^4.17.19"
+  }
+}
