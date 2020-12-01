@@ -29,7 +29,6 @@ contract Router is AccessControl {
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
-    bytes32 private constant ROLE_EDITOR = keccak256("EDITOR");
 
     // Mapping for [dataConsumers] to [dataProviders].
     // A dataProvider is authorised to provide data for the dataConsumer
@@ -53,11 +52,11 @@ contract Router is AccessControl {
         bytes4 callbackFunctionSignature
     );
 
-    // GrantProviderAuthorisation event. Emitted when a data consumer grants a data provider to provide data
-    event GrantProviderAuthorisation(address indexed dataConsumer, address indexed dataProvider);
+    // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
+    event GrantProviderPermission(address indexed dataConsumer, address indexed dataProvider);
 
-    // RevokeProviderAuthorisation event. Emitted when a data consumer revokes access for a data provider to provide data
-    event RevokeProviderAuthorisation(address indexed dataConsumer, address indexed dataProvider);
+    // RevokeProviderPermission event. Emitted when a data consumer revokes access for a data provider to provide data
+    event RevokeProviderPermission(address indexed dataConsumer, address indexed dataProvider);
 
     // RequestFulfilled event. Emitted when a data provider has sent the data requested
     event RequestFulfilled(
@@ -88,7 +87,6 @@ contract Router is AccessControl {
         token = IERC20(_token);
         salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(ROLE_EDITOR, msg.sender);
         emit TokenSet(_token);
         emit SaltSet(_salt);
     }
@@ -114,6 +112,7 @@ contract Router is AccessControl {
         bytes4 _callbackFunctionSignature
     ) public returns (bool success) {
         // msg.sender is the address of the Consumer's smart contract
+        require(address(msg.sender).isContract(), "Router: only a contract can initialise a request");
         require(requesterAuthorisedProviders[msg.sender][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
 
         bytes32 reqId = keccak256(
@@ -168,7 +167,7 @@ contract Router is AccessControl {
 
         require(dataConsumer.isContract(), "Router: dataConsumer is not a smart contract");
 
-        require(msg.sender == dataProvider, "Router: msg.sender != request dataProvider");
+        require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
         // msg.sender is the address of the data provider
         require(requesterAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
 
@@ -182,7 +181,14 @@ contract Router is AccessControl {
         uint256 gasLeftAfter = gasleft();
         uint256 gasUsedToCall = gasLeftBefore - gasLeftAfter;
 
-        emit RequestFulfilled(dataRequests[_requestId].dataConsumer, msg.sender, _requestId, callbackFunction, _requestedData, gasUsedToCall);
+        emit RequestFulfilled(
+            dataRequests[_requestId].dataConsumer,
+            msg.sender,
+            _requestId,
+            callbackFunction,
+            _requestedData,
+            gasUsedToCall
+        );
 
         // ToDo - claim gas refund
 
@@ -193,6 +199,7 @@ contract Router is AccessControl {
 
     // ToDo
     function cancelRequest(bytes32 _requestId) public returns (bool) {
+        require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
         return true;
     }
 
@@ -203,8 +210,9 @@ contract Router is AccessControl {
      */
     function grantProviderPermission(address _dataProvider) public returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
+        require(address(msg.sender).isContract(), "Router: only a contract can grant a provider permission");
         requesterAuthorisedProviders[msg.sender][_dataProvider] = true;
-        emit GrantProviderAuthorisation(msg.sender, _dataProvider);
+        emit GrantProviderPermission(msg.sender, _dataProvider);
         return true;
     }
 
@@ -215,9 +223,14 @@ contract Router is AccessControl {
      */
     function revokeProviderPermission(address _dataProvider) public returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
+        require(address(msg.sender).isContract(), "Router: only a contract can revoke a provider permission");
         requesterAuthorisedProviders[msg.sender][_dataProvider] = false;
-        emit RevokeProviderAuthorisation(msg.sender, _dataProvider);
+        emit RevokeProviderPermission(msg.sender, _dataProvider);
         return true;
+    }
+
+    function providerIsAuthorised(address _consumer, address _provider) public view returns (bool) {
+        return requesterAuthorisedProviders[_consumer][_provider];
     }
 
     /**
@@ -236,18 +249,8 @@ contract Router is AccessControl {
         return salt;
     }
 
-    modifier isEditor() {
-        require(hasRole(ROLE_EDITOR, msg.sender), "Router: only an editor can do this");
-        _;
-    }
-
     modifier isAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
-        _;
-    }
-
-    modifier isAdminOrEditor() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(ROLE_EDITOR, msg.sender), "Router: only admin can do this");
         _;
     }
 }
