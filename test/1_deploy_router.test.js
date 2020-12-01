@@ -14,10 +14,9 @@ describe('Router - deploy', function () {
   const [admin, eoa] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.randomHex(32)
-  const EDITOR_ROLE = web3.utils.sha3('EDITOR')
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
 
-  beforeEach(async function () {
+  before(async function () {
     // admin deploy Token contract
     this.MockTokenContract = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
   })
@@ -27,7 +26,6 @@ describe('Router - deploy', function () {
 
     expect(await RouterContract.getTokenAddress()).to.equal(this.MockTokenContract.address)
     expect(await RouterContract.getSalt()).to.equal(salt)
-    expect(await RouterContract.hasRole(EDITOR_ROLE, admin)).to.equal(true)
     expect(await RouterContract.hasRole("0x00", admin)).to.equal(true)
   })
 

@@ -12,12 +12,13 @@ const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
 
 describe('Consumer - deploy', function () {
-  const [admin, dataConsumer, eoa] = accounts
+  this.timeout(300000)
+  const [admin, dataConsumerOwner, eoa] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.randomHex(32)
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
 
-  beforeEach(async function () {
+  before(async function () {
     // admin deploy Token contract
     this.MockTokenContract = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
 
@@ -27,23 +28,23 @@ describe('Consumer - deploy', function () {
   })
 
   it('can deploy a Consumer contract with router address', async function () {
-    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumer})
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
 
     expect(await MockConsumerContract.getRouterAddress()).to.equal(this.RouterContract.address)
-    expect(await MockConsumerContract.owner()).to.equal(dataConsumer)
-    expect(await MockConsumerContract.hasRole("0x00", dataConsumer)).to.equal(true)
+    expect(await MockConsumerContract.owner()).to.equal(dataConsumerOwner)
+    expect(await MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(true)
   })
 
   it('must deploy with router', async function () {
     await expectRevert(
-      MockConsumer.new(constants.ZERO_ADDRESS, {from: dataConsumer}),
+      MockConsumer.new(constants.ZERO_ADDRESS, {from: dataConsumerOwner}),
       "Consumer: router cannot be the zero address"
     )
   })
 
   it('router address must be a contract', async function () {
     await expectRevert(
-      MockConsumer.new(eoa, {from: dataConsumer}),
+      MockConsumer.new(eoa, {from: dataConsumerOwner}),
       "Consumer: router address must be a contract"
     )
   })
