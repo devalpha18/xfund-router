@@ -16,7 +16,6 @@ describe('Consumer - deploy', function () {
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const salt = web3.utils.randomHex(32)
-  const ROLE_DATA_REQUESTER = web3.utils.sha3('DATA_REQUESTER')
 
   beforeEach(async function () {
     // admin deploy Token contract
@@ -31,8 +30,8 @@ describe('Consumer - deploy', function () {
     const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumer})
 
     expect(await MockConsumerContract.getRouterAddress()).to.equal(this.RouterContract.address)
-    expect(await MockConsumerContract.getOwnerAddress()).to.equal(dataConsumer)
-    expect(await MockConsumerContract.hasRole(ROLE_DATA_REQUESTER, dataConsumer)).to.equal(true)
+    expect(await MockConsumerContract.owner()).to.equal(dataConsumer)
+    expect(await MockConsumerContract.hasRole("0x00", dataConsumer)).to.equal(true)
   })
 
   it('must deploy with router', async function () {

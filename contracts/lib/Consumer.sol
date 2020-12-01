@@ -30,7 +30,6 @@ contract Consumer is AccessControl {
      * CONSTANTS
      */
     bytes32 public constant ROLE_DATA_PROVIDER = keccak256("DATA_PROVIDER");
-    bytes32 public constant ROLE_DATA_REQUESTER = keccak256("DATA_REQUESTER");
 
     /*
      * STATE VARIABLES
@@ -59,8 +58,15 @@ contract Consumer is AccessControl {
         bytes4 callbackFunctionSignature
     );
 
-    event RouterSet(address router);
-    event OwnerSet(address owner);
+    event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event WithdrawTokensFromContract(address indexed from, address indexed to, uint256 amount);
+    event IncreasedRouterAllowance(address indexed router, address indexed contractAddress, uint256 amount);
+    event DecreasedRouterAllowance(address indexed router, address indexed contractAddress, uint256 amount);
+    event AddedDataProvider(address indexed sender, address indexed provider, uint256 fee);
+    event RemovedDataProvider(address indexed sender, address indexed provider);
+    event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
+    event SetGasPriceLimit(address indexed sender, uint oldLimit, uint newLimit);
 
     /*
      * WRITE FUNCTIONS
@@ -81,18 +87,17 @@ contract Consumer is AccessControl {
 
         // set up roles
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(ROLE_DATA_REQUESTER, msg.sender);
 
         // set up router and token
         router = IRouter(_router);
         token = IERC20_Ex(router.getTokenAddress());
 
-        // set token owner
+        // set token & contract owner
         OWNER = msg.sender;
         requestNonce = 0;
         gasPriceLimit = 200;
-        emit RouterSet(_router);
-        emit OwnerSet(msg.sender);
+        emit RouterSet(msg.sender, address(0), _router);
+        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     /**
@@ -101,8 +106,12 @@ contract Consumer is AccessControl {
      *
      * @return success
      */
-    function withdrawAllTokens() public isTokenOwner() returns (bool success) {
-        require(token.transfer(OWNER, token.balanceOf(address(this))), "Consumer: token withdraw failed");
+    function withdrawAllTokens() public onlyOwner() returns (bool success) {
+        uint256 amount = token.balanceOf(address(this));
+        if(amount > 0) {
+            require(token.transfer(OWNER, amount), "Consumer: token withdraw failed");
+            emit WithdrawTokensFromContract(address(this), OWNER, amount);
+        }
         return true;
     }
 
@@ -113,9 +122,26 @@ contract Consumer is AccessControl {
      * @param _amount the amount of tokens the owner would like to withdraw
      * @return success
      */
-    function withdrawTokenAmount(uint256 _amount) public isTokenOwner() returns (bool success) {
+    function withdrawTokenAmount(uint256 _amount) public onlyOwner() returns (bool success) {
+        uint256 contractBalance = token.balanceOf(address(this));
+        require(contractBalance > 0, "Consumer: contract has zero token balance");
         require(token.transfer(OWNER, _amount), "Consumer: token withdraw failed");
+        emit WithdrawTokensFromContract(address(this), OWNER, _amount);
         return true;
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`),
+     * and withdraws any tokens currentlry held by the contract.
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public onlyOwner() {
+        require(newOwner != address(0), "Consumer: new owner is the zero address");
+        grantRole(DEFAULT_ADMIN_ROLE, newOwner);
+        renounceRole(DEFAULT_ADMIN_ROLE, OWNER);
+        require(withdrawAllTokens(), "Consumer: failed to transfer ownership");
+        emit OwnershipTransferred(OWNER, newOwner);
+        OWNER = newOwner;
     }
 
     /**
@@ -126,8 +152,9 @@ contract Consumer is AccessControl {
      * @param _routerAllowance the amount of tokens the owner would like to increase allocation by
      * @return success
      */
-    function increaseRouterAllowance(uint256 _routerAllowance) public isTokenOwner() returns (bool success) {
+    function increaseRouterAllowance(uint256 _routerAllowance) public onlyOwner() returns (bool success) {
         require(token.increaseAllowance(address(router), _routerAllowance), "Consumer: failed to increase Router token allowance");
+        emit IncreasedRouterAllowance(address(router), address(this), _routerAllowance);
         return true;
     }
 
@@ -138,8 +165,9 @@ contract Consumer is AccessControl {
      * @param _routerAllowance the amount of tokens the owner would like to decrease allocation by
      * @return success
      */
-    function decreaseRouterAllowance(uint256 _routerAllowance) public isTokenOwner() returns (bool success) {
+    function decreaseRouterAllowance(uint256 _routerAllowance) public onlyOwner() returns (bool success) {
         require(token.decreaseAllowance(address(router), _routerAllowance), "Consumer: failed to increase Router token allowance");
+        emit DecreasedRouterAllowance(address(router), address(this), _routerAllowance);
         return true;
     }
 
@@ -151,12 +179,13 @@ contract Consumer is AccessControl {
      * @param _fee the data provider's fee
      * @return success
      */
-    function addDataProvider(address _dataProvider, uint256 _fee) public isAdmin() returns (bool success) {
+    function addDataProvider(address _dataProvider, uint256 _fee) public onlyOwner() returns (bool success) {
         require(_dataProvider != address(0), "Consumer: dataProvider cannot be the zero address");
         require(_fee > 0, "Consumer: fee must be > 0");
         grantRole(ROLE_DATA_PROVIDER, _dataProvider);
         require(router.grantProviderPermission(_dataProvider), "Consumer: failed to grant dataProvider on Router");
         dataProviderFees[_dataProvider] = _fee;
+        emit AddedDataProvider(msg.sender, _dataProvider, _fee);
         return true;
     }
 
@@ -169,13 +198,13 @@ contract Consumer is AccessControl {
      */
     function removeDataProvider(address _dataProvider)
     public
-    isAdmin()
+    onlyOwner()
     isProvider(_dataProvider)
     returns (bool success) {
-        require(_dataProvider != address(0), "Consumer: dataProvider cannot be the zero address");
         revokeRole(ROLE_DATA_PROVIDER, _dataProvider);
         require(router.revokeProviderPermission(_dataProvider), "Consumer: failed to revoke dataProvider on Router");
         delete dataProviderFees[_dataProvider];
+        emit RemovedDataProvider(msg.sender, _dataProvider);
         return true;
     }
 
@@ -188,10 +217,12 @@ contract Consumer is AccessControl {
      */
     function setDataProviderFee(address _dataProvider, uint256 _fee)
     public
-    isAdmin()
+    onlyOwner()
     isProvider(_dataProvider)
     returns (bool success) {
         require(_fee > 0, "Consumer: fee must be > 0");
+        uint256 oldFee = dataProviderFees[_dataProvider];
+        SetDataProviderFee(msg.sender, _dataProvider, oldFee, _fee);
         dataProviderFees[_dataProvider] = _fee;
         return true;
     }
@@ -203,9 +234,20 @@ contract Consumer is AccessControl {
      * @param _gasPriceLimit the new gas price limit
      * @return success
      */
-    function setGasPriceLimit(uint _gasPriceLimit) public isAdmin() returns (bool success) {
+    function setGasPriceLimit(uint _gasPriceLimit) public onlyOwner() returns (bool success) {
         require(_gasPriceLimit > 0, "Consumer: gasPriceLimit must be > 0");
+        uint oldLimit = gasPriceLimit;
         gasPriceLimit = _gasPriceLimit;
+        emit SetGasPriceLimit(msg.sender, oldLimit, _gasPriceLimit);
+        return true;
+    }
+
+    function setRouter(address _router) public onlyOwner() returns (bool success) {
+        require(_router != address(0), "Consumer: router cannot be the zero address");
+        require(_router.isContract(), "Consumer: router address must be a contract");
+        address oldRouter = address(router);
+        router = IRouter(_router);
+        emit RouterSet(msg.sender, oldRouter, _router);
         return true;
     }
 
@@ -224,7 +266,7 @@ contract Consumer is AccessControl {
         string memory _data,
         uint256 _gasPrice,
         bytes4 _callbackFunctionSignature
-    ) public isAutorisedRequester() isProvider(_dataProvider)
+    ) public onlyOwner() isProvider(_dataProvider)
     returns (bytes32 requestId) {
 
         // check gas isn't stupidly high
@@ -302,21 +344,44 @@ contract Consumer is AccessControl {
     }
 
     /**
-     * @dev getOwnerAddress returns the address of the Consumer contract's owner
+     * @dev getDataProviderFee returns the fee for the given provider
      *
      * @return address
      */
-    function getOwnerAddress() external view returns (address) {
+    function getDataProviderFee(address _dataProvider) external view returns (uint256) {
+        return dataProviderFees[_dataProvider];
+    }
+
+    /**
+     * @dev getRequestNonce returns the current requestNonce
+     *
+     * @return address
+     */
+    function getRequestNonce() external view returns (uint256) {
+        return requestNonce;
+    }
+
+    /**
+     * @dev owner returns the address of the Consumer contract's owner
+     *
+     * @return address
+     */
+    function owner() external view returns (address) {
         return OWNER;
+    }
+
+    /**
+     * @dev getGasPriceLimit returns gas price limit
+     *
+     * @return address
+     */
+    function getGasPriceLimit() external view returns (uint) {
+        return gasPriceLimit;
     }
 
     /*
      * MODIFIERS
      */
-    modifier isAutorisedRequester() {
-        require(hasRole(ROLE_DATA_REQUESTER, msg.sender), "Consumer: only authorised requesters can request data");
-        _;
-    }
 
     modifier isProvider(address _dataProvider) {
         require(hasRole(ROLE_DATA_PROVIDER, _dataProvider), "Consumer: _dataProvider does not have role DATA_PROVIDER");
@@ -332,13 +397,8 @@ contract Consumer is AccessControl {
         _;
     }
     
-    modifier isTokenOwner() {
-        require(msg.sender == OWNER, "Consumer: not token owner");
-        _;
-    }
-
-    modifier isAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Consumer: only admin can do this");
+    modifier onlyOwner() {
+        require(msg.sender == OWNER, "Consumer: only owner can do this");
         _;
     }
 }
