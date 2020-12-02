@@ -39,7 +39,8 @@ contract Consumer is AccessControl, Request {
     IERC20_Ex private token; // deployed address of the Token smart contract
     address private OWNER; // wallet address of the Token holder who will pay fees
     uint256 private requestNonce; // incremented nonce to help prevent request replays
-    uint private gasPriceLimit; // gas price limit in gwei the consumer is willing to pay for data processing
+    uint256 private gasPriceLimit; // gas price limit in gwei the consumer is willing to pay for data processing
+    uint256 private requestTimeout; // request timeout in seconds
 
     // Mapping to hold open data requests
     mapping(bytes32 => bool) dataRequests;
@@ -55,6 +56,7 @@ contract Consumer is AccessControl, Request {
         address indexed dataProvider,
         uint256 fee,
         string endpoint,
+        uint256 expires,
         bytes32 indexed requestId,
         bytes4 callbackFunctionSignature
     );
@@ -67,7 +69,8 @@ contract Consumer is AccessControl, Request {
     event AddedDataProvider(address indexed sender, address indexed provider, uint256 fee);
     event RemovedDataProvider(address indexed sender, address indexed provider);
     event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
-    event SetGasPriceLimit(address indexed sender, uint oldLimit, uint newLimit);
+    event SetGasPriceLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
+    event SetRequestTimout(address indexed sender, uint256 oldTimeout, uint256 newTimeout);
 
     /*
      * WRITE FUNCTIONS
@@ -97,6 +100,7 @@ contract Consumer is AccessControl, Request {
         OWNER = msg.sender;
         requestNonce = 0;
         gasPriceLimit = 200;
+        requestTimeout = 300;
         emit RouterSet(msg.sender, address(0), _router);
         emit OwnershipTransferred(address(0), msg.sender);
     }
@@ -237,14 +241,35 @@ contract Consumer is AccessControl, Request {
      * @param _gasPriceLimit the new gas price limit
      * @return success
      */
-    function setGasPriceLimit(uint _gasPriceLimit) public onlyOwner() returns (bool success) {
+    function setGasPriceLimit(uint256 _gasPriceLimit) public onlyOwner() returns (bool success) {
         require(_gasPriceLimit > 0, "Consumer: gasPriceLimit must be > 0");
-        uint oldLimit = gasPriceLimit;
+        uint256 oldLimit = gasPriceLimit;
         gasPriceLimit = _gasPriceLimit;
         emit SetGasPriceLimit(msg.sender, oldLimit, _gasPriceLimit);
         return true;
     }
 
+    /**
+     * @dev setRequestTimeout set the timeout for data requests, after which
+     * the consumer can cancel a request and get a refund
+     *
+     * @param _newTimeout the new timeout in seconds
+     * @return success
+     */
+    function setRequestTimeout(uint256 _newTimeout) public onlyOwner() returns (bool success) {
+        require(_newTimeout > 0, "Consumer: newTimeout must be > 0");
+        uint256 oldTimout = requestTimeout;
+        requestTimeout = _newTimeout;
+        emit SetRequestTimout(msg.sender, oldTimout, _newTimeout);
+        return true;
+    }
+
+    /**
+     * @dev setRouter set the address of the Router smart contract
+     *
+     * @param _router on chain address of the router smart contract
+     * @return success
+     */
     function setRouter(address _router) public onlyOwner() returns (bool success) {
         require(_router != address(0), "Consumer: router cannot be the zero address");
         require(_router.isContract(), "Consumer: router address must be a contract");
@@ -295,6 +320,8 @@ contract Consumer is AccessControl, Request {
 
         dataRequests[reqId] = true;
 
+        uint256 expires = now + requestTimeout;
+
         // note - router.initialiseRequest will see msg.sender as the address of this contract
         require(
             router.initialiseRequest(
@@ -303,6 +330,7 @@ contract Consumer is AccessControl, Request {
                 requestNonce,
                 _data,
                 gasPriceGwei,
+                expires,
                 reqId,
                 _callbackFunctionSignature
             ), "submitDataRequest: router.initialiseRequest failed");
@@ -315,6 +343,7 @@ contract Consumer is AccessControl, Request {
             _dataProvider,
             fee,
             _data,
+            expires,
             reqId,
             _callbackFunctionSignature
         );
@@ -347,7 +376,7 @@ contract Consumer is AccessControl, Request {
     /**
      * @dev getDataProviderFee returns the fee for the given provider
      *
-     * @return address
+     * @return uint256
      */
     function getDataProviderFee(address _dataProvider) external view returns (uint256) {
         return dataProviderFees[_dataProvider];
@@ -356,7 +385,7 @@ contract Consumer is AccessControl, Request {
     /**
      * @dev getRequestNonce returns the current requestNonce
      *
-     * @return address
+     * @return uint256
      */
     function getRequestNonce() external view returns (uint256) {
         return requestNonce;
@@ -374,10 +403,19 @@ contract Consumer is AccessControl, Request {
     /**
      * @dev getGasPriceLimit returns gas price limit
      *
-     * @return address
+     * @return uint256
      */
-    function getGasPriceLimit() external view returns (uint) {
+    function getGasPriceLimit() external view returns (uint256) {
         return gasPriceLimit;
+    }
+
+    /**
+     * @dev getRequestTimeout returns request timeout
+     *
+     * @return uint256
+     */
+    function getRequestTimeout() external view returns (uint256) {
+        return requestTimeout;
     }
 
     /*
