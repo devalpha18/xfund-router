@@ -37,11 +37,9 @@ describe('Consumer - only owner function tests', function () {
    * Withdraw Token tests
    */
   describe('token withdraw', function () {
-    it( 'owner can withdrawAllTokens', async function () {
+    it( 'owner can withdrawAllTokens - WithdrawTokensFromContract event emitted', async function () {
       const initialAmount = 1000
       const amountForContract = 100
-      const expectedAmount = 1000
-      const expectedAmountForContract = 0
       // Admin Transfer Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
@@ -54,15 +52,45 @@ describe('Consumer - only owner function tests', function () {
         to: dataConsumerOwner,
         amount: new BN( amountForContract )
       } )
+    } )
 
-      // dataConsumerOwner should have 10 tokens again, and Consumer contract should have zero
+    it( 'owner can withdrawAllTokens - owner balance is 1000, contract balance is zero', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const expectedAmount = 1000
+      const expectedAmountForContract = 0
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      // withdraw all tokens from contract to owner
+      await this.MockConsumerContract.withdrawAllTokens( { from: dataConsumerOwner } )
+
+      // dataConsumerOwner should have 1000 tokens again, and Consumer contract should have zero
       const dcBalance = await this.MockTokenContract.balanceOf( dataConsumerOwner )
       const contractBalance = await this.MockTokenContract.balanceOf( this.MockConsumerContract.address )
       expect( dcBalance.toNumber() ).to.equal( expectedAmount )
       expect( contractBalance.toNumber() ).to.equal( expectedAmountForContract )
     } )
 
-    it( 'only owner can withdrawAllTokens', async function () {
+    it( 'only owner can withdrawAllTokens - should revert with error', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const expectedAmount = 900
+      const expectedAmountForContract = 100
+      // Admin Transfer 10 Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      await expectRevert(
+        this.MockConsumerContract.withdrawAllTokens( { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+    } )
+
+    it( 'only owner can withdrawAllTokens - owner balance should still be 900, and contract 100', async function () {
       const initialAmount = 1000
       const amountForContract = 100
       const expectedAmount = 900
@@ -77,19 +105,17 @@ describe('Consumer - only owner function tests', function () {
         "Consumer: only owner can do this"
       )
 
-      // dataConsumerOwner should have 10 tokens again, and Consumer contract should have zero
+      // dataConsumerOwner should have 900 tokens again, and Consumer contract should have 100
       const dcBalance = await this.MockTokenContract.balanceOf( dataConsumerOwner )
       const contractBalance = await this.MockTokenContract.balanceOf( this.MockConsumerContract.address )
       expect( dcBalance.toNumber() ).to.equal( expectedAmount )
       expect( contractBalance.toNumber() ).to.equal( expectedAmountForContract )
     } )
 
-    it( 'owner can withdrawTokenAmount', async function () {
+    it( 'owner can withdrawTokenAmount - WithdrawTokensFromContract event emitted', async function () {
       const initialAmount = 1000
       const initialAmountForContract = 100
       const amountToWithdraw = 50
-      const expectedAmount = 950
-      const expectedAmountForContract = 50
 
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
@@ -103,15 +129,47 @@ describe('Consumer - only owner function tests', function () {
         to: dataConsumerOwner,
         amount: new BN( amountToWithdraw )
       } )
+    } )
 
-      // dataConsumerOwner should have 9.5 tokens, and Consumer contract should have 0.5
+
+    it( 'owner can withdrawTokenAmount - withdraw 50, owner has 950 balance, contract 50', async function () {
+      const initialAmount = 1000
+      const initialAmountForContract = 100
+      const amountToWithdraw = 50
+      const expectedAmount = 950
+      const expectedAmountForContract = 50
+
+      // Admin Transfer 10 Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
+
+      await this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: dataConsumerOwner } )
+
+      // dataConsumerOwner should have 950 tokens, and Consumer contract should have 50
       const dcBalance = await this.MockTokenContract.balanceOf( dataConsumerOwner )
       const contractBalance = await this.MockTokenContract.balanceOf( this.MockConsumerContract.address )
       expect( dcBalance.toNumber() ).to.equal( expectedAmount )
       expect( contractBalance.toNumber() ).to.equal( expectedAmountForContract )
     } )
 
-    it( 'only owner can withdrawTokenAmount', async function () {
+    it( 'only owner can withdrawTokenAmount - expect revert with error', async function () {
+      const initialAmount = 1000
+      const initialAmountForContract = 100
+      const amountToWithdraw = 50
+
+      // Admin Transfer 10 Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
+
+      await expectRevert(
+        this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+    } )
+
+    it( 'only owner can withdrawTokenAmount - attempt 50. Owner should remain 900, contract 100', async function () {
       const initialAmount = 1000
       const initialAmountForContract = 100
       const amountToWithdraw = 50
@@ -128,7 +186,7 @@ describe('Consumer - only owner function tests', function () {
         "Consumer: only owner can do this"
       )
 
-      // dataConsumerOwner should have 9.5 tokens, and Consumer contract should have 0.5
+      // dataConsumerOwner should have 900 tokens, and Consumer contract should have 100
       const dcBalance = await this.MockTokenContract.balanceOf( dataConsumerOwner )
       const contractBalance = await this.MockTokenContract.balanceOf( this.MockConsumerContract.address )
       expect( dcBalance.toNumber() ).to.equal( expectedAmount )
@@ -140,7 +198,33 @@ describe('Consumer - only owner function tests', function () {
    * Router allowance tests
    */
   describe('router allowance', function () {
-    it( 'owner can increase router allowance', async function () {
+
+    it( 'owner can increase router allowance - initial allowance should be zero', async function () {
+      // should initially be zero
+      const routerAllowanceBefore = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
+      expect( routerAllowanceBefore.toNumber() ).to.equal( 0 )
+    } )
+
+    it( 'owner can increase router allowance - should emit IncreasedRouterAllowance event', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const allowance = 100
+
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'IncreasedRouterAllowance', {
+        router: this.RouterContract.address,
+        contractAddress: this.MockConsumerContract.address,
+        amount: new BN( allowance )
+      } )
+    } )
+
+    it( 'owner can increase router allowance - router should have allowance of 100', async function () {
       const initialAmount = 1000
       const amountForContract = 100
       const allowance = 100
@@ -151,24 +235,30 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      // should initially be zero
-      const routerAllowanceBefore = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
-      expect( routerAllowanceBefore.toNumber() ).to.equal( 0 )
-
-      const receipt = await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
-
-      expectEvent( receipt, 'IncreasedRouterAllowance', {
-        router: this.RouterContract.address,
-        contractAddress: this.MockConsumerContract.address,
-        amount: new BN( allowance )
-      } )
+      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
 
       // router should have an allowance of 100
       const routerAllowanceAfter = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
       expect( routerAllowanceAfter.toNumber() ).to.equal( expectedAllowance )
     } )
 
-    it( 'only owner can increase router allowance', async function () {
+    it( 'only owner can increase router allowance - should revert with error', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const allowance = 100
+
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      await expectRevert(
+        this.MockConsumerContract.increaseRouterAllowance(allowance, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+    } )
+
+    it( 'only owner can increase router allowance - allowance should remain zero', async function () {
       const initialAmount = 1000
       const amountForContract = 100
       const allowance = 100
@@ -178,10 +268,6 @@ describe('Consumer - only owner function tests', function () {
       await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
-
-      // should initially be zero
-      const routerAllowanceBefore = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
-      expect( routerAllowanceBefore.toNumber() ).to.equal( 0 )
 
       await expectRevert(
         this.MockConsumerContract.increaseRouterAllowance(allowance, { from: rando } ),
@@ -193,7 +279,30 @@ describe('Consumer - only owner function tests', function () {
       expect( routerAllowanceAfter.toNumber() ).to.equal( expectedAllowance )
     } )
 
-    it( 'owner can decrease router allowance', async function () {
+    it( 'owner can decrease router allowance - should emit DecreasedRouterAllowance event', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const allowance = 100
+      const decrease = 20
+
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'DecreasedRouterAllowance', {
+        router: this.RouterContract.address,
+        contractAddress: this.MockConsumerContract.address,
+        amount: new BN( decrease )
+      } )
+    } )
+
+
+    it( 'owner can decrease router allowance - router allowance should be reduced to 80', async function () {
       const initialAmount = 1000
       const amountForContract = 100
       const allowance = 100
@@ -205,19 +314,9 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      // should initially be zero
-      const routerAllowanceBefore = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
-      expect( routerAllowanceBefore.toNumber() ).to.equal( 0 )
-
       await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
-
-      expectEvent( receipt, 'DecreasedRouterAllowance', {
-        router: this.RouterContract.address,
-        contractAddress: this.MockConsumerContract.address,
-        amount: new BN( decrease )
-      } )
+      await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
 
       // router should have an allowance of 80
       const routerAllowanceAfter = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
@@ -225,7 +324,7 @@ describe('Consumer - only owner function tests', function () {
     } )
 
 
-    it( 'only owner can decrease router allowance', async function () {
+    it( 'only owner can decrease router allowance - should revert with error', async function () {
       const initialAmount = 1000
       const amountForContract = 100
       const allowance = 100
@@ -237,9 +336,25 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      // should initially be zero
-      const routerAllowanceBefore = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
-      expect( routerAllowanceBefore.toNumber() ).to.equal( 0 )
+      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+
+      await expectRevert(
+        this.MockConsumerContract.decreaseRouterAllowance(decrease, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+    } )
+
+    it( 'only owner can decrease router allowance - allowance should remain 100', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const allowance = 100
+      const decrease = 20
+      const expectedAllowance = 100
+
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
       await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
 
@@ -258,7 +373,7 @@ describe('Consumer - only owner function tests', function () {
    * Data provider tests
    */
   describe('data providers', function () {
-    it( 'owner can add a data provider', async function () {
+    it( 'owner can add a data provider - emits AddedDataProvider event', async function () {
       const fee = 100
 
       const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
@@ -268,19 +383,48 @@ describe('Consumer - only owner function tests', function () {
         provider: dataProvider,
         fee: new BN( fee )
       } )
+    } )
+
+    it( 'owner can add a data provider - emits RoleGranted event', async function () {
+      const fee = 100
+
+      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
 
       expectEvent(receipt, 'RoleGranted', {
         role: ROLE_DATA_PROVIDER,
         account: dataProvider,
         sender: dataConsumerOwner
       })
+    } )
+
+    it( 'owner can add a data provider - dataProvider has role DATA_PROVIDER', async function () {
+      const fee = 100
+
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
 
       // dataProvider should now have DATA_PROVIDER role
       expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
+    } )
+
+    it( 'owner can add a data provider - dataProvider is authorised for this contract on Router', async function () {
+      const fee = 100
+
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      // dataProvider should now be authorised on Router for this contract
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( true )
     } )
 
-    it( 'only owner can add a data provider', async function () {
+    it( 'only owner can add a data provider - should revert with error', async function () {
+      const fee = 100
+
+      await expectRevert(
+        this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+    } )
+
+    it( 'only owner can add a data provider - dataProvider should not have DATA_PROVIDER role', async function () {
       const fee = 100
 
       await expectRevert(
@@ -290,6 +434,17 @@ describe('Consumer - only owner function tests', function () {
 
       // dataProvider should NOT have DATA_PROVIDER role
       expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( false )
+    } )
+
+    it( 'only owner can add a data provider - dataProvider should not be authorised on Router', async function () {
+      const fee = 100
+
+      await expectRevert(
+        this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+
+      // dataProvider should now be authorised on Router for this contract
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
     } )
 
@@ -309,14 +464,11 @@ describe('Consumer - only owner function tests', function () {
       )
     } )
 
-    it( 'owner can remove a data provider', async function () {
+    it( 'owner can remove a data provider - emits RemovedDataProvider event', async function () {
       const fee = 100
 
       // add the dataProvider
       await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-      // dataProvider should now have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
-      expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( true )
 
       const receipt = await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
 
@@ -324,6 +476,15 @@ describe('Consumer - only owner function tests', function () {
         sender: dataConsumerOwner,
         provider: dataProvider,
       } )
+    } )
+
+    it( 'owner can remove a data provider - emits RoleRevoked event', async function () {
+      const fee = 100
+
+      // add the dataProvider
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
 
       expectEvent(receipt, 'RoleRevoked', {
         role: ROLE_DATA_PROVIDER,
@@ -331,19 +492,54 @@ describe('Consumer - only owner function tests', function () {
         sender: dataConsumerOwner
       })
 
-      // dataProvider should no longer have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( false )
-      expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
     } )
 
-    it( 'only owner can remove a data provider', async function () {
+    it( 'owner can remove a data provider - dataProvider no longer has DATA_PROVIDER role in contract', async function () {
       const fee = 100
 
       // add the dataProvider
       await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
       // dataProvider should now have DATA_PROVIDER role
       expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
+
+      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+
+      // dataProvider should no longer have DATA_PROVIDER role
+      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( false )
+    } )
+
+    it( 'owner can remove a data provider - dataProvider no longer authorised for this contract in Router', async function () {
+      const fee = 100
+
+      // add the dataProvider
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      // dataProvider should be authorised in Router
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( true )
+
+      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+
+      // dataProvider should no longer be authorised in Router
+      expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
+    } )
+
+    it( 'only owner can remove a data provider - expect revert with error', async function () {
+      const fee = 100
+
+      // add the dataProvider
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      await expectRevert(
+        this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+
+    } )
+
+    it( 'only owner can remove a data provider - dataProvider should still have DATA_PROVIDER role', async function () {
+      const fee = 100
+
+      // add the dataProvider
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
 
       await expectRevert(
         this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
@@ -352,6 +548,20 @@ describe('Consumer - only owner function tests', function () {
 
       // dataProvider should still have DATA_PROVIDER role
       expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
+    } )
+
+    it( 'only owner can remove a data provider - dataProvider should still be authorised in Router', async function () {
+      const fee = 100
+
+      // add the dataProvider
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      await expectRevert(
+        this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+
+      // dataProvider should still be authorised in Router
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( true )
     } )
 
@@ -366,7 +576,7 @@ describe('Consumer - only owner function tests', function () {
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
     } )
 
-    it( 'owner can set data provider fee', async function () {
+    it( 'owner can set data provider fee - emits SetDataProviderFee event', async function () {
       const fee = 100
       const newFee = 200
 
@@ -383,6 +593,17 @@ describe('Consumer - only owner function tests', function () {
         oldFee: new BN(fee),
         newFee: new BN(newFee),
       } )
+    } )
+
+    it( 'owner can set data provider fee - fee increases from 100 to 200', async function () {
+      const fee = 100
+      const newFee = 200
+
+      // add the dataProvider with fee of 100
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      // set fee to 200
+      await this.MockConsumerContract.setDataProviderFee(dataProvider, newFee,  { from: dataConsumerOwner } )
 
       const f2 = await this.MockConsumerContract.getDataProviderFee(dataProvider)
       expect( f2.toNumber() ).to.equal( newFee )
@@ -441,7 +662,7 @@ describe('Consumer - only owner function tests', function () {
    * Misc tests
    */
   describe('misc.', function () {
-    it( 'owner can set gas price limit', async function () {
+    it( 'owner can set gas price limit - emits SetGasPriceLimit event', async function () {
 
       const newLimit = 80
       const receipt = await this.MockConsumerContract.setGasPriceLimit(newLimit,  { from: dataConsumerOwner } )
@@ -451,6 +672,12 @@ describe('Consumer - only owner function tests', function () {
         oldLimit: new BN(200),
         newLimit: new BN(newLimit),
       } )
+    } )
+
+    it( 'owner can set gas price limit - limit reduced from 200 to 80', async function () {
+
+      const newLimit = 80
+      await this.MockConsumerContract.setGasPriceLimit(newLimit,  { from: dataConsumerOwner } )
 
       const limit = await this.MockConsumerContract.getGasPriceLimit()
       expect( limit.toNumber() ).to.equal( newLimit )
@@ -482,7 +709,7 @@ describe('Consumer - only owner function tests', function () {
       expect( limit.toNumber() ).to.equal( 200 )
     } )
 
-    it( 'owner can set new router', async function () {
+    it( 'owner can set new router - emits RouterSet event', async function () {
 
       const newRouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
       const receipt = await this.MockConsumerContract.setRouter(newRouterContract.address,  { from: dataConsumerOwner } )
@@ -492,9 +719,12 @@ describe('Consumer - only owner function tests', function () {
         oldRouter: this.RouterContract.address,
         newRouter: newRouterContract.address,
       } )
+    } )
 
+    it( 'owner can set new router - new router contract address is correctly stored', async function () {
+      const newRouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+      await this.MockConsumerContract.setRouter(newRouterContract.address,  { from: dataConsumerOwner } )
       expect( await this.MockConsumerContract.getRouterAddress() ).to.equal( newRouterContract.address )
-
     } )
 
     it( 'only owner can set new router', async function () {
