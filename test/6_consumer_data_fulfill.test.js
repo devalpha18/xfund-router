@@ -148,6 +148,39 @@ describe('Consumer - fulfillment tests', function () {
       expect(retPrice.toNumber()).to.equal(0)
     } )
 
+    it( 'dataProvider cannot fulfill a request if authorisation revoked', async function () {
+      const requestNonce = await this.MockConsumerContract.getRequestNonce()
+      const routerSalt = await this.RouterContract.getSalt()
+
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+      expectEvent( reqReciept, 'DataRequestSubmitted', {
+        dataConsumer: this.MockConsumerContract.address,
+        dataProvider: dataProvider,
+        fee: fee,
+        endpoint: endpoint,
+        callbackFunctionSignature: callbackFuncSig,
+        requestId: reqId,
+      } )
+
+      // revoke priviledges for dataProvider
+      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+
+      // dataProvider tries to fulfill request
+      const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
+      const sig = await web3.eth.accounts.sign(msg, dataProviderPk)
+
+      await expectRevert(
+        this.RouterContract.fulfillRequest(reqId, priceToSend, sig.signature, {from: dataProvider}),
+        "Router: dataProvider not authorised for this dataConsumer"
+      )
+
+      // should still be zero
+      const retPrice = await this.MockConsumerContract.price()
+      expect(retPrice.toNumber()).to.equal(0)
+    } )
+
   })
 
 })

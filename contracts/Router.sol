@@ -23,7 +23,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * This contract uses {AccessControl} to lock permissioned functions using the
  * different roles.
  */
-contract Router is AccessControl {
+contract Router is AccessControl, Request {
     using SafeMath for uint256;
     using Address for address;
 
@@ -35,7 +35,7 @@ contract Router is AccessControl {
     mapping(address => mapping(address => bool)) public requesterAuthorisedProviders;
 
     // Mapping to hold open data requests
-    mapping(bytes32 => Request.DataRequest) public dataRequests;
+    mapping(bytes32 => DataRequest) public dataRequests;
 
     // track fees held by this contract
     uint256 public totalFees = 0;
@@ -49,6 +49,7 @@ contract Router is AccessControl {
         string data,
         bytes32 indexed requestId,
         uint256 gasPrice,
+        uint256 expires,
         bytes4 callbackFunctionSignature
     );
 
@@ -98,6 +99,7 @@ contract Router is AccessControl {
      * @param _requestNonce incremented nonce for Consumer to help prevent request replay
      * @param _data type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
      * @param _gasPrice gas price Consumer is willing to pay for data return. Converted to gwei (10 ** 9) in this method
+     * @param _expires unix epoch for fulfillment expiration, after which cancelRequest can be called for refund
      * @param _requestId the generated ID for this request - used to double check request is coming from the Consumer
      * @param _callbackFunctionSignature signature of function to call in the Consumer's contract to send the data
      * @return success if the execution was successful. Status is checked in the Consumer contract
@@ -108,24 +110,26 @@ contract Router is AccessControl {
         uint256 _requestNonce,
         string memory _data,
         uint256 _gasPrice,
+        uint256 _expires,
         bytes32 _requestId,
         bytes4 _callbackFunctionSignature
     ) public returns (bool success) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can initialise a request");
         require(requesterAuthorisedProviders[msg.sender][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        require(_expires > now, "Router: expiration must be > now");
 
-        bytes32 reqId = keccak256(
-            abi.encodePacked(
-                msg.sender, // msg.sender is the address of the Consumer contract, NOT the Consumer contract owner/Token holder
-                _requestNonce,
-                _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                _gasPrice,
-                salt
-            )
+        // recreate request ID from params sent
+        bytes32 reqId = generateRequestId(
+            msg.sender,
+            _requestNonce,
+            _dataProvider,
+            _data,
+            _callbackFunctionSignature,
+            _gasPrice,
+            salt
         );
+
         require(reqId == _requestId, "Router: reqId != _requestId");
         require(!dataRequests[reqId].isSet, "Router: request id already initialised");
 
@@ -134,48 +138,56 @@ contract Router is AccessControl {
 
         // msg.sender is the address of the Consumer smart contract calling this function.
         // It must have enough Tokens to pay for the dataProvider's fee
+        // Will actuall return underlying ERC20 error "ERC20: transfer amount exceeds balance"
         require(token.transferFrom(msg.sender, _dataProvider, _fee), "Router: token.transferFrom failed");
 
-        dataRequests[reqId] = Request.DataRequest(
+        dataRequests[reqId] = DataRequest(
           {
             dataConsumer: msg.sender,
             dataProvider: _dataProvider,
             callbackFunction: _callbackFunctionSignature,
+            expires: _expires,
             isSet: true
           }
         );
 
         // Transfer successful - emit the DataRequested event
-        emit DataRequested(msg.sender, _dataProvider, _fee, _data, _requestId, _gasPrice, _callbackFunctionSignature);
+        emit DataRequested(
+            msg.sender,
+            _dataProvider,
+            _fee,
+            _data,
+            _requestId,
+            _gasPrice,
+            _expires,
+            _callbackFunctionSignature
+        );
         return true;
     }
 
     /**
      * @dev fulfillRequest - called by data provider to forward data to the Consumer
-     * @param _requestId the request the provider is snding data for
+     * @param _requestId the request the provider is sending data for
      * @param _requestedData the data to send
      * @param _signature data provider's signature of the _requestId, _requestedData and Consumer's address
      *                   this will used to validate the data's origin in the Consumer's contract
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) public returns (bool){
+        require(_signature.length > 0, "Router: must include signature");
         require(dataRequests[_requestId].isSet, "Router: request id does not exist");
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
         bytes4 callbackFunction = dataRequests[_requestId].callbackFunction;
 
-        require(dataConsumer.isContract(), "Router: dataConsumer is not a smart contract");
-
         require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
         // msg.sender is the address of the data provider
         require(requesterAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
 
-        require(msg.sender == dataProvider, "Router: msg.sender does not match dataProvider for request id");
-
         // dataConsumer will see msg.sender as the Router's contract address
         uint256 gasLeftBefore = gasleft();
-        // using OZ's Address library
+        // using functionCall from OZ's Address library
         dataConsumer.functionCall(abi.encodeWithSelector(callbackFunction, _requestedData, _requestId, _signature));
 
         uint256 gasLeftAfter = gasleft();
@@ -243,10 +255,50 @@ contract Router is AccessControl {
 
     /**
      * @dev getSalt - get the salt used for generating request IDs
-     * @return salt
+     * @return bytes32 salt
      */
     function getSalt() public view returns (bytes32) {
         return salt;
+    }
+
+    /**
+     * @dev getDataRequestConsumer - get the dataConsumer for a request
+     * @return address data consumer contract address
+     */
+    function getDataRequestConsumer(bytes32 _requestId) public view returns (address) {
+        return dataRequests[_requestId].dataConsumer;
+    }
+
+    /**
+     * @dev getDataRequestProvider - get the dataConsumer for a request
+     * @return address data provider address
+     */
+    function getDataRequestProvider(bytes32 _requestId) public view returns (address) {
+        return dataRequests[_requestId].dataProvider;
+    }
+
+    /**
+     * @dev getDataRequestExpires - get the expire timestamp for a request
+     * @return uint256 expire timestamp
+     */
+    function getDataRequestExpires(bytes32 _requestId) public view returns (uint256) {
+        return dataRequests[_requestId].expires;
+    }
+
+    /**
+     * @dev getDataRequestCallback - get the callback function signature for a request
+     * @return bytes4 callback function signature
+     */
+    function getDataRequestCallback(bytes32 _requestId) public view returns (bytes4) {
+        return dataRequests[_requestId].callbackFunction;
+    }
+
+    /**
+     * @dev requestExists - check a request ID exists
+     * @return bool
+     */
+    function requestExists(bytes32 _requestId) public view returns (bool) {
+        return dataRequests[_requestId].isSet;
     }
 
     modifier isAdmin() {

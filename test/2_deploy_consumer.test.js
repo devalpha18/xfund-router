@@ -27,12 +27,37 @@ describe('Consumer - deploy', function () {
 
   })
 
-  it('can deploy a Consumer contract with router address', async function () {
+  it('can deploy a Consumer contract with router address - has correct router address', async function () {
     const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
-
     expect(await MockConsumerContract.getRouterAddress()).to.equal(this.RouterContract.address)
+  })
+
+  it('can deploy a Consumer contract with router address - owner is deployer', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
     expect(await MockConsumerContract.owner()).to.equal(dataConsumerOwner)
+  })
+
+  it('can deploy a Consumer contract with router address - deployer has DEFAULT_ADMIN role', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
     expect(await MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(true)
+  })
+
+  it('start requestNonce is 0', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    const requestNonce = await MockConsumerContract.getRequestNonce()
+    expect(requestNonce.toNumber()).to.equal(0)
+  })
+
+  it('start gasPriceLimit is 200', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    const gasPriceLimit = await MockConsumerContract.getGasPriceLimit()
+    expect(gasPriceLimit.toNumber()).to.equal(200)
+  })
+
+  it('start requestTimeout is 300', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    const requestTimeout = await MockConsumerContract.getRequestTimeout()
+    expect(requestTimeout.toNumber()).to.equal(300)
   })
 
   it('must deploy with router', async function () {

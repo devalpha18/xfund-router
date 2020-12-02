@@ -21,11 +21,18 @@ describe('Router - deploy', function () {
     this.MockTokenContract = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
   })
 
-  it('can deploy Router with Token and Salt', async function () {
+  it('can deploy Router with Token and Salt - has correct token address', async function () {
     const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
-
     expect(await RouterContract.getTokenAddress()).to.equal(this.MockTokenContract.address)
+  })
+
+  it('can deploy Router with Token and Salt - has correct salt', async function () {
+    const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
     expect(await RouterContract.getSalt()).to.equal(salt)
+  })
+
+  it('can deploy Router with Token and Salt - deployer has DEFAULT_ADMIN (0x00) role', async function () {
+    const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
     expect(await RouterContract.hasRole("0x00", admin)).to.equal(true)
   })
 

@@ -86,7 +86,7 @@ describe('Consumer - data request tests', function () {
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
     })
 
-    it( 'dataConsumer (owner) can initialise a request', async function () {
+    it( 'dataConsumer (owner) can initialise a request - emits DataRequestSubmitted event', async function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
@@ -103,15 +103,14 @@ describe('Consumer - data request tests', function () {
       } )
     } )
 
-    it( 'only dataConsumer (owner) can initialise a request', async function () {
+    it( 'only dataConsumer (owner) can initialise a request - reverts with error', async function () {
       await expectRevert(
         this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: rando } ),
         "Consumer: only owner can do this"
       )
-
     } )
 
-    it( 'cannot exceed own gas limit', async function () {
+    it( 'cannot exceed own gas limit - reverts with error', async function () {
       // gasLimit is 200 Gwei. Send with 300
       await expectRevert(
         this.MockConsumerContract.requestData( dataProvider, endpoint, 300, { from: dataConsumerOwner } ),
@@ -119,7 +118,7 @@ describe('Consumer - data request tests', function () {
       )
     } )
 
-    it( 'consumer must have authorised provider', async function () {
+    it( 'consumer must have authorised provider - reverts with error', async function () {
       // rando is not authorised
       await expectRevert(
         this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } ),
@@ -147,7 +146,7 @@ describe('Consumer - data request tests', function () {
       } )
     } )
 
-    it( 'request will fail if dataProvider revoked', async function () {
+    it( 'request will fail if dataProvider revoked - reverts with error', async function () {
       // remove dataProvider as a data provider
       await this.MockConsumerContract.removeDataProvider(dataProvider, {from: dataConsumerOwner});
       // dataProvider is no longer authorised
