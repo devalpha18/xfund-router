@@ -23,7 +23,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * This contract uses {AccessControl} to lock permissioned functions using the
  * different roles.
  */
-contract Router is AccessControl {
+contract Router is AccessControl, Request {
     using SafeMath for uint256;
     using Address for address;
 
@@ -35,7 +35,7 @@ contract Router is AccessControl {
     mapping(address => mapping(address => bool)) public requesterAuthorisedProviders;
 
     // Mapping to hold open data requests
-    mapping(bytes32 => Request.DataRequest) public dataRequests;
+    mapping(bytes32 => DataRequest) public dataRequests;
 
     // track fees held by this contract
     uint256 public totalFees = 0;
@@ -115,17 +115,17 @@ contract Router is AccessControl {
         require(address(msg.sender).isContract(), "Router: only a contract can initialise a request");
         require(requesterAuthorisedProviders[msg.sender][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
 
-        bytes32 reqId = keccak256(
-            abi.encodePacked(
-                msg.sender, // msg.sender is the address of the Consumer contract, NOT the Consumer contract owner/Token holder
-                _requestNonce,
-                _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                _gasPrice,
-                salt
-            )
+        // recreate request ID from params sent
+        bytes32 reqId = generateRequestId(
+            msg.sender,
+            _requestNonce,
+            _dataProvider,
+            _data,
+            _callbackFunctionSignature,
+            _gasPrice,
+            salt
         );
+
         require(reqId == _requestId, "Router: reqId != _requestId");
         require(!dataRequests[reqId].isSet, "Router: request id already initialised");
 
@@ -134,9 +134,10 @@ contract Router is AccessControl {
 
         // msg.sender is the address of the Consumer smart contract calling this function.
         // It must have enough Tokens to pay for the dataProvider's fee
+        // Will actuall return underlying ERC20 error "ERC20: transfer amount exceeds balance"
         require(token.transferFrom(msg.sender, _dataProvider, _fee), "Router: token.transferFrom failed");
 
-        dataRequests[reqId] = Request.DataRequest(
+        dataRequests[reqId] = DataRequest(
           {
             dataConsumer: msg.sender,
             dataProvider: _dataProvider,
@@ -152,30 +153,27 @@ contract Router is AccessControl {
 
     /**
      * @dev fulfillRequest - called by data provider to forward data to the Consumer
-     * @param _requestId the request the provider is snding data for
+     * @param _requestId the request the provider is sending data for
      * @param _requestedData the data to send
      * @param _signature data provider's signature of the _requestId, _requestedData and Consumer's address
      *                   this will used to validate the data's origin in the Consumer's contract
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) public returns (bool){
+        require(_signature.length > 0, "Router: must include signature");
         require(dataRequests[_requestId].isSet, "Router: request id does not exist");
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
         bytes4 callbackFunction = dataRequests[_requestId].callbackFunction;
 
-        require(dataConsumer.isContract(), "Router: dataConsumer is not a smart contract");
-
         require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
         // msg.sender is the address of the data provider
         require(requesterAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
 
-        require(msg.sender == dataProvider, "Router: msg.sender does not match dataProvider for request id");
-
         // dataConsumer will see msg.sender as the Router's contract address
         uint256 gasLeftBefore = gasleft();
-        // using OZ's Address library
+        // using functionCall from OZ's Address library
         dataConsumer.functionCall(abi.encodeWithSelector(callbackFunction, _requestedData, _requestId, _signature));
 
         uint256 gasLeftAfter = gasleft();

@@ -4,6 +4,7 @@ pragma solidity ^0.6.0;
 
 import "../interfaces/IRouter.sol";
 import "../interfaces/IERC20_Ex.sol";
+import "./Request.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -22,7 +23,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * This contract uses {AccessControl} to lock permissioned functions using the
  * different roles.
  */
-contract Consumer is AccessControl {
+contract Consumer is AccessControl, Request {
     using SafeMath for uint256;
     using Address for address;
 
@@ -183,6 +184,7 @@ contract Consumer is AccessControl {
         require(_dataProvider != address(0), "Consumer: dataProvider cannot be the zero address");
         require(_fee > 0, "Consumer: fee must be > 0");
         grantRole(ROLE_DATA_PROVIDER, _dataProvider);
+        // msg.sender to Rouer will be the address of this contract
         require(router.grantProviderPermission(_dataProvider), "Consumer: failed to grant dataProvider on Router");
         dataProviderFees[_dataProvider] = _fee;
         emit AddedDataProvider(msg.sender, _dataProvider, _fee);
@@ -202,6 +204,7 @@ contract Consumer is AccessControl {
     isProvider(_dataProvider)
     returns (bool success) {
         revokeRole(ROLE_DATA_PROVIDER, _dataProvider);
+        // msg.sender to Rouer will be the address of this contract
         require(router.revokeProviderPermission(_dataProvider), "Consumer: failed to revoke dataProvider on Router");
         delete dataProviderFees[_dataProvider];
         emit RemovedDataProvider(msg.sender, _dataProvider);
@@ -280,19 +283,17 @@ contract Consumer is AccessControl {
         uint256 gasPriceGwei = _gasPrice * (10 ** 9); // convert gwei input to wei
 
         // generate the requestId
-        requestId = keccak256(
-            abi.encodePacked(
-                address(this),
-                requestNonce,
-                _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                gasPriceGwei,
-                router.getSalt()
-            )
+        bytes32 reqId = generateRequestId(
+            address(this),
+            requestNonce,
+            _dataProvider,
+            _data,
+            _callbackFunctionSignature,
+            gasPriceGwei,
+            router.getSalt()
         );
 
-        dataRequests[requestId] = true;
+        dataRequests[reqId] = true;
 
         // note - router.initialiseRequest will see msg.sender as the address of this contract
         require(
@@ -302,7 +303,7 @@ contract Consumer is AccessControl {
                 requestNonce,
                 _data,
                 gasPriceGwei,
-                requestId,
+                reqId,
                 _callbackFunctionSignature
             ), "submitDataRequest: router.initialiseRequest failed");
 
@@ -314,10 +315,10 @@ contract Consumer is AccessControl {
             _dataProvider,
             fee,
             _data,
-            requestId,
+            reqId,
             _callbackFunctionSignature
         );
-        return requestId;
+        return reqId;
     }
 
     /*
