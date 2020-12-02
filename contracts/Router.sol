@@ -49,6 +49,7 @@ contract Router is AccessControl, Request {
         string data,
         bytes32 indexed requestId,
         uint256 gasPrice,
+        uint256 expires,
         bytes4 callbackFunctionSignature
     );
 
@@ -98,6 +99,7 @@ contract Router is AccessControl, Request {
      * @param _requestNonce incremented nonce for Consumer to help prevent request replay
      * @param _data type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
      * @param _gasPrice gas price Consumer is willing to pay for data return. Converted to gwei (10 ** 9) in this method
+     * @param _expires unix epoch for fulfillment expiration, after which cancelRequest can be called for refund
      * @param _requestId the generated ID for this request - used to double check request is coming from the Consumer
      * @param _callbackFunctionSignature signature of function to call in the Consumer's contract to send the data
      * @return success if the execution was successful. Status is checked in the Consumer contract
@@ -108,12 +110,14 @@ contract Router is AccessControl, Request {
         uint256 _requestNonce,
         string memory _data,
         uint256 _gasPrice,
+        uint256 _expires,
         bytes32 _requestId,
         bytes4 _callbackFunctionSignature
     ) public returns (bool success) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can initialise a request");
         require(requesterAuthorisedProviders[msg.sender][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        require(_expires > now, "Router: expiration must be > now");
 
         // recreate request ID from params sent
         bytes32 reqId = generateRequestId(
@@ -142,12 +146,22 @@ contract Router is AccessControl, Request {
             dataConsumer: msg.sender,
             dataProvider: _dataProvider,
             callbackFunction: _callbackFunctionSignature,
+            expires: _expires,
             isSet: true
           }
         );
 
         // Transfer successful - emit the DataRequested event
-        emit DataRequested(msg.sender, _dataProvider, _fee, _data, _requestId, _gasPrice, _callbackFunctionSignature);
+        emit DataRequested(
+            msg.sender,
+            _dataProvider,
+            _fee,
+            _data,
+            _requestId,
+            _gasPrice,
+            _expires,
+            _callbackFunctionSignature
+        );
         return true;
     }
 
@@ -241,10 +255,50 @@ contract Router is AccessControl, Request {
 
     /**
      * @dev getSalt - get the salt used for generating request IDs
-     * @return salt
+     * @return bytes32 salt
      */
     function getSalt() public view returns (bytes32) {
         return salt;
+    }
+
+    /**
+     * @dev getDataRequestConsumer - get the dataConsumer for a request
+     * @return address data consumer contract address
+     */
+    function getDataRequestConsumer(bytes32 _requestId) public view returns (address) {
+        return dataRequests[_requestId].dataConsumer;
+    }
+
+    /**
+     * @dev getDataRequestProvider - get the dataConsumer for a request
+     * @return address data provider address
+     */
+    function getDataRequestProvider(bytes32 _requestId) public view returns (address) {
+        return dataRequests[_requestId].dataProvider;
+    }
+
+    /**
+     * @dev getDataRequestExpires - get the expire timestamp for a request
+     * @return uint256 expire timestamp
+     */
+    function getDataRequestExpires(bytes32 _requestId) public view returns (uint256) {
+        return dataRequests[_requestId].expires;
+    }
+
+    /**
+     * @dev getDataRequestCallback - get the callback function signature for a request
+     * @return bytes4 callback function signature
+     */
+    function getDataRequestCallback(bytes32 _requestId) public view returns (bytes4) {
+        return dataRequests[_requestId].callbackFunction;
+    }
+
+    /**
+     * @dev requestExists - check a request ID exists
+     * @return bool
+     */
+    function requestExists(bytes32 _requestId) public view returns (bool) {
+        return dataRequests[_requestId].isSet;
     }
 
     modifier isAdmin() {
