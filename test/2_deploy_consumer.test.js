@@ -42,6 +42,24 @@ describe('Consumer - deploy', function () {
     expect(await MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(true)
   })
 
+  it('start requestNonce is 0', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    const requestNonce = await MockConsumerContract.getRequestNonce()
+    expect(requestNonce.toNumber()).to.equal(0)
+  })
+
+  it('start gasPriceLimit is 200', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    const gasPriceLimit = await MockConsumerContract.getGasPriceLimit()
+    expect(gasPriceLimit.toNumber()).to.equal(200)
+  })
+
+  it('start requestTimeout is 300', async function () {
+    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    const requestTimeout = await MockConsumerContract.getRequestTimeout()
+    expect(requestTimeout.toNumber()).to.equal(300)
+  })
+
   it('must deploy with router', async function () {
     await expectRevert(
       MockConsumer.new(constants.ZERO_ADDRESS, {from: dataConsumerOwner}),

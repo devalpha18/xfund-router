@@ -709,6 +709,53 @@ describe('Consumer - only owner function tests', function () {
       expect( limit.toNumber() ).to.equal( 200 )
     } )
 
+    it( 'owner can set request timeout - emits SetRequestTimout event', async function () {
+
+      const newLimit = 500
+      const receipt = await this.MockConsumerContract.setRequestTimeout(newLimit,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'SetRequestTimout', {
+        sender: dataConsumerOwner,
+        oldTimeout: new BN(300),
+        newTimeout: new BN(newLimit),
+      } )
+    } )
+
+    it( 'owner can set request timeout - limit changed from 300 to 500', async function () {
+
+      const newLimit = 500
+      await this.MockConsumerContract.setRequestTimeout(newLimit,  { from: dataConsumerOwner } )
+
+      const limit = await this.MockConsumerContract.getRequestTimeout()
+      expect( limit.toNumber() ).to.equal( newLimit )
+
+    } )
+
+    it( 'only owner can set request timeout', async function () {
+
+      const newLimit = 500
+      await expectRevert(
+        this.MockConsumerContract.setRequestTimeout(newLimit, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+
+      // should still be the default 300
+      const limit = await this.MockConsumerContract.getRequestTimeout()
+      expect( limit.toNumber() ).to.equal( 300 )
+    } )
+
+    it( 'new request timeout must be > 0', async function () {
+
+      await expectRevert(
+        this.MockConsumerContract.setRequestTimeout(0, { from: dataConsumerOwner } ),
+        "Consumer: newTimeout must be > 0"
+      )
+
+      // should still be the default 300
+      const limit = await this.MockConsumerContract.getRequestTimeout()
+      expect( limit.toNumber() ).to.equal( 300 )
+    } )
+
     it( 'owner can set new router - emits RouterSet event', async function () {
 
       const newRouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})

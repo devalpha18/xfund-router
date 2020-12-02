@@ -103,6 +103,110 @@ describe('Router - interaction tests', function () {
       const isAuthorised = await mockRouter.providerIsAuthorised(mockConsumer.address, dataProvider)
       expect(isAuthorised).to.equal(true)
     } )
+    
+    /*
+     * Data Request queries
+     */
+    describe('data request queries', function () {
+      it( 'requestExists - request does not exist', async function () {
+        const notExistReqId =  web3.utils.soliditySha3(web3.utils.randomHex(32))
+        expect(await this.RouterContract.requestExists(notExistReqId)).to.equal(false)
+      })
+
+      it( 'requestExists - request does exist', async function () {
+        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        // Admin Transfer 10 Tokens to dataConsumerOwner
+        await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+        // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
+        await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+        // increase Router allowance
+        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+
+        // get current nonce and salt so the request ID can be recreated
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
+
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        expect(await this.RouterContract.requestExists(reqId)).to.equal(true)
+      })
+
+      it( 'getDataRequestConsumer - request does not exist, consumer is zero address', async function () {
+        const notExistReqId =  web3.utils.soliditySha3(web3.utils.randomHex(32))
+        expect(await this.RouterContract.getDataRequestConsumer(notExistReqId)).to.equal(constants.ZERO_ADDRESS)
+      })
+
+      it( 'getDataRequestConsumer - request does exist, consumer is contract address', async function () {
+        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        // Admin Transfer 10 Tokens to dataConsumerOwner
+        await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+        // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
+        await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+        // increase Router allowance
+        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+
+        // get current nonce and salt so the request ID can be recreated
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
+
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        expect(await this.RouterContract.getDataRequestConsumer(reqId)).to.equal(this.MockConsumerContract.address)
+      })
+
+      it( 'getDataRequestProvider - request does not exist, provider is zero address', async function () {
+        const notExistReqId =  web3.utils.soliditySha3(web3.utils.randomHex(32))
+        expect(await this.RouterContract.getDataRequestProvider(notExistReqId)).to.equal(constants.ZERO_ADDRESS)
+      })
+
+      it( 'getDataRequestProvider - request does exist, provider is contract address', async function () {
+        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        // Admin Transfer 10 Tokens to dataConsumerOwner
+        await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+        // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
+        await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+        // increase Router allowance
+        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+
+        // get current nonce and salt so the request ID can be recreated
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
+
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        expect(await this.RouterContract.getDataRequestProvider(reqId)).to.equal(dataProvider)
+      })
+
+      it( 'getDataRequestExpires - request does not exist, expires is zero', async function () {
+        const notExistReqId =  web3.utils.soliditySha3(web3.utils.randomHex(32))
+        const expires = await this.RouterContract.getDataRequestExpires(notExistReqId)
+        expect(expires.toNumber()).to.equal(0)
+      })
+
+      it( 'getDataRequestExpires - request does exist, expires > now', async function () {
+        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        // Admin Transfer 10 Tokens to dataConsumerOwner
+        await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+        // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
+        await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+        // increase Router allowance
+        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+
+        // get current nonce and salt so the request ID can be recreated
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
+        const now = Math.floor(Date.now() / 1000)
+
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        const expires = await this.RouterContract.getDataRequestExpires(reqId)
+        expect(expires.toNumber()).to.be.above(now)
+      })
+    })
   })
 
   /*
@@ -110,8 +214,10 @@ describe('Router - interaction tests', function () {
    */
   describe('eoa interactions', function () {
     it( 'eoa cannot initialise request', async function () {
+      const reqId = web3.utils.soliditySha3(web3.utils.randomHex(32))
+      const cbSig = web3.eth.abi.encodeFunctionSignature('nowt(uint256)')
       await expectRevert(
-        this.RouterContract.initialiseRequest(dataProvider, fee, 0, endpoint, 20, salt, callbackFuncSig, {from: dataConsumerOwner}),
+        this.RouterContract.initialiseRequest(dataProvider, 100, 0, "SOME.STUFF", 20, 200, reqId, cbSig, {from: dataConsumerOwner}),
         "Router: only a contract can initialise a request"
       )
     } )
@@ -153,10 +259,43 @@ describe('Router - interaction tests', function () {
       await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
       const rubbishRequestId = web3.utils.soliditySha3(web3.utils.randomHex(32))
 
+      const now = Math.floor(Date.now() / 1000)
+      const expires = now + 300
       // request ID being sent will not match reconstructed version in Router
       await expectRevert(
-        this.BadConsumerContract.requestDataWithAllParamsAndRequestId(dataProvider, 100, 1, endpoint, 200000000000, rubbishRequestId, {from: dataConsumerOwner}),
+        this.BadConsumerContract.requestDataWithAllParamsAndRequestId(
+          dataProvider,
+          100,
+          1,
+          endpoint,
+          200000000000,
+          expires,
+          rubbishRequestId,
+          {from: dataConsumerOwner}
+          ),
         "Router: reqId != _requestId"
+      )
+    } )
+
+    it( 'expiry must be future date', async function () {
+      await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
+      const rubbishRequestId = web3.utils.soliditySha3(web3.utils.randomHex(32))
+
+      const now = Math.floor(Date.now() / 1000)
+      const expires = now - 86400 // yesterday
+      // request ID being sent will not match reconstructed version in Router
+      await expectRevert(
+        this.BadConsumerContract.requestDataWithAllParamsAndRequestId(
+          dataProvider,
+          100,
+          1,
+          endpoint,
+          200000000000,
+          expires,
+          rubbishRequestId,
+          {from: dataConsumerOwner}
+        ),
+        "Router: expiration must be > now"
       )
     } )
 
@@ -179,12 +318,14 @@ describe('Router - interaction tests', function () {
       // increase Router allowance
       await this.BadConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
+      const now = Math.floor(Date.now() / 1000)
+      const expires = now + 300
       // first req - not implementing Consumer lib's submitRequest function
-      await this.BadConsumerContract.requestDataWithAllParams(dataProvider, 100, 2, endpoint, 200000000000, {from: dataConsumerOwner})
+      await this.BadConsumerContract.requestDataWithAllParams(dataProvider, 100, 2, endpoint, 200000000000, expires, {from: dataConsumerOwner})
 
       // second request - same method, same data
       await expectRevert(
-        this.BadConsumerContract.requestDataWithAllParams(dataProvider, 100, 2, endpoint, 200000000000, {from: dataConsumerOwner}),
+        this.BadConsumerContract.requestDataWithAllParams(dataProvider, 100, 2, endpoint, 200000000000, expires, {from: dataConsumerOwner}),
         "Router: request id already initialised"
       )
     } )
