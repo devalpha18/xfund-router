@@ -48,10 +48,11 @@ contract MockBadConsumer {
             _dataProvider,
             100,
             nonce,
-           _data,
-           20000000000,
-           requestId,
-           this.recieveData.selector
+            _data,
+            20000000000,
+            now + 300,
+            requestId,
+            this.recieveData.selector
         );
     }
 
@@ -62,7 +63,9 @@ contract MockBadConsumer {
         uint256 _fee,
         uint256 _nonce,
         string memory _data,
-        uint256 _gasPriceGwei)
+        uint256 _gasPriceGwei,
+        uint256 expires
+    )
     public returns (bool success) {
         bytes32 requestId = keccak256(
             abi.encodePacked(
@@ -82,6 +85,7 @@ contract MockBadConsumer {
             _nonce,
             _data,
             _gasPriceGwei,
+            expires,
             requestId,
             this.recieveData.selector
         );
@@ -93,7 +97,9 @@ contract MockBadConsumer {
         uint256 _nonce,
         string memory _data,
         uint256 _gasPriceGwei,
-        bytes32 _requestId)
+        uint256 expires,
+        bytes32 _requestId
+        )
     public returns (bool success) {
         return router.initialiseRequest(
             _dataProvider,
@@ -101,6 +107,7 @@ contract MockBadConsumer {
             _nonce,
             _data,
             _gasPriceGwei,
+            expires,
             _requestId,
             this.recieveData.selector
         );
