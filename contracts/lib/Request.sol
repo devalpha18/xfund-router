@@ -12,6 +12,7 @@ contract Request {
         address dataConsumer;
         address dataProvider;
         bytes4 callbackFunction;
+        uint256 expires;
         bool isSet;
     }
 
