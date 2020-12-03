@@ -52,6 +52,7 @@ contract Consumer is AccessControl, Request {
      * EVENTS
      */
     event DataRequestSubmitted(
+        address sender,
         address indexed dataConsumer,
         address indexed dataProvider,
         uint256 fee,
@@ -63,10 +64,10 @@ contract Consumer is AccessControl, Request {
     );
 
     event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event WithdrawTokensFromContract(address indexed from, address indexed to, uint256 amount);
-    event IncreasedRouterAllowance(address indexed router, address indexed contractAddress, uint256 amount);
-    event DecreasedRouterAllowance(address indexed router, address indexed contractAddress, uint256 amount);
+    event OwnershipTransferred(address indexed sender, address indexed previousOwner, address indexed newOwner);
+    event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
+    event IncreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
+    event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
     event AddedDataProvider(address indexed sender, address indexed provider, uint256 fee);
     event RemovedDataProvider(address indexed sender, address indexed provider);
     event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
@@ -110,6 +111,14 @@ contract Consumer is AccessControl, Request {
         uint256 gasUsedToCall
     );
 
+    // RequestCancelled event. Emitted when a data consumer cancels a request
+    event RequestCancelled(
+        address indexed dataConsumer,
+        address indexed dataProvider,
+        bytes32 indexed requestId,
+        uint256 refund
+    );
+
     /*
      * WRITE FUNCTIONS
      */
@@ -140,7 +149,7 @@ contract Consumer is AccessControl, Request {
         gasPriceLimit = 200;
         requestTimeout = 300;
         emit RouterSet(msg.sender, address(0), _router);
-        emit OwnershipTransferred(address(0), msg.sender);
+        emit OwnershipTransferred( msg.sender, address(0), msg.sender);
     }
 
     /**
@@ -153,7 +162,7 @@ contract Consumer is AccessControl, Request {
         uint256 amount = token.balanceOf(address(this));
         if(amount > 0) {
             require(token.transfer(OWNER, amount), "Consumer: token withdraw failed");
-            emit WithdrawTokensFromContract(address(this), OWNER, amount);
+            emit WithdrawTokensFromContract(msg.sender, address(this), OWNER, amount);
         }
         return true;
     }
@@ -169,7 +178,7 @@ contract Consumer is AccessControl, Request {
         uint256 contractBalance = token.balanceOf(address(this));
         require(contractBalance > 0, "Consumer: contract has zero token balance");
         require(token.transfer(OWNER, _amount), "Consumer: token withdraw failed");
-        emit WithdrawTokensFromContract(address(this), OWNER, _amount);
+        emit WithdrawTokensFromContract(msg.sender, address(this), OWNER, _amount);
         return true;
     }
 
@@ -183,7 +192,7 @@ contract Consumer is AccessControl, Request {
         grantRole(DEFAULT_ADMIN_ROLE, newOwner);
         renounceRole(DEFAULT_ADMIN_ROLE, OWNER);
         require(withdrawAllTokens(), "Consumer: failed to transfer ownership");
-        emit OwnershipTransferred(OWNER, newOwner);
+        emit OwnershipTransferred(msg.sender, OWNER, newOwner);
         OWNER = newOwner;
     }
 
@@ -197,7 +206,7 @@ contract Consumer is AccessControl, Request {
      */
     function increaseRouterAllowance(uint256 _routerAllowance) public onlyOwner() returns (bool success) {
         require(token.increaseAllowance(address(router), _routerAllowance), "Consumer: failed to increase Router token allowance");
-        emit IncreasedRouterAllowance(address(router), address(this), _routerAllowance);
+        emit IncreasedRouterAllowance(msg.sender, address(router), address(this), _routerAllowance);
         return true;
     }
 
@@ -210,7 +219,7 @@ contract Consumer is AccessControl, Request {
      */
     function decreaseRouterAllowance(uint256 _routerAllowance) public onlyOwner() returns (bool success) {
         require(token.decreaseAllowance(address(router), _routerAllowance), "Consumer: failed to increase Router token allowance");
-        emit DecreasedRouterAllowance(address(router), address(this), _routerAllowance);
+        emit DecreasedRouterAllowance(msg.sender, address(router), address(this), _routerAllowance);
         return true;
     }
 
@@ -377,6 +386,7 @@ contract Consumer is AccessControl, Request {
 
         // only emitted if the router request is successful. Data provider can cross reference and check
         emit DataRequestSubmitted(
+            msg.sender,
             address(this), // request comes from the address of this contract
             _dataProvider,
             fee,
