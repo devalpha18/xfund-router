@@ -74,6 +74,8 @@ contract Consumer is AccessControl, Request {
     event SetGasPriceLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
     event SetRequestTimout(address indexed sender, uint256 oldTimeout, uint256 newTimeout);
 
+    event RequestCancellationSubmitted(address sender, bytes32 requestId);
+
     /*
      * MIRRORED EVENTS - FOR CLIENT LOG DECODING
      */
@@ -365,6 +367,8 @@ contract Consumer is AccessControl, Request {
             router.getSalt()
         );
 
+        require(!dataRequests[reqId], "Consumer: request id already exists");
+
         dataRequests[reqId] = true;
 
         uint256 expires = now + requestTimeout;
@@ -380,7 +384,7 @@ contract Consumer is AccessControl, Request {
                 expires,
                 reqId,
                 _callbackFunctionSignature
-            ), "submitDataRequest: router.initialiseRequest failed");
+            ), "Consumer: router.initialiseRequest failed");
 
         requestNonce += 1;
 
@@ -397,6 +401,22 @@ contract Consumer is AccessControl, Request {
             _callbackFunctionSignature
         );
         return reqId;
+    }
+
+    /**
+    * @dev cancelRequest submit cancellation to the router for the specified request
+   *
+    * @param _requestId the id of the request being cancelled
+    * @return success bool
+    */
+    function cancelRequest(bytes32 _requestId)
+    public onlyOwner()
+    returns (bool success) {
+        require(dataRequests[_requestId], "Consumer: request id does not exist");
+        require(router.cancelRequest(_requestId), "Consumer: router.cancelRequest failed");
+        emit RequestCancellationSubmitted(msg.sender, _requestId);
+        delete dataRequests[_requestId];
+        return true;
     }
 
     /*

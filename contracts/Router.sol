@@ -74,6 +74,14 @@ contract Router is AccessControl, Request {
         uint256 gasUsedToCall
     );
 
+    // RequestCancelled event. Emitted when a data consumer cancels a request
+    event RequestCancelled(
+        address indexed dataConsumer,
+        address indexed dataProvider,
+        bytes32 indexed requestId,
+        uint256 refund
+    );
+
     // SaltSet used during deployment
     event SaltSet(bytes32 salt);
 
@@ -187,7 +195,7 @@ contract Router is AccessControl, Request {
      * @param _requestedData the data to send
      * @param _signature data provider's signature of the _requestId, _requestedData and Consumer's address
      *                   this will used to validate the data's origin in the Consumer's contract
-     * @return success if the execution was successful. Status is checked in the Consumer contract
+     * @return success if the execution was successful.
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) public returns (bool){
         require(_signature.length > 0, "Router: must include signature");
@@ -234,9 +242,40 @@ contract Router is AccessControl, Request {
         return true;
     }
 
-    // ToDo
+    /**
+     * @dev cancelRequest - called by data Consumer to cancel a request
+     * @param _requestId the request the consumer wishes to cancel
+     * @return success if the execution was successful. Status is checked in the Consumer contract
+     */
     function cancelRequest(bytes32 _requestId) public returns (bool) {
         require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
+        require(dataRequests[_requestId].isSet, "Router: request id does not exist");
+
+        address dataConsumer = dataRequests[_requestId].dataConsumer;
+        address dataProvider = dataRequests[_requestId].dataProvider;
+        uint256 refund = dataRequests[_requestId].fee;
+        uint256 expires = dataRequests[_requestId].expires;
+
+        // msg.sender is the contract address of the consumer
+        require(msg.sender == dataConsumer, "Router: msg.sender != dataConsumer");
+        require(now >= expires, "Router: request has not yet expired");
+
+        emit RequestCancelled(
+            msg.sender,
+            dataProvider,
+            _requestId,
+            refund
+        );
+
+        // ToDo - claim gas refund
+
+        // Refund Tokens to dataConsumer (msg.sender)
+        totalTokensHeld = totalTokensHeld.sub(refund, "Router: refund amount exceeds router totalTokensHeld");
+        tokensHeldForPayment[msg.sender][dataProvider] = tokensHeldForPayment[msg.sender][dataProvider].sub(refund, "Router: refund amount exceeds router tokensHeldForPayment for pair");
+        require(token.transfer(msg.sender, refund), "Router: token.transfer failed");
+
+        delete dataRequests[_requestId];
+
         return true;
     }
 
