@@ -98,6 +98,7 @@ describe('Consumer - fulfillment tests', function () {
         dataProvider: dataProvider,
         fee: fee,
         endpoint: endpoint,
+        gasPrice: new BN(gasPrice * (10 ** 9)),
         callbackFunctionSignature: callbackFuncSig,
         requestId: reqId,
       } )
@@ -130,6 +131,7 @@ describe('Consumer - fulfillment tests', function () {
         dataProvider: dataProvider,
         fee: fee,
         endpoint: endpoint,
+        gasPrice: new BN(gasPrice * (10 ** 9)),
         callbackFunctionSignature: callbackFuncSig,
         requestId: reqId,
       } )
@@ -160,6 +162,7 @@ describe('Consumer - fulfillment tests', function () {
         dataProvider: dataProvider,
         fee: fee,
         endpoint: endpoint,
+        gasPrice: new BN(gasPrice * (10 ** 9)),
         callbackFunctionSignature: callbackFuncSig,
         requestId: reqId,
       } )
@@ -174,6 +177,30 @@ describe('Consumer - fulfillment tests', function () {
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, priceToSend, sig.signature, {from: dataProvider}),
         "Router: dataProvider not authorised for this dataConsumer"
+      )
+
+      // should still be zero
+      const retPrice = await this.MockConsumerContract.price()
+      expect(retPrice.toNumber()).to.equal(0)
+    } )
+
+    it( 'dataProvider cannot pay higher gas than consumer requested', async function () {
+      const requestNonce = await this.MockConsumerContract.getRequestNonce()
+      const routerSalt = await this.RouterContract.getSalt()
+
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+
+      // dataProvider tries to fulfill request paying higher than gas price
+      const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
+      const sig = await web3.eth.accounts.sign(msg, dataProviderPk)
+
+      const gasPriceTooHigh = gasPrice * 2
+
+      await expectRevert(
+        this.RouterContract.fulfillRequest(reqId, priceToSend, sig.signature, {from: dataProvider, gasPrice: (gasPriceTooHigh * (10 ** 9))}),
+        "Router: tx.gasprice cannot exceed gas price consumer is willing to pay"
       )
 
       // should still be zero
