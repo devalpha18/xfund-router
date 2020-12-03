@@ -39,7 +39,7 @@ function generateRequestId(
   )
 }
 
-describe('Consumer - fulfillment tests', function () {
+describe('Provider - fulfillment tests', function () {
   this.timeout(300000)
 
   const [admin, dataProvider, dataConsumerOwner, rando] = accounts

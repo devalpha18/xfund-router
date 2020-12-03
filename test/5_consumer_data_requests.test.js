@@ -20,6 +20,10 @@ function generateSigMsg(requestId, data, consumerAddress) {
   )
 }
 
+const sleepFor = (ms) => {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function generateRequestId(
   consumerAddress,
   requestNonce,
@@ -86,113 +90,116 @@ describe('Consumer - data request tests', function () {
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
     })
 
-    it( 'dataConsumer (owner) can initialise a request - emits DataRequestSubmitted event', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
+    describe('initialise requests', function () {
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
-      const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      it( 'dataConsumer (owner) can initialise a request - emits DataRequestSubmitted event', async function () {
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
 
-      expectEvent( reciept, 'DataRequestSubmitted', {
-        sender: dataConsumerOwner,
-        dataConsumer: this.MockConsumerContract.address,
-        dataProvider: dataProvider,
-        fee: fee,
-        endpoint: endpoint,
-        gasPrice: new BN(gasPrice * (10 ** 9)),
-        callbackFunctionSignature: callbackFuncSig,
-        requestId: reqId,
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        expectEvent( reciept, 'DataRequestSubmitted', {
+          sender: dataConsumerOwner,
+          dataConsumer: this.MockConsumerContract.address,
+          dataProvider: dataProvider,
+          fee: fee,
+          endpoint: endpoint,
+          gasPrice: new BN( gasPrice * ( 10 ** 9 ) ),
+          callbackFunctionSignature: callbackFuncSig,
+          requestId: reqId,
+        } )
       } )
-    } )
 
-    it( 'dataConsumer (owner) can initialise a request - Router emits DataRequested event', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
+      it( 'dataConsumer (owner) can initialise a request - Router emits DataRequested event', async function () {
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
-      const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
-      const expires = await this.RouterContract.getDataRequestExpires(reqId)
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const expires = await this.RouterContract.getDataRequestExpires( reqId )
 
-      expectEvent( reciept, 'DataRequested', {
-        dataConsumer: this.MockConsumerContract.address,
-        dataProvider: dataProvider,
-        fee: fee,
-        data: endpoint,
-        requestId: reqId,
-        gasPrice: new BN(gasPrice * (10 ** 9)),
-        expires: expires,
-        callbackFunctionSignature: callbackFuncSig,
+        expectEvent( reciept, 'DataRequested', {
+          dataConsumer: this.MockConsumerContract.address,
+          dataProvider: dataProvider,
+          fee: fee,
+          data: endpoint,
+          requestId: reqId,
+          gasPrice: new BN( gasPrice * ( 10 ** 9 ) ),
+          expires: expires,
+          callbackFunctionSignature: callbackFuncSig,
+        } )
       } )
-    } )
 
-    it( 'only dataConsumer (owner) can initialise a request - reverts with error', async function () {
-      await expectRevert(
-        this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: rando } ),
-        "Consumer: only owner can do this"
-      )
-    } )
-
-    it( 'cannot exceed own gas limit - reverts with error', async function () {
-      // gasLimit is 200 Gwei. Send with 300
-      await expectRevert(
-        this.MockConsumerContract.requestData( dataProvider, endpoint, 300, { from: dataConsumerOwner } ),
-        "Consumer: gasPrice > gasPriceLimit"
-      )
-    } )
-
-    it( 'consumer must have authorised provider - reverts with error', async function () {
-      // rando is not authorised
-      await expectRevert(
-        this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } ),
-        "Consumer: _dataProvider does not have role DATA_PROVIDER"
-      )
-    } )
-
-    it( 'dataConsumer (owner) can add rando as new data provider and initialise a request', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
-
-      // add rando as new provider
-      await this.MockConsumerContract.addDataProvider(rando, fee, {from: dataConsumerOwner});
-
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, rando, endpoint, callbackFuncSig, gasPrice, routerSalt)
-      const reciept = await this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } )
-
-      expectEvent( reciept, 'DataRequestSubmitted', {
-        sender: dataConsumerOwner,
-        dataConsumer: this.MockConsumerContract.address,
-        dataProvider: rando,
-        fee: fee,
-        endpoint: endpoint,
-        gasPrice: new BN(gasPrice * (10 ** 9)),
-        callbackFunctionSignature: callbackFuncSig,
-        requestId: reqId,
+      it( 'only dataConsumer (owner) can initialise a request - reverts with error', async function () {
+        await expectRevert(
+          this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: rando } ),
+          "Consumer: only owner can do this"
+        )
       } )
-    } )
 
-    it( 'request will fail if dataProvider revoked - reverts with error', async function () {
-      // remove dataProvider as a data provider
-      await this.MockConsumerContract.removeDataProvider(dataProvider, {from: dataConsumerOwner});
-      // dataProvider is no longer authorised
-      await expectRevert(
-        this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
-        "Consumer: _dataProvider does not have role DATA_PROVIDER"
-      )
-    } )
-
-    it( 'fee is correctly held in Router contract - emits Transfer event', async function () {
-     const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
-
-      expectEvent( reciept, 'Transfer', {
-        from: this.MockConsumerContract.address,
-        to: this.RouterContract.address,
-        value: fee,
+      it( 'cannot exceed own gas limit - reverts with error', async function () {
+        // gasLimit is 200 Gwei. Send with 300
+        await expectRevert(
+          this.MockConsumerContract.requestData( dataProvider, endpoint, 300, { from: dataConsumerOwner } ),
+          "Consumer: gasPrice > gasPriceLimit"
+        )
       } )
-    } )
+
+      it( 'consumer must have authorised provider - reverts with error', async function () {
+        // rando is not authorised
+        await expectRevert(
+          this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } ),
+          "Consumer: _dataProvider does not have role DATA_PROVIDER"
+        )
+      } )
+
+      it( 'dataConsumer (owner) can add rando as new data provider and initialise a request', async function () {
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
+
+        // add rando as new provider
+        await this.MockConsumerContract.addDataProvider( rando, fee, { from: dataConsumerOwner } );
+
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, rando, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reciept = await this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        expectEvent( reciept, 'DataRequestSubmitted', {
+          sender: dataConsumerOwner,
+          dataConsumer: this.MockConsumerContract.address,
+          dataProvider: rando,
+          fee: fee,
+          endpoint: endpoint,
+          gasPrice: new BN( gasPrice * ( 10 ** 9 ) ),
+          callbackFunctionSignature: callbackFuncSig,
+          requestId: reqId,
+        } )
+      } )
+
+      it( 'request will fail if dataProvider revoked - reverts with error', async function () {
+        // remove dataProvider as a data provider
+        await this.MockConsumerContract.removeDataProvider( dataProvider, { from: dataConsumerOwner } );
+        // dataProvider is no longer authorised
+        await expectRevert(
+          this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
+          "Consumer: _dataProvider does not have role DATA_PROVIDER"
+        )
+      } )
+
+      it( 'fee is correctly held in Router contract - emits Transfer event', async function () {
+        const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        expectEvent( reciept, 'Transfer', {
+          from: this.MockConsumerContract.address,
+          to: this.RouterContract.address,
+          value: fee,
+        } )
+      } )
+    })
   })
 
   /*
-   * Advanced Tests with Tokens
+   * Basic Tests with Tokens
    */
   describe('basic token tests', function () {
     // add data provider but no tokens
