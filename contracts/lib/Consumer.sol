@@ -57,6 +57,7 @@ contract Consumer is AccessControl, Request {
         uint256 fee,
         string endpoint,
         uint256 expires,
+        uint256 gasPrice,
         bytes32 indexed requestId,
         bytes4 callbackFunctionSignature
     );
@@ -71,6 +72,43 @@ contract Consumer is AccessControl, Request {
     event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
     event SetGasPriceLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
     event SetRequestTimout(address indexed sender, uint256 oldTimeout, uint256 newTimeout);
+
+    /*
+     * MIRRORED EVENTS - FOR CLIENT LOG DECODING
+     */
+
+    // Mirrored ERC20 events for web3 client decoding
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    // Mirrored Router events for web3 client decoding
+    // DataRequested event. Emitted when a data request has been initialised
+    event DataRequested(
+        address indexed dataConsumer,
+        address indexed dataProvider,
+        uint256 fee,
+        string data,
+        bytes32 indexed requestId,
+        uint256 gasPrice,
+        uint256 expires,
+        bytes4 callbackFunctionSignature
+    );
+
+    // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
+    event GrantProviderPermission(address indexed dataConsumer, address indexed dataProvider);
+
+    // RevokeProviderPermission event. Emitted when a data consumer revokes access for a data provider to provide data
+    event RevokeProviderPermission(address indexed dataConsumer, address indexed dataProvider);
+
+    // RequestFulfilled event. Emitted when a data provider has sent the data requested
+    event RequestFulfilled(
+        address indexed dataConsumer,
+        address indexed dataProvider,
+        bytes32 indexed requestId,
+        bytes4 callbackFunctionSignature,
+        uint256 requestedData,
+        uint256 gasUsedToCall
+    );
 
     /*
      * WRITE FUNCTIONS
@@ -344,6 +382,7 @@ contract Consumer is AccessControl, Request {
             fee,
             _data,
             expires,
+            gasPriceGwei,
             reqId,
             _callbackFunctionSignature
         );
