@@ -39,7 +39,7 @@ function generateRequestId(
   )
 }
 
-describe('Consumer - fulfillment tests', function () {
+describe('Provider - fulfillment tests', function () {
   this.timeout(300000)
 
   const [admin, dataProvider, dataConsumerOwner, rando] = accounts
@@ -94,6 +94,7 @@ describe('Consumer - fulfillment tests', function () {
       const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reqReciept, 'DataRequestSubmitted', {
+        sender: dataConsumerOwner,
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider,
         fee: fee,
@@ -127,6 +128,7 @@ describe('Consumer - fulfillment tests', function () {
       const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reqReciept, 'DataRequestSubmitted', {
+        sender: dataConsumerOwner,
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider,
         fee: fee,
@@ -158,6 +160,7 @@ describe('Consumer - fulfillment tests', function () {
       const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reqReciept, 'DataRequestSubmitted', {
+        sender: dataConsumerOwner,
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider,
         fee: fee,

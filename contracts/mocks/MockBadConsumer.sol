@@ -113,6 +113,10 @@ contract MockBadConsumer {
         );
     }
 
+    function cancelDataRequest(bytes32 _requestId) public returns (bool success) {
+        return router.cancelRequest(_requestId);
+    }
+
     function addDataProviderToRouter(address _dataProvider) public {
         require(router.grantProviderPermission(_dataProvider), "BadConsumer: failed to grant dataProvider on Router");
     }

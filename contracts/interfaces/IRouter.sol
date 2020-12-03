@@ -8,4 +8,5 @@ interface IRouter {
     function getSalt() external returns (bytes32);
     function grantProviderPermission(address) external returns (bool);
     function revokeProviderPermission(address) external returns (bool);
+    function cancelRequest(bytes32) external returns (bool);
 }

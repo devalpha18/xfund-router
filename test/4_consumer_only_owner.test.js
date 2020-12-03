@@ -48,6 +48,7 @@ describe('Consumer - only owner function tests', function () {
       const receipt = await this.MockConsumerContract.withdrawAllTokens( { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'WithdrawTokensFromContract', {
+        sender: dataConsumerOwner,
         from: this.MockConsumerContract.address,
         to: dataConsumerOwner,
         amount: new BN( amountForContract )
@@ -140,6 +141,7 @@ describe('Consumer - only owner function tests', function () {
       const receipt = await this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'WithdrawTokensFromContract', {
+        sender: dataConsumerOwner,
         from: this.MockConsumerContract.address,
         to: dataConsumerOwner,
         amount: new BN( amountToWithdraw )
@@ -251,6 +253,7 @@ describe('Consumer - only owner function tests', function () {
       const receipt = await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'IncreasedRouterAllowance', {
+        sender: dataConsumerOwner,
         router: this.RouterContract.address,
         contractAddress: this.MockConsumerContract.address,
         amount: new BN( allowance )
@@ -347,6 +350,7 @@ describe('Consumer - only owner function tests', function () {
       const receipt = await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'DecreasedRouterAllowance', {
+        sender: dataConsumerOwner,
         router: this.RouterContract.address,
         contractAddress: this.MockConsumerContract.address,
         amount: new BN( decrease )

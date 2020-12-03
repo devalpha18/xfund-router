@@ -45,6 +45,7 @@ describe('Consumer - transfer ownership tests', function () {
     const receipt = await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
 
     expectEvent(receipt, 'OwnershipTransferred', {
+      sender: dataConsumerOwner,
       previousOwner: dataConsumerOwner,
       newOwner: newOwner1
     })
@@ -110,6 +111,7 @@ describe('Consumer - transfer ownership tests', function () {
     const receipt2 = await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
 
     expectEvent(receipt2, 'OwnershipTransferred', {
+      sender: newOwner1,
       previousOwner: newOwner1,
       newOwner: newOwner2
     })
@@ -217,6 +219,7 @@ describe('Consumer - transfer ownership tests', function () {
     const receipt = await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
 
     expectEvent(receipt, 'OwnershipTransferred', {
+      sender: dataConsumerOwner,
       previousOwner: dataConsumerOwner,
       newOwner: newOwner1
     })
@@ -228,6 +231,7 @@ describe('Consumer - transfer ownership tests', function () {
     } )
 
     expectEvent( receipt, 'WithdrawTokensFromContract', {
+      sender: dataConsumerOwner,
       from: this.MockConsumerContract.address,
       to: dataConsumerOwner,
       amount: new BN((10 ** decimals))
