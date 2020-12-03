@@ -30,6 +30,11 @@ contract Router is AccessControl, Request {
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
 
+    // Tokens held for payment
+    uint256 private totalTokensHeld;
+    // Mapping for [dataConsumers] to [dataProviders] to hold tokens held for data payments
+    mapping(address => mapping(address => uint256)) private tokensHeldForPayment;
+
     // Mapping for [dataConsumers] to [dataProviders].
     // A dataProvider is authorised to provide data for the dataConsumer
     mapping(address => mapping(address => bool)) public requesterAuthorisedProviders;
@@ -75,6 +80,10 @@ contract Router is AccessControl, Request {
     // TokenSet used during deployment
     event TokenSet(address tokenAddress);
 
+    // Mirrored ERC20 events for web3 client decoding
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
     /**
      * @dev Contract constructor. Accepts the address for a Token smart contract,
      * and unique salt.
@@ -88,6 +97,7 @@ contract Router is AccessControl, Request {
         token = IERC20(_token);
         salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        totalTokensHeld = 0;
         emit TokenSet(_token);
         emit SaltSet(_salt);
     }
@@ -138,8 +148,12 @@ contract Router is AccessControl, Request {
 
         // msg.sender is the address of the Consumer smart contract calling this function.
         // It must have enough Tokens to pay for the dataProvider's fee
-        // Will actuall return underlying ERC20 error "ERC20: transfer amount exceeds balance"
-        require(token.transferFrom(msg.sender, _dataProvider, _fee), "Router: token.transferFrom failed");
+        // Fee is initially transferred into the balane of this Router contract and held
+        // until either the request is fulfilled, or the Consumer cancels the request
+        // Will actually return underlying ERC20 error "ERC20: transfer amount exceeds balance"
+        totalTokensHeld = totalTokensHeld.add(_fee);
+        tokensHeldForPayment[msg.sender][_dataProvider] = tokensHeldForPayment[msg.sender][_dataProvider].add(_fee);
+        require(token.transferFrom(msg.sender, address(this), _fee), "Router: token.transferFrom failed");
 
         dataRequests[reqId] = DataRequest(
           {
@@ -147,6 +161,8 @@ contract Router is AccessControl, Request {
             dataProvider: _dataProvider,
             callbackFunction: _callbackFunctionSignature,
             expires: _expires,
+            fee: _fee,
+            gasPrice: _gasPrice,
             isSet: true
           }
         );
@@ -177,9 +193,13 @@ contract Router is AccessControl, Request {
         require(_signature.length > 0, "Router: must include signature");
         require(dataRequests[_requestId].isSet, "Router: request id does not exist");
 
+        uint256 gasPrice = dataRequests[_requestId].gasPrice;
+        require(tx.gasprice <= gasPrice, "Router: tx.gasprice cannot exceed gas price consumer is willing to pay");
+
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
         bytes4 callbackFunction = dataRequests[_requestId].callbackFunction;
+        uint256 fee = dataRequests[_requestId].fee;
 
         require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
         // msg.sender is the address of the data provider
@@ -194,7 +214,7 @@ contract Router is AccessControl, Request {
         uint256 gasUsedToCall = gasLeftBefore - gasLeftAfter;
 
         emit RequestFulfilled(
-            dataRequests[_requestId].dataConsumer,
+            dataConsumer,
             msg.sender,
             _requestId,
             callbackFunction,
@@ -203,6 +223,11 @@ contract Router is AccessControl, Request {
         );
 
         // ToDo - claim gas refund
+
+        // Pay dataProvider (msg.sender)
+        totalTokensHeld = totalTokensHeld.sub(fee, "Router: fee amount exceeds router totalTokensHeld");
+        tokensHeldForPayment[dataConsumer][msg.sender] = tokensHeldForPayment[dataConsumer][msg.sender].sub(fee, "Router: fee amount exceeds router tokensHeldForPayment for pair");
+        require(token.transfer(msg.sender, fee), "Router: token.transfer failed");
 
         delete dataRequests[_requestId];
 
@@ -262,6 +287,23 @@ contract Router is AccessControl, Request {
     }
 
     /**
+     * @dev getTotalTokensHeld - get total tokens currently held by this contract
+     * @return uint256 totalTokensHeld
+     */
+    function getTotalTokensHeld() public view returns (uint256) {
+        return totalTokensHeld;
+    }
+
+    /**
+     * @dev getTokensHeldFor - get tokens currently held by this contract
+     * for a consumer/provider pair
+     * @return uint256 totalTokensHeld
+     */
+    function getTokensHeldFor(address _dataConsumer, address _dataProvider) public view returns (uint256) {
+        return tokensHeldForPayment[_dataConsumer][_dataProvider];
+    }
+
+    /**
      * @dev getDataRequestConsumer - get the dataConsumer for a request
      * @return address data consumer contract address
      */
@@ -283,6 +325,14 @@ contract Router is AccessControl, Request {
      */
     function getDataRequestExpires(bytes32 _requestId) public view returns (uint256) {
         return dataRequests[_requestId].expires;
+    }
+
+    /**
+     * @dev getDataRequestGasPrice - get the max gas price consumer will pay for a request
+     * @return uint256 expire timestamp
+     */
+    function getDataRequestGasPrice(bytes32 _requestId) public view returns (uint256) {
+        return dataRequests[_requestId].gasPrice;
     }
 
     /**
