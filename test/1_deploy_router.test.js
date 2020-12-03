@@ -11,7 +11,7 @@ const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contrac
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 
 describe('Router - deploy', function () {
-  const [admin, eoa] = accounts
+  const [admin, eoa, dataConsumer, dataProvider] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
@@ -34,6 +34,18 @@ describe('Router - deploy', function () {
   it('can deploy Router with Token and Salt - deployer has DEFAULT_ADMIN (0x00) role', async function () {
     const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
     expect(await RouterContract.hasRole("0x00", admin)).to.equal(true)
+  })
+
+  it('can deploy Router with Token and Salt - totalTokensHeld is zero', async function () {
+    const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+    const totalTokensHeld = await RouterContract.getTotalTokensHeld()
+    expect(totalTokensHeld.toNumber()).to.equal(0)
+  })
+
+  it('can deploy Router with Token and Salt - tokens held for any address pair is zero', async function () {
+    const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+    const totalHeld = await RouterContract.getTokensHeldFor(dataConsumer, dataProvider)
+    expect(totalHeld.toNumber()).to.equal(0)
   })
 
   it('must deploy with token', async function () {

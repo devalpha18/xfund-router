@@ -54,6 +54,23 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
+    it( 'owner can withdrawAllTokens - ERC20 Transfer event emitted', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.withdrawAllTokens( { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'Transfer', {
+        from: this.MockConsumerContract.address,
+        to: dataConsumerOwner,
+        value: new BN( amountForContract )
+      } )
+    } )
+
     it( 'owner can withdrawAllTokens - owner balance is 1000, contract balance is zero', async function () {
       const initialAmount = 1000
       const amountForContract = 100
@@ -77,8 +94,6 @@ describe('Consumer - only owner function tests', function () {
     it( 'only owner can withdrawAllTokens - should revert with error', async function () {
       const initialAmount = 1000
       const amountForContract = 100
-      const expectedAmount = 900
-      const expectedAmountForContract = 100
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
       // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
@@ -131,6 +146,24 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
+    it( 'owner can withdrawTokenAmount - ERC20 Transfer event emitted', async function () {
+      const initialAmount = 1000
+      const initialAmountForContract = 100
+      const amountToWithdraw = 50
+
+      // Admin Transfer 10 Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'Transfer', {
+        from: this.MockConsumerContract.address,
+        to: dataConsumerOwner,
+        value: new BN( amountToWithdraw )
+      } )
+    } )
 
     it( 'owner can withdrawTokenAmount - withdraw 50, owner has 950 balance, contract 50', async function () {
       const initialAmount = 1000
@@ -224,6 +257,25 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
+    it( 'owner can increase router allowance - should emit ERC20 Approval event', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const allowance = 100
+
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'Approval', {
+        owner: this.MockConsumerContract.address,
+        spender: this.RouterContract.address,
+        value: new BN( allowance )
+      } )
+    } )
+
     it( 'owner can increase router allowance - router should have allowance of 100', async function () {
       const initialAmount = 1000
       const amountForContract = 100
@@ -301,6 +353,28 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
+    it( 'owner can decrease router allowance - should emit ERC20 Approval event', async function () {
+      const initialAmount = 1000
+      const amountForContract = 100
+      const allowance = 100
+      const decrease = 20
+      const newApproved = 80
+
+      // Admin Transfer Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
+      // dataConsumerOwner Transfer Tokens to MockConsumerContract
+      await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
+
+      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'Approval', {
+        owner: this.MockConsumerContract.address,
+        spender: this.RouterContract.address,
+        value: new BN( newApproved )
+      } )
+    } )
 
     it( 'owner can decrease router allowance - router allowance should be reduced to 80', async function () {
       const initialAmount = 1000
@@ -397,6 +471,17 @@ describe('Consumer - only owner function tests', function () {
       })
     } )
 
+    it( 'owner can add a data provider - emits Router GrantProviderPermission event', async function () {
+      const fee = 100
+
+      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      expectEvent(receipt, 'GrantProviderPermission', {
+        dataConsumer: this.MockConsumerContract.address,
+        dataProvider: dataProvider,
+      })
+    } )
+
     it( 'owner can add a data provider - dataProvider has role DATA_PROVIDER', async function () {
       const fee = 100
 
@@ -475,6 +560,20 @@ describe('Consumer - only owner function tests', function () {
       expectEvent( receipt, 'RemovedDataProvider', {
         sender: dataConsumerOwner,
         provider: dataProvider,
+      } )
+    } )
+
+    it( 'owner can remove a data provider - Router emits RevokeProviderPermission event', async function () {
+      const fee = 100
+
+      // add the dataProvider
+      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+
+      const receipt = await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'RevokeProviderPermission', {
+        dataConsumer: this.MockConsumerContract.address,
+        dataProvider: dataProvider,
       } )
     } )
 

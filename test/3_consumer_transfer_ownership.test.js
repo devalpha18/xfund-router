@@ -221,6 +221,18 @@ describe('Consumer - transfer ownership tests', function () {
       newOwner: newOwner1
     })
 
+    expectEvent( receipt, 'Transfer', {
+      from: this.MockConsumerContract.address,
+      to: dataConsumerOwner,
+      value: new BN((10 ** decimals))
+    } )
+
+    expectEvent( receipt, 'WithdrawTokensFromContract', {
+      from: this.MockConsumerContract.address,
+      to: dataConsumerOwner,
+      amount: new BN((10 ** decimals))
+    } )
+
     // dataConsumerOwner should have 10 tokens again, and Consumer contract should have zero
     const dcBalance3 = await this.MockTokenContract.balanceOf(dataConsumerOwner)
     const contractBalance2 = await this.MockTokenContract.balanceOf(this.MockConsumerContract.address)

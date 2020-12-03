@@ -206,6 +206,32 @@ describe('Router - interaction tests', function () {
         const expires = await this.RouterContract.getDataRequestExpires(reqId)
         expect(expires.toNumber()).to.be.above(now)
       })
+
+      it( 'getDataRequestGasPrice - request does not exist, gas price is zero', async function () {
+        const notExistReqId =  web3.utils.soliditySha3(web3.utils.randomHex(32))
+        const gasPrice = await this.RouterContract.getDataRequestGasPrice(notExistReqId)
+        expect(gasPrice.toNumber()).to.equal(0)
+      })
+
+      it( 'getDataRequestGasPrice - request does exist, gas price is same as gasPrice sent in request', async function () {
+        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        // Admin Transfer 10 Tokens to dataConsumerOwner
+        await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+        // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
+        await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+        // increase Router allowance
+        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+
+        // get current nonce and salt so the request ID can be recreated
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const routerSalt = await this.RouterContract.getSalt()
+
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        const gasPriceInRequest = await this.RouterContract.getDataRequestGasPrice(reqId)
+        expect(gasPriceInRequest.toNumber()).to.equal(gasPrice * (10 ** 9))
+      })
     })
   })
 

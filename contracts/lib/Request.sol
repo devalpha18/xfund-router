@@ -13,6 +13,8 @@ contract Request {
         address dataProvider;
         bytes4 callbackFunction;
         uint256 expires;
+        uint256 fee;
+        uint256 gasPrice;
         bool isSet;
     }
 
