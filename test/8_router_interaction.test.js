@@ -50,7 +50,7 @@ describe('Router - interaction tests', function () {
   const initSupply = 1000 * (10 ** decimals)
   const fee = new BN(0.1 * ( 10 ** 9 ))
   const endpoint = "PRICE.BTC.USD.AVG"
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const gasPrice = 100 // gwei, 10 ** 9 done in contract
   const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
   const priceToSend = new BN("1000")
@@ -329,6 +329,25 @@ describe('Router - interaction tests', function () {
         "Router: only a contract can cancel a request"
       )
     } )
+
+    it( 'eoa cannot topup gas - reverts with error', async function () {
+      const topupValue = web3.utils.toWei("0.5", "ether")
+      await expectRevert(
+        this.RouterContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: topupValue}),
+        "Router: only a contract can top up gas"
+      )
+    } )
+
+    it( 'eoa cannot topup gas - Router contract balance does not change', async function () {
+      const topupValue = web3.utils.toWei("0.5", "ether")
+      await expectRevert(
+        this.RouterContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: topupValue}),
+        "Router: only a contract can top up gas"
+      )
+      const newBalance = await web3.eth.getBalance(this.RouterContract.address)
+
+      expect(newBalance.toString()).to.equal("0")
+    } )
   })
 
   /*
@@ -431,7 +450,53 @@ describe('Router - interaction tests', function () {
         "Router: request id does not exist"
       )
     } )
+    /*
+       * Bad gas topup
+       */
+    describe('bad gas top up', function () {
+      it( 'gas topup - provider cannot be zero address', async function () {
+        const topupValue = web3.utils.toWei("0.1", "ether")
+        await expectRevert(
+          this.BadConsumerContract.topUpGas(constants.ZERO_ADDRESS, {from: dataConsumerOwner, value: topupValue}),
+          "Router: _dataProvider cannot be zero address"
+        )
+      } )
+
+      it( 'gas topup - provider must be authorised for consumer', async function () {
+        const topupValue = web3.utils.toWei("0.1", "ether")
+        await expectRevert(
+          this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: topupValue}),
+          "Router: dataProvider not authorised for this dataConsumer"
+        )
+      } )
+
+      it( 'gas topup - provider cannot be zero amount - no value sent', async function () {
+        await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
+        await expectRevert(
+          this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner}),
+          "Router: cannot top up zero"
+        )
+      } )
+
+      it( 'gas topup - provider cannot be zero amount - zero value sent', async function () {
+        await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
+        await expectRevert(
+          this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: 0}),
+          "Router: cannot top up zero"
+        )
+      } )
+
+      it( 'gas topup - cannot top up more than router limit', async function () {
+        const topupValue = web3.utils.toWei("10", "ether")
+        await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
+        await expectRevert(
+          this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: topupValue}),
+          "Router: cannot top up more than gasTopUpLimit"
+        )
+      } )
+    })
   })
+
 
   /*
    * Bad fulfillment
