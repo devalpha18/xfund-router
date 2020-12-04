@@ -40,6 +40,7 @@ contract Consumer is AccessControl, Request {
     address private OWNER; // wallet address of the Token holder who will pay fees
     uint256 private requestNonce; // incremented nonce to help prevent request replays
     uint256 private gasPriceLimit; // gas price limit in gwei the consumer is willing to pay for data processing
+    uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
     uint256 private requestTimeout; // request timeout in seconds
 
     // Mapping to hold open data requests
@@ -73,6 +74,7 @@ contract Consumer is AccessControl, Request {
     event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
     event SetGasPriceLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
     event SetRequestTimout(address indexed sender, uint256 oldTimeout, uint256 newTimeout);
+    event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
 
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
 
@@ -150,6 +152,7 @@ contract Consumer is AccessControl, Request {
         requestNonce = 0;
         gasPriceLimit = 200;
         requestTimeout = 300;
+        gasTopUpLimit = 0.5 ether;
         emit RouterSet(msg.sender, address(0), _router);
         emit OwnershipTransferred( msg.sender, address(0), msg.sender);
     }
@@ -329,6 +332,22 @@ contract Consumer is AccessControl, Request {
     }
 
     /**
+     * @dev setGasTopUpLimit set the max amount of ETH that can be sent
+     * in a topUpGas Tx
+     *
+     * @param _gasTopUpLimit amount in wei
+     * @return success
+     */
+    function setGasTopUpLimit(uint256 _gasTopUpLimit) public onlyOwner() returns (bool success) {
+        require(_gasTopUpLimit > 0, "Consumer: _gasTopUpLimit must be > 0");
+        require(_gasTopUpLimit <= router.getGasTopUpLimit(), "Consumer: _gasTopUpLimit must be <= Router gasTopUpLimit");
+        uint256 oldGasTopUpLimit = gasTopUpLimit;
+        gasTopUpLimit = _gasTopUpLimit;
+        emit SetGasTopUpLimit(msg.sender, oldGasTopUpLimit, _gasTopUpLimit);
+        return true;
+    }
+
+    /**
      * @dev submitDataRequest submit a new data request to the Router. The router will
      * verify the data request, and route it to the data provider
      *
@@ -485,6 +504,15 @@ contract Consumer is AccessControl, Request {
      */
     function getRequestTimeout() external view returns (uint256) {
         return requestTimeout;
+    }
+
+    /**
+     * @dev getGasTopUpLimit - get the gas top up limit
+     *
+     * @return uint256 amount in wei
+     */
+    function getGasTopUpLimit() external view returns (uint256) {
+        return gasTopUpLimit;
     }
 
     /*

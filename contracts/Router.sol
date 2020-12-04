@@ -29,6 +29,7 @@ contract Router is AccessControl, Request {
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
+    uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
 
     // Tokens held for payment
     uint256 private totalTokensHeld;
@@ -88,6 +89,8 @@ contract Router is AccessControl, Request {
     // TokenSet used during deployment
     event TokenSet(address tokenAddress);
 
+    event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
+
     // Mirrored ERC20 events for web3 client decoding
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -106,8 +109,24 @@ contract Router is AccessControl, Request {
         salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         totalTokensHeld = 0;
+        gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
         emit SaltSet(_salt);
+    }
+
+    /**
+     * @dev setGasTopUpLimit set the max amount of ETH that can be sent
+     * in a topUpGas Tx
+     *
+     * @param _gasTopUpLimit amount in wei
+     * @return success
+     */
+    function setGasTopUpLimit(uint256 _gasTopUpLimit) public onlyAdmin() returns (bool success) {
+        require(_gasTopUpLimit > 0, "Router: _gasTopUpLimit must be > 0");
+        uint256 oldGasTopUpLimit = gasTopUpLimit;
+        gasTopUpLimit = _gasTopUpLimit;
+        emit SetGasTopUpLimit(msg.sender, oldGasTopUpLimit, _gasTopUpLimit);
+        return true;
     }
 
     /**
@@ -305,7 +324,7 @@ contract Router is AccessControl, Request {
         return true;
     }
 
-    function providerIsAuthorised(address _consumer, address _provider) public view returns (bool) {
+    function providerIsAuthorised(address _consumer, address _provider) external view returns (bool) {
         return requesterAuthorisedProviders[_consumer][_provider];
     }
 
@@ -313,7 +332,7 @@ contract Router is AccessControl, Request {
      * @dev getTokenAddress - get the contract address of the Token being used for paying fees
      * @return address of the token smart contract
      */
-    function getTokenAddress() public view returns (address) {
+    function getTokenAddress() external view returns (address) {
         return address(token);
     }
 
@@ -321,7 +340,7 @@ contract Router is AccessControl, Request {
      * @dev getSalt - get the salt used for generating request IDs
      * @return bytes32 salt
      */
-    function getSalt() public view returns (bytes32) {
+    function getSalt() external view returns (bytes32) {
         return salt;
     }
 
@@ -329,7 +348,7 @@ contract Router is AccessControl, Request {
      * @dev getTotalTokensHeld - get total tokens currently held by this contract
      * @return uint256 totalTokensHeld
      */
-    function getTotalTokensHeld() public view returns (uint256) {
+    function getTotalTokensHeld() external view returns (uint256) {
         return totalTokensHeld;
     }
 
@@ -338,7 +357,7 @@ contract Router is AccessControl, Request {
      * for a consumer/provider pair
      * @return uint256 totalTokensHeld
      */
-    function getTokensHeldFor(address _dataConsumer, address _dataProvider) public view returns (uint256) {
+    function getTokensHeldFor(address _dataConsumer, address _dataProvider) external view returns (uint256) {
         return tokensHeldForPayment[_dataConsumer][_dataProvider];
     }
 
@@ -346,7 +365,7 @@ contract Router is AccessControl, Request {
      * @dev getDataRequestConsumer - get the dataConsumer for a request
      * @return address data consumer contract address
      */
-    function getDataRequestConsumer(bytes32 _requestId) public view returns (address) {
+    function getDataRequestConsumer(bytes32 _requestId) external view returns (address) {
         return dataRequests[_requestId].dataConsumer;
     }
 
@@ -354,7 +373,7 @@ contract Router is AccessControl, Request {
      * @dev getDataRequestProvider - get the dataConsumer for a request
      * @return address data provider address
      */
-    function getDataRequestProvider(bytes32 _requestId) public view returns (address) {
+    function getDataRequestProvider(bytes32 _requestId) external view returns (address) {
         return dataRequests[_requestId].dataProvider;
     }
 
@@ -362,7 +381,7 @@ contract Router is AccessControl, Request {
      * @dev getDataRequestExpires - get the expire timestamp for a request
      * @return uint256 expire timestamp
      */
-    function getDataRequestExpires(bytes32 _requestId) public view returns (uint256) {
+    function getDataRequestExpires(bytes32 _requestId) external view returns (uint256) {
         return dataRequests[_requestId].expires;
     }
 
@@ -370,7 +389,7 @@ contract Router is AccessControl, Request {
      * @dev getDataRequestGasPrice - get the max gas price consumer will pay for a request
      * @return uint256 expire timestamp
      */
-    function getDataRequestGasPrice(bytes32 _requestId) public view returns (uint256) {
+    function getDataRequestGasPrice(bytes32 _requestId) external view returns (uint256) {
         return dataRequests[_requestId].gasPrice;
     }
 
@@ -378,19 +397,27 @@ contract Router is AccessControl, Request {
      * @dev getDataRequestCallback - get the callback function signature for a request
      * @return bytes4 callback function signature
      */
-    function getDataRequestCallback(bytes32 _requestId) public view returns (bytes4) {
+    function getDataRequestCallback(bytes32 _requestId) external view returns (bytes4) {
         return dataRequests[_requestId].callbackFunction;
+    }
+
+    /**
+     * @dev getGasTopUpLimit - get the gas top up limit
+     * @return uint256 amount in wei
+     */
+    function getGasTopUpLimit() external view returns (uint256) {
+        return gasTopUpLimit;
     }
 
     /**
      * @dev requestExists - check a request ID exists
      * @return bool
      */
-    function requestExists(bytes32 _requestId) public view returns (bool) {
+    function requestExists(bytes32 _requestId) external view returns (bool) {
         return dataRequests[_requestId].isSet;
     }
 
-    modifier isAdmin() {
+    modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
         _;
     }
