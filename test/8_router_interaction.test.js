@@ -90,6 +90,16 @@ describe('Router - interaction tests', function () {
       expect(storedSalt).to.equal(newSalt)
     } )
 
+    it( 'getGasTopUpLimit returns expected value', async function () {
+      const expected = web3.utils.toWei("1", "ether")
+      const newSalt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+      const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
+      const mockRouter = await Router.new(mockToken.address, newSalt, {from: admin})
+
+      const storedGasTopUpLimit = await mockRouter.getGasTopUpLimit()
+      expect(storedGasTopUpLimit.toString()).to.equal(expected.toString())
+    } )
+
     it( 'providerIsAuthorised returns expected value', async function () {
       const newSalt = web3.utils.soliditySha3(web3.utils.randomHex(32))
       const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
@@ -232,6 +242,56 @@ describe('Router - interaction tests', function () {
         const gasPriceInRequest = await this.RouterContract.getDataRequestGasPrice(reqId)
         expect(gasPriceInRequest.toNumber()).to.equal(gasPrice * (10 ** 9))
       })
+    })
+
+    /*
+     * Admin getter/setters
+     */
+    describe('admin getters/setters', function () {
+      it( 'admin (owner) can setGasTopUpLimit - emits SetGasTopUpLimit event', async function () {
+        const newLimit = web3.utils.toWei("1.5", "ether")
+        const receipt = await this.RouterContract.setGasTopUpLimit(newLimit,  { from: admin } )
+
+        expectEvent( receipt, 'SetGasTopUpLimit', {
+          sender: admin,
+          oldLimit: web3.utils.toWei("1", "ether"),
+          newLimit: newLimit,
+        } )
+      })
+
+      it( 'admin (owner) can setGasTopUpLimit - gasTopUpLimit correctly set', async function () {
+        const newLimit = web3.utils.toWei("1.5", "ether")
+        await this.RouterContract.setGasTopUpLimit(newLimit,  { from: admin } )
+
+        const limit = await this.RouterContract.getGasTopUpLimit()
+        expect( limit.toString() ).to.equal( newLimit.toString() )
+      })
+
+      it( 'only admin (owner) can set gas topup limit', async function () {
+        const newLimit = web3.utils.toWei("1.5", "ether")
+        const oldLimit = web3.utils.toWei("1", "ether")
+        await expectRevert(
+          this.RouterContract.setGasTopUpLimit(newLimit, { from: rando } ),
+          "Router: only admin can do this"
+        )
+
+        // should still be the default
+        const limit = await this.RouterContract.getGasTopUpLimit()
+        expect( limit.toString() ).to.equal( oldLimit.toString() )
+      } )
+
+      it( 'new gas topup limit must be > 0', async function () {
+
+        const oldLimit = web3.utils.toWei("1", "ether")
+        await expectRevert(
+          this.RouterContract.setGasTopUpLimit(0, { from: admin } ),
+          "Router: _gasTopUpLimit must be > 0"
+        )
+
+        // should still be the default
+        const limit = await this.RouterContract.getGasTopUpLimit()
+        expect( limit.toString() ).to.equal( oldLimit.toString() )
+      } )
     })
   })
 
