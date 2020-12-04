@@ -123,6 +123,10 @@ contract Consumer is AccessControl, Request {
         uint256 refund
     );
 
+    event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+    event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+    event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+
     /*
      * WRITE FUNCTIONS
      */
@@ -346,6 +350,23 @@ contract Consumer is AccessControl, Request {
         emit SetGasTopUpLimit(msg.sender, oldGasTopUpLimit, _gasTopUpLimit);
         return true;
     }
+
+    function topUpGas(address _dataProvider)
+    public
+    payable
+    onlyOwner()
+    isProvider(_dataProvider)
+    returns (bool success) {
+        uint256 amount = msg.value;
+        require(address(msg.sender).balance >= amount, "Consumer: sender has insufficient balance");
+        require(amount > 0, "Consumer: amount cannot be zero");
+        require(amount <= gasTopUpLimit, "Consumer: amount cannot exceed own gasTopUpLimit");
+        require(router.topUpGas{value:amount}(_dataProvider), "Consumer: router.topUpGas failed");
+        return true;
+    }
+    // Todo - withdrawAllGas
+    // Todo - withdrawGasAmount
+    // Todo - fallback function to reject accidental payments
 
     /**
      * @dev submitDataRequest submit a new data request to the Router. The router will
