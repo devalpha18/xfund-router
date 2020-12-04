@@ -18,7 +18,7 @@ describe('Consumer - only owner function tests', function () {
   const [admin, dataConsumerOwner, dataProvider, rando, eoa] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const ROLE_DATA_PROVIDER = web3.utils.sha3('DATA_PROVIDER')
 
   beforeEach(async function () {

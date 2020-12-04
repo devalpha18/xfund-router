@@ -52,7 +52,7 @@ describe('Consumer - request cancellation tests', function () {
   const initSupply = 1000 * (10 ** decimals)
   const fee = new BN(0.1 * ( 10 ** 9 ))
   const endpoint = "PRICE.BTC.USD.AVG"
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const gasPrice = 100 // gwei, 10 ** 9 done in contract
   const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
   const priceToSend = new BN("1000")

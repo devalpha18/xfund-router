@@ -16,7 +16,7 @@ describe('Consumer - deploy', function () {
   const [admin, dataConsumerOwner, eoa] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
 
   before(async function () {
     // admin deploy Token contract
