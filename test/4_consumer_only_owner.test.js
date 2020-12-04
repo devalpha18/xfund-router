@@ -18,7 +18,7 @@ describe('Consumer - only owner function tests', function () {
   const [admin, dataConsumerOwner, dataProvider, rando, eoa] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const ROLE_DATA_PROVIDER = web3.utils.sha3('DATA_PROVIDER')
 
   beforeEach(async function () {
@@ -909,6 +909,69 @@ describe('Consumer - only owner function tests', function () {
 
       // should still be original router address
       expect( await this.MockConsumerContract.getRouterAddress() ).to.equal( this.RouterContract.address )
+    } )
+
+    it( 'owner can set gas topup limit - emits SetGasTopUpLimit event', async function () {
+
+      const newLimit = web3.utils.toWei("1", "ether")
+      const receipt = await this.MockConsumerContract.setGasTopUpLimit(newLimit,  { from: dataConsumerOwner } )
+
+      expectEvent( receipt, 'SetGasTopUpLimit', {
+        sender: dataConsumerOwner,
+        oldLimit: web3.utils.toWei("0.5", "ether"),
+        newLimit: newLimit,
+      } )
+    } )
+
+    it( 'owner can set gas topup limit - increase to 1 eth', async function () {
+
+      const newLimit = web3.utils.toWei("1", "ether")
+      await this.MockConsumerContract.setGasTopUpLimit(newLimit,  { from: dataConsumerOwner } )
+
+      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      expect( limit.toString() ).to.equal( newLimit.toString() )
+
+    } )
+
+    it( 'only owner can set gas topup limit', async function () {
+
+      const newLimit = web3.utils.toWei("1", "ether")
+      const oldLimit = web3.utils.toWei("0.5", "ether")
+      await expectRevert(
+        this.MockConsumerContract.setGasTopUpLimit(newLimit, { from: rando } ),
+        "Consumer: only owner can do this"
+      )
+
+      // should still be the default 200
+      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      expect( limit.toString() ).to.equal( oldLimit.toString() )
+    } )
+
+    it( 'new gas topup limit must be > 0', async function () {
+
+      const oldLimit = web3.utils.toWei("0.5", "ether")
+      await expectRevert(
+        this.MockConsumerContract.setGasTopUpLimit(0, { from: dataConsumerOwner } ),
+        "Consumer: _gasTopUpLimit must be > 0"
+      )
+
+      // should still be the default
+      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      expect( limit.toString() ).to.equal( oldLimit.toString() )
+    } )
+
+    it( 'new gas topup limit must be <= Router gas topup limit', async function () {
+
+      const newLimit = web3.utils.toWei("1.5", "ether")
+      const oldLimit = web3.utils.toWei("0.5", "ether")
+      await expectRevert(
+        this.MockConsumerContract.setGasTopUpLimit(newLimit, { from: dataConsumerOwner } ),
+        "Consumer: _gasTopUpLimit must be <= Router gasTopUpLimit"
+      )
+
+      // should still be the default 200
+      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      expect( limit.toString() ).to.equal( oldLimit.toString() )
     } )
   })
 })

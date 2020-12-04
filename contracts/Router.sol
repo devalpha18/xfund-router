@@ -29,6 +29,12 @@ contract Router is AccessControl, Request {
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
+    uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
+
+    // Eth held for provider gas payments
+    uint256 private totalGasDeposits;
+    mapping(address => uint256) private gasDepositsForConsumer;
+    mapping(address => mapping(address => uint256)) public gasDepositsForConsumerProviders;
 
     // Tokens held for payment
     uint256 private totalTokensHeld;
@@ -88,6 +94,12 @@ contract Router is AccessControl, Request {
     // TokenSet used during deployment
     event TokenSet(address tokenAddress);
 
+    event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
+
+    event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+    event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+    event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+
     // Mirrored ERC20 events for web3 client decoding
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -106,9 +118,62 @@ contract Router is AccessControl, Request {
         salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         totalTokensHeld = 0;
+        gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
         emit SaltSet(_salt);
     }
+
+    /**
+     * @dev setGasTopUpLimit set the max amount of ETH that can be sent
+     * in a topUpGas Tx
+     *
+     * @param _gasTopUpLimit amount in wei
+     * @return success
+     */
+    function setGasTopUpLimit(uint256 _gasTopUpLimit) public onlyAdmin() returns (bool success) {
+        require(_gasTopUpLimit > 0, "Router: _gasTopUpLimit must be > 0");
+        uint256 oldGasTopUpLimit = gasTopUpLimit;
+        gasTopUpLimit = _gasTopUpLimit;
+        emit SetGasTopUpLimit(msg.sender, oldGasTopUpLimit, _gasTopUpLimit);
+        return true;
+    }
+
+    /**
+     * @dev topUpGas data consumer contract calls this function to top up gas
+     * Gas is the ETH held by this contract which is used to refund Tx costs
+     * to the data provider for fulfilling a request.
+     * To prevent silly amounts of ETH being sent, a sensible limit is imposed.
+     * Can only top up for authorised providers
+     *
+     * @param _dataProvider address of data provider
+     * @return success
+     */
+    function topUpGas(address _dataProvider) public payable returns (bool success) {
+        uint256 amount = msg.value;
+        // msg.sender is the address of the Consumer's smart contract
+        address dataConsumer = msg.sender;
+        require(address(dataConsumer).isContract(), "Router: only a contract can top up gas");
+        require(_dataProvider != address(0), "Router: _dataProvider cannot be zero address");
+        require(requesterAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        require(amount > 0, "Router: cannot top up zero");
+        require(amount <= gasTopUpLimit, "Router: cannot top up more than gasTopUpLimit");
+
+        // total held by Router contract
+        totalGasDeposits = totalGasDeposits.add(amount);
+
+        // Total held for dataConsumer contract
+        gasDepositsForConsumer[dataConsumer] = gasDepositsForConsumer[dataConsumer].add(amount);
+
+        // Total held for dataConsumer contract/provider pair
+        gasDepositsForConsumerProviders[dataConsumer][_dataProvider] = gasDepositsForConsumerProviders[dataConsumer][_dataProvider].add(amount);
+
+        emit GasToppedUp(dataConsumer, _dataProvider, amount);
+
+        return true;
+    }
+    // Todo - withdrawAllGas
+    // Todo - withdrawGasAmount
+    // Todo - fallback function to reject accidental payments
 
     /**
      * @dev initialiseRequest - called by Consumer contract to initialise a data request
@@ -305,15 +370,21 @@ contract Router is AccessControl, Request {
         return true;
     }
 
-    function providerIsAuthorised(address _consumer, address _provider) public view returns (bool) {
-        return requesterAuthorisedProviders[_consumer][_provider];
+    /**
+     * @dev providerIsAuthorised - check if provider is authorised for consumer
+     * @param _dataConsumer address of the data provider
+     * @param _dataProvider address of the data provider
+     * @return success if the execution was successful. Status is checked in the Consumer contract
+     */
+    function providerIsAuthorised(address _dataConsumer, address _dataProvider) external view returns (bool) {
+        return requesterAuthorisedProviders[_dataConsumer][_dataProvider];
     }
 
     /**
      * @dev getTokenAddress - get the contract address of the Token being used for paying fees
      * @return address of the token smart contract
      */
-    function getTokenAddress() public view returns (address) {
+    function getTokenAddress() external view returns (address) {
         return address(token);
     }
 
@@ -321,7 +392,7 @@ contract Router is AccessControl, Request {
      * @dev getSalt - get the salt used for generating request IDs
      * @return bytes32 salt
      */
-    function getSalt() public view returns (bytes32) {
+    function getSalt() external view returns (bytes32) {
         return salt;
     }
 
@@ -329,68 +400,113 @@ contract Router is AccessControl, Request {
      * @dev getTotalTokensHeld - get total tokens currently held by this contract
      * @return uint256 totalTokensHeld
      */
-    function getTotalTokensHeld() public view returns (uint256) {
+    function getTotalTokensHeld() external view returns (uint256) {
         return totalTokensHeld;
     }
 
     /**
      * @dev getTokensHeldFor - get tokens currently held by this contract
      * for a consumer/provider pair
+     * @param _dataConsumer address of data consumer
+     * @param _dataProvider address of data provider
      * @return uint256 totalTokensHeld
      */
-    function getTokensHeldFor(address _dataConsumer, address _dataProvider) public view returns (uint256) {
+    function getTokensHeldFor(address _dataConsumer, address _dataProvider) external view returns (uint256) {
         return tokensHeldForPayment[_dataConsumer][_dataProvider];
     }
 
     /**
      * @dev getDataRequestConsumer - get the dataConsumer for a request
+     * @param _requestId bytes32 request id
      * @return address data consumer contract address
      */
-    function getDataRequestConsumer(bytes32 _requestId) public view returns (address) {
+    function getDataRequestConsumer(bytes32 _requestId) external view returns (address) {
         return dataRequests[_requestId].dataConsumer;
     }
 
     /**
      * @dev getDataRequestProvider - get the dataConsumer for a request
+     * @param _requestId bytes32 request id
      * @return address data provider address
      */
-    function getDataRequestProvider(bytes32 _requestId) public view returns (address) {
+    function getDataRequestProvider(bytes32 _requestId) external view returns (address) {
         return dataRequests[_requestId].dataProvider;
     }
 
     /**
      * @dev getDataRequestExpires - get the expire timestamp for a request
+     * @param _requestId bytes32 request id
      * @return uint256 expire timestamp
      */
-    function getDataRequestExpires(bytes32 _requestId) public view returns (uint256) {
+    function getDataRequestExpires(bytes32 _requestId) external view returns (uint256) {
         return dataRequests[_requestId].expires;
     }
 
     /**
      * @dev getDataRequestGasPrice - get the max gas price consumer will pay for a request
+     * @param _requestId bytes32 request id
      * @return uint256 expire timestamp
      */
-    function getDataRequestGasPrice(bytes32 _requestId) public view returns (uint256) {
+    function getDataRequestGasPrice(bytes32 _requestId) external view returns (uint256) {
         return dataRequests[_requestId].gasPrice;
     }
 
     /**
      * @dev getDataRequestCallback - get the callback function signature for a request
+     * @param _requestId bytes32 request id
      * @return bytes4 callback function signature
      */
-    function getDataRequestCallback(bytes32 _requestId) public view returns (bytes4) {
+    function getDataRequestCallback(bytes32 _requestId) external view returns (bytes4) {
         return dataRequests[_requestId].callbackFunction;
     }
 
     /**
+     * @dev getGasTopUpLimit - get the gas top up limit
+     * @return uint256 amount in wei
+     */
+    function getGasTopUpLimit() external view returns (uint256) {
+        return gasTopUpLimit;
+    }
+
+    /**
      * @dev requestExists - check a request ID exists
+     * @param _requestId bytes32 request id
      * @return bool
      */
-    function requestExists(bytes32 _requestId) public view returns (bool) {
+    function requestExists(bytes32 _requestId) external view returns (bool) {
         return dataRequests[_requestId].isSet;
     }
 
-    modifier isAdmin() {
+    /**
+     * @dev getTotalGasDeposits - get total gas deposited in Router
+     * @return uint256
+     */
+    function getTotalGasDeposits() external view returns (uint256) {
+        return totalGasDeposits;
+    }
+
+    /**
+     * @dev getGasDepositsForConsumer - get total gas deposited in Router
+     * by a data consumer
+     * @param _dataConsumer address of data consumer
+     * @return uint256
+     */
+    function getGasDepositsForConsumer(address _dataConsumer) external view returns (uint256) {
+        return gasDepositsForConsumer[_dataConsumer];
+    }
+
+    /**
+     * @dev getGasDepositsForConsumerProviders - get total gas deposited in Router
+     * by a data consumer for a given data provider
+     * @param _dataConsumer address of data consumer
+     * @param _dataProvider address of data provider
+     * @return uint256
+     */
+    function getGasDepositsForConsumerProviders(address _dataConsumer, address _dataProvider) external view returns (uint256) {
+        return gasDepositsForConsumerProviders[_dataConsumer][_dataProvider];
+    }
+
+modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
         _;
     }

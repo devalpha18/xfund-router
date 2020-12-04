@@ -129,6 +129,12 @@ contract MockBadConsumer {
         require(token.increaseAllowance(address(router), _routerAllowance), "BadConsumer: failed to increase Router token allowance");
     }
 
+    function topUpGas(address _dataProvider)
+    public
+    payable returns (bool success) {
+        return router.topUpGas{value:msg.value}(_dataProvider);
+    }
+
     function recieveData(
         uint256 _price,
         bytes32 _requestId,

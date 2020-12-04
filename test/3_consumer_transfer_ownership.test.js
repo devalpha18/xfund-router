@@ -17,7 +17,7 @@ describe('Consumer - transfer ownership tests', function () {
   const [admin, dataConsumerOwner, newOwner1, newOwner2, rando] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32))
+  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
 
   beforeEach(async function () {
     // admin deploy Token contract
