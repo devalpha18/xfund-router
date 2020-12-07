@@ -348,6 +348,13 @@ describe('Router - interaction tests', function () {
 
       expect(newBalance.toString()).to.equal("0")
     } )
+
+    it( 'eoa cannot withdraw gas - reverts with error', async function () {
+      await expectRevert(
+        this.RouterContract.withDrawGasTopUpForProvider(dataProvider, {from: dataConsumerOwner}),
+        "Router: only a contract can withdraw gas"
+      )
+    } )
   })
 
   /*
@@ -451,14 +458,14 @@ describe('Router - interaction tests', function () {
       )
     } )
     /*
-       * Bad gas topup
-       */
+     * Bad gas topup
+     */
     describe('bad gas top up', function () {
-      it( 'gas topup - provider cannot be zero address', async function () {
+      it( 'gas topup - provider cannot be zero address (revert with provider not authorised error)', async function () {
         const topupValue = web3.utils.toWei("0.1", "ether")
         await expectRevert(
           this.BadConsumerContract.topUpGas(constants.ZERO_ADDRESS, {from: dataConsumerOwner, value: topupValue}),
-          "Router: _dataProvider cannot be zero address"
+          "Router: dataProvider not authorised for this dataConsumer"
         )
       } )
 
@@ -495,6 +502,21 @@ describe('Router - interaction tests', function () {
         )
       } )
     })
+
+
+    /*
+     * Bad gas withdraw
+     */
+    describe('bad gas withdraw', function () {
+      it( 'provider cannot be zero address - revert with error', async function () {
+        await expectRevert(
+          this.BadConsumerContract.withDrawGasTopUpForProvider(constants.ZERO_ADDRESS, { from: dataConsumerOwner }),
+          "Router: _dataProvider cannot be zero address"
+        )
+      } )
+
+    })
+
   })
 
 

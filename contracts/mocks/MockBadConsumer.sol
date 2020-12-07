@@ -135,6 +135,11 @@ contract MockBadConsumer {
         return router.topUpGas{value:msg.value}(_dataProvider);
     }
 
+    function withDrawGasTopUpForProvider(address _dataProvider)
+    public returns (uint256 amountWithdrawn) {
+        return router.withDrawGasTopUpForProvider(_dataProvider);
+    }
+
     function recieveData(
         uint256 _price,
         bytes32 _requestId,

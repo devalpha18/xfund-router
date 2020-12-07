@@ -28,14 +28,20 @@ Run:
 npx oz compile
 ```
 
-to compile smart contract
+to compile smart contracts
 
 ## Unit Tests
 
-Run:
+To run all tests:
 
 ```bash 
-npm test
+yarn test
+```
+
+Or, individual test files:
+
+```bash
+npx mocha test/[TEST_FILE] --exit
 ```
 
 ## Deploying with `ganache-cli`

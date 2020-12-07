@@ -14,7 +14,7 @@ const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled c
 
 describe('Consumer - transfer ownership tests', function () {
   this.timeout(300000)
-  const [admin, dataConsumerOwner, newOwner1, newOwner2, rando] = accounts
+  const [admin, dataConsumerOwner, newOwner1, newOwner2, rando, dataProvider] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
@@ -273,6 +273,47 @@ describe('Consumer - transfer ownership tests', function () {
     const contractBalance = await this.MockTokenContract.balanceOf(this.MockConsumerContract.address)
     expect(dcBalance.toNumber()).to.equal(new BN(9 * (10 ** decimals)).toNumber())
     expect(contractBalance.toNumber()).to.equal(new BN((10 ** decimals)).toNumber())
+  })
+
+  it('router must have zero eth balance before ownership transfer can happen - should revert', async function () {
+    const topupValue = web3.utils.toWei("0.1", "ether")
+    await this.MockConsumerContract.addDataProvider(dataProvider, 100,  { from: dataConsumerOwner } )
+    await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: topupValue })
+
+    await expectRevert(
+      this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner}),
+      "Consumer: owner must withdraw all gas from router first"
+    )
+  })
+
+  it('router must have zero eth balance before ownership transfer can happen - router balance remains intact', async function () {
+    const topupValue = web3.utils.toWei("0.1", "ether")
+    await this.MockConsumerContract.addDataProvider(dataProvider, 100,  { from: dataConsumerOwner } )
+    await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: topupValue })
+
+    await expectRevert(
+      this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner}),
+      "Consumer: owner must withdraw all gas from router first"
+    )
+
+    const routerBalance = await web3.eth.getBalance(this.RouterContract.address)
+
+    expect(routerBalance.toString()).to.equal(topupValue.toString())
+  })
+
+  it('router must have zero eth balance before ownership transfer can happen - Router getGasDepositsForConsumer should be 0.1 ETH', async function () {
+    const topupValue = web3.utils.toWei("0.1", "ether")
+    await this.MockConsumerContract.addDataProvider(dataProvider, 100,  { from: dataConsumerOwner } )
+    await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: topupValue })
+
+    await expectRevert(
+      this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner}),
+      "Consumer: owner must withdraw all gas from router first"
+    )
+
+    const depositValue = await this.RouterContract.getGasDepositsForConsumer(this.MockConsumerContract.address)
+
+    expect(depositValue.toString()).to.equal(topupValue.toString())
   })
 
 })
