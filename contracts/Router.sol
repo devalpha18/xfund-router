@@ -34,7 +34,7 @@ contract Router is AccessControl, Request {
     // Eth held for provider gas payments
     uint256 private totalGasDeposits;
     mapping(address => uint256) private gasDepositsForConsumer;
-    mapping(address => mapping(address => uint256)) public gasDepositsForConsumerProviders;
+    mapping(address => mapping(address => uint256)) private gasDepositsForConsumerProviders;
 
     // Tokens held for payment
     uint256 private totalTokensHeld;
@@ -43,7 +43,7 @@ contract Router is AccessControl, Request {
 
     // Mapping for [dataConsumers] to [dataProviders].
     // A dataProvider is authorised to provide data for the dataConsumer
-    mapping(address => mapping(address => bool)) public requesterAuthorisedProviders;
+    mapping(address => mapping(address => bool)) public consumerAuthorisedProviders;
 
     // Mapping to hold open data requests
     mapping(bytes32 => DataRequest) public dataRequests;
@@ -153,8 +153,7 @@ contract Router is AccessControl, Request {
         // msg.sender is the address of the Consumer's smart contract
         address dataConsumer = msg.sender;
         require(address(dataConsumer).isContract(), "Router: only a contract can top up gas");
-        require(_dataProvider != address(0), "Router: _dataProvider cannot be zero address");
-        require(requesterAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
         require(amount > 0, "Router: cannot top up zero");
         require(amount <= gasTopUpLimit, "Router: cannot top up more than gasTopUpLimit");
 
@@ -168,12 +167,47 @@ contract Router is AccessControl, Request {
         gasDepositsForConsumerProviders[dataConsumer][_dataProvider] = gasDepositsForConsumerProviders[dataConsumer][_dataProvider].add(amount);
 
         emit GasToppedUp(dataConsumer, _dataProvider, amount);
-
         return true;
     }
-    // Todo - withdrawAllGas
-    // Todo - withdrawGasAmount
-    // Todo - fallback function to reject accidental payments
+
+    /**
+     * @dev withDrawGasTopUpForProvider data consumer contract calls this function to
+     * withdraw any remaining ETH stored in the Router for gas refunds for a specified
+     * data provider.
+     * Consumer contract will then transfer through to the consumer contract's
+     * owner.
+     *
+     * NOTE - data provider authorisation is not checked, since a consumer needs to
+     * be able to withdraw for a data provide that has been revoked.
+     *
+     * @param _dataProvider address of data provider
+     * @return amountWithdrawn
+     */
+    function withDrawGasTopUpForProvider(address _dataProvider) public returns (uint256 amountWithdrawn) {
+        // msg.sender is the consumer's contract
+        address payable dataConsumer = msg.sender;
+        require(address(dataConsumer).isContract(), "Router: only a contract can withdraw gas");
+        require(_dataProvider != address(0), "Router: _dataProvider cannot be zero address");
+
+        uint256 amount = gasDepositsForConsumerProviders[dataConsumer][_dataProvider];
+        if(amount > 0) {
+            // total held by Router contract
+            totalGasDeposits = totalGasDeposits.sub(amount);
+
+            // Total held for dataConsumer contract
+            gasDepositsForConsumer[dataConsumer] = gasDepositsForConsumer[dataConsumer].sub(amount);
+
+            // Total held for dataConsumer contract/provider pair
+            delete gasDepositsForConsumerProviders[dataConsumer][_dataProvider];
+
+            emit GasWithdrawnByConsumer(dataConsumer, _dataProvider, amount);
+
+            // send back to consumer contract
+            Address.sendValue(dataConsumer, amount);
+        }
+
+        return amount;
+    }
 
     /**
      * @dev initialiseRequest - called by Consumer contract to initialise a data request
@@ -197,14 +231,14 @@ contract Router is AccessControl, Request {
         bytes32 _requestId,
         bytes4 _callbackFunctionSignature
     ) public returns (bool success) {
-        // msg.sender is the address of the Consumer's smart contract
-        require(address(msg.sender).isContract(), "Router: only a contract can initialise a request");
-        require(requesterAuthorisedProviders[msg.sender][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
+        require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
+        require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
         require(_expires > now, "Router: expiration must be > now");
 
         // recreate request ID from params sent
         bytes32 reqId = generateRequestId(
-            msg.sender,
+            dataConsumer,
             _requestNonce,
             _dataProvider,
             _data,
@@ -216,21 +250,18 @@ contract Router is AccessControl, Request {
         require(reqId == _requestId, "Router: reqId != _requestId");
         require(!dataRequests[reqId].isSet, "Router: request id already initialised");
 
-        // ToDo - transfer fee into this Router contract as a holding place. Once request is fulfilled,
-        //        forward to the provider. Also allows for request cancellations and refunds.
-
-        // msg.sender is the address of the Consumer smart contract calling this function.
+        // dataConsumer (msg.sender) is the address of the Consumer smart contract calling this function.
         // It must have enough Tokens to pay for the dataProvider's fee
         // Fee is initially transferred into the balane of this Router contract and held
         // until either the request is fulfilled, or the Consumer cancels the request
         // Will actually return underlying ERC20 error "ERC20: transfer amount exceeds balance"
         totalTokensHeld = totalTokensHeld.add(_fee);
-        tokensHeldForPayment[msg.sender][_dataProvider] = tokensHeldForPayment[msg.sender][_dataProvider].add(_fee);
-        require(token.transferFrom(msg.sender, address(this), _fee), "Router: token.transferFrom failed");
+        tokensHeldForPayment[dataConsumer][_dataProvider] = tokensHeldForPayment[dataConsumer][_dataProvider].add(_fee);
+        require(token.transferFrom(dataConsumer, address(this), _fee), "Router: token.transferFrom failed");
 
         dataRequests[reqId] = DataRequest(
           {
-            dataConsumer: msg.sender,
+            dataConsumer: dataConsumer,
             dataProvider: _dataProvider,
             callbackFunction: _callbackFunctionSignature,
             expires: _expires,
@@ -242,7 +273,7 @@ contract Router is AccessControl, Request {
 
         // Transfer successful - emit the DataRequested event
         emit DataRequested(
-            msg.sender,
+            dataConsumer,
             _dataProvider,
             _fee,
             _data,
@@ -276,7 +307,7 @@ contract Router is AccessControl, Request {
 
         require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
         // msg.sender is the address of the data provider
-        require(requesterAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
+        require(consumerAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
 
         // dataConsumer will see msg.sender as the Router's contract address
         uint256 gasLeftBefore = gasleft();
@@ -318,7 +349,7 @@ contract Router is AccessControl, Request {
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
-        uint256 refund = dataRequests[_requestId].fee;
+        uint256 tokenRefund = dataRequests[_requestId].fee;
         uint256 expires = dataRequests[_requestId].expires;
 
         // msg.sender is the contract address of the consumer
@@ -329,15 +360,13 @@ contract Router is AccessControl, Request {
             msg.sender,
             dataProvider,
             _requestId,
-            refund
+            tokenRefund
         );
 
-        // ToDo - claim gas refund
-
         // Refund Tokens to dataConsumer (msg.sender)
-        totalTokensHeld = totalTokensHeld.sub(refund, "Router: refund amount exceeds router totalTokensHeld");
-        tokensHeldForPayment[msg.sender][dataProvider] = tokensHeldForPayment[msg.sender][dataProvider].sub(refund, "Router: refund amount exceeds router tokensHeldForPayment for pair");
-        require(token.transfer(msg.sender, refund), "Router: token.transfer failed");
+        totalTokensHeld = totalTokensHeld.sub(tokenRefund, "Router: refund amount exceeds router totalTokensHeld");
+        tokensHeldForPayment[msg.sender][dataProvider] = tokensHeldForPayment[msg.sender][dataProvider].sub(tokenRefund, "Router: refund amount exceeds router tokensHeldForPayment for pair");
+        require(token.transfer(msg.sender, tokenRefund), "Router: token.transfer failed");
 
         delete dataRequests[_requestId];
 
@@ -352,7 +381,7 @@ contract Router is AccessControl, Request {
     function grantProviderPermission(address _dataProvider) public returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can grant a provider permission");
-        requesterAuthorisedProviders[msg.sender][_dataProvider] = true;
+        consumerAuthorisedProviders[msg.sender][_dataProvider] = true;
         emit GrantProviderPermission(msg.sender, _dataProvider);
         return true;
     }
@@ -365,7 +394,7 @@ contract Router is AccessControl, Request {
     function revokeProviderPermission(address _dataProvider) public returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can revoke a provider permission");
-        requesterAuthorisedProviders[msg.sender][_dataProvider] = false;
+        consumerAuthorisedProviders[msg.sender][_dataProvider] = false;
         emit RevokeProviderPermission(msg.sender, _dataProvider);
         return true;
     }
@@ -377,7 +406,7 @@ contract Router is AccessControl, Request {
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
     function providerIsAuthorised(address _dataConsumer, address _dataProvider) external view returns (bool) {
-        return requesterAuthorisedProviders[_dataConsumer][_dataProvider];
+        return consumerAuthorisedProviders[_dataConsumer][_dataProvider];
     }
 
     /**
@@ -506,7 +535,7 @@ contract Router is AccessControl, Request {
         return gasDepositsForConsumerProviders[_dataConsumer][_dataProvider];
     }
 
-modifier onlyAdmin() {
+    modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
         _;
     }

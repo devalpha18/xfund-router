@@ -11,4 +11,6 @@ interface IRouter {
     function revokeProviderPermission(address) external returns (bool);
     function cancelRequest(bytes32) external returns (bool);
     function topUpGas(address) external payable returns (bool);
+    function withDrawGasTopUpForProvider(address) external returns (uint256);
+    function getGasDepositsForConsumer(address) external returns (uint256);
 }

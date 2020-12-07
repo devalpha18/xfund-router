@@ -37,7 +37,7 @@ contract Consumer is AccessControl, Request {
      */
     IRouter private router; // the deployed address of Router smart contract
     IERC20_Ex private token; // deployed address of the Token smart contract
-    address private OWNER; // wallet address of the Token holder who will pay fees
+    address payable private OWNER; // wallet address of the Token holder who will pay fees
     uint256 private requestNonce; // incremented nonce to help prevent request replays
     uint256 private gasPriceLimit; // gas price limit in gwei the consumer is willing to pay for data processing
     uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
@@ -77,6 +77,8 @@ contract Consumer is AccessControl, Request {
     event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
 
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
+
+    event PaymentRecieved(address sender, uint256 amount);
 
     /*
      * MIRRORED EVENTS - FOR CLIENT LOG DECODING
@@ -161,6 +163,10 @@ contract Consumer is AccessControl, Request {
         emit OwnershipTransferred( msg.sender, address(0), msg.sender);
     }
 
+    receive() external payable {
+        emit PaymentRecieved(msg.sender, msg.value);
+    }
+
     /**
      * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
      * Tokens held by this contract back to themselves.
@@ -196,11 +202,12 @@ contract Consumer is AccessControl, Request {
      * and withdraws any tokens currentlry held by the contract.
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public onlyOwner() {
+    function transferOwnership(address payable newOwner) public onlyOwner() {
         require(newOwner != address(0), "Consumer: new owner is the zero address");
+        require(router.getGasDepositsForConsumer(address(this)) == 0, "Consumer: owner must withdraw all gas from router first");
         grantRole(DEFAULT_ADMIN_ROLE, newOwner);
         renounceRole(DEFAULT_ADMIN_ROLE, OWNER);
-        require(withdrawAllTokens(), "Consumer: failed to transfer ownership");
+        require(withdrawAllTokens(), "Consumer: failed to withdraw tokens from Router");
         emit OwnershipTransferred(msg.sender, OWNER, newOwner);
         OWNER = newOwner;
     }
@@ -364,9 +371,16 @@ contract Consumer is AccessControl, Request {
         require(router.topUpGas{value:amount}(_dataProvider), "Consumer: router.topUpGas failed");
         return true;
     }
-    // Todo - withdrawAllGas
-    // Todo - withdrawGasAmount
-    // Todo - fallback function to reject accidental payments
+
+    function withdrawTopUpGas(address _dataProvider)
+    public
+    onlyOwner()
+    returns (bool success) {
+        uint256 amount = router.withDrawGasTopUpForProvider(_dataProvider);
+        require(amount > 0, "Consumer: nothing to withdraw");
+        Address.sendValue(OWNER, amount);
+        return true;
+    }
 
     /**
      * @dev submitDataRequest submit a new data request to the Router. The router will
