@@ -113,7 +113,6 @@ contract Consumer is AccessControl, Request {
         address indexed dataProvider,
         bytes32 indexed requestId,
         uint256 requestedData,
-        uint256 gasUsedToCall,
         address gasPayer
     );
 

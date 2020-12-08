@@ -30,11 +30,10 @@ contract Router is AccessControl, Request {
     /*
      * CONSTANTS
      */
-    // The base amount of gas that fulfillRequest will consume.
-    // The gas consumed by the Consumer's receiving callback function
-    // will be added on to this to calculate the final gas refund to
-    // the provider, if the provider expects the consumer to pay for the gas.
-    uint256 public constant BASE_GAS = 52645;
+    // The expected amount of gas that fulfillRequest will consume.
+    // Used to calculate the refund to the provider, if the
+    // provider expects the consumer to pay for the gas.
+    uint256 public constant EXPECTED_GAS = 85100;
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
@@ -86,7 +85,6 @@ contract Router is AccessControl, Request {
         address indexed dataProvider,
         bytes32 indexed requestId,
         uint256 requestedData,
-        uint256 gasUsedToCall,
         address gasPayer
     );
 
@@ -318,6 +316,7 @@ contract Router is AccessControl, Request {
      * @return success if the execution was successful.
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) external returns (bool){
+        uint256 gasLeftStart = gasleft();
         require(_signature.length > 0, "Router: must include signature");
         require(dataRequests[_requestId].isSet, "Router: request does not exist");
 
@@ -332,11 +331,9 @@ contract Router is AccessControl, Request {
         require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
         require(consumerAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
 
-        uint256 gasLeftBefore = gasleft();
         // dataConsumer will see msg.sender as the Router's contract address
         // using functionCall from OZ's Address library
         dataConsumer.functionCall(abi.encodeWithSelector(callbackFunction, _requestedData, _requestId, _signature));
-        uint256 gasUsedToCall = gasLeftBefore - gasleft();
 
         address gasPayer = dataProvider;
         if(!providerPaysGas[dataProvider]) {
@@ -348,7 +345,6 @@ contract Router is AccessControl, Request {
             msg.sender,
             _requestId,
             _requestedData,
-            gasUsedToCall,
             gasPayer
         );
 
@@ -358,9 +354,15 @@ contract Router is AccessControl, Request {
         tokensHeldForPayment[dataConsumer][msg.sender] = tokensHeldForPayment[dataConsumer][msg.sender].sub(fee, "Router: fee amount exceeds router tokensHeldForPayment for pair");
         require(token.transfer(msg.sender, fee), "Router: token.transfer failed");
 
+        uint256 gasUsedToCall = gasLeftStart - gasleft();
         if(gasPayer != dataProvider) {
             // calculate how much should be refunded to the provider
-            uint256 totalGasUsed = BASE_GAS.add(gasUsedToCall);
+            uint256 totalGasUsed = EXPECTED_GAS;
+            if(gasUsedToCall > EXPECTED_GAS) {
+                uint256 diff = gasUsedToCall.sub(EXPECTED_GAS);
+                totalGasUsed = totalGasUsed.add(diff);
+            }
+
             uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
 
             // check there's enough
