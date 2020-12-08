@@ -27,7 +27,7 @@ contract MockConsumer is Consumer {
         bytes32 _requestId,
         bytes memory _signature
     )
-    public
+    external
     isValidFulfillment(_requestId, _price, _signature)
     returns (bool success) {
         price = _price;
