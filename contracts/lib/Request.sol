@@ -10,7 +10,7 @@ contract Request {
     // Struct to hold information about a data request
     struct DataRequest {
         address dataConsumer;
-        address dataProvider;
+        address payable dataProvider;
         bytes4 callbackFunction;
         uint256 expires;
         uint256 fee;
