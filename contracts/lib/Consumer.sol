@@ -112,9 +112,8 @@ contract Consumer is AccessControl, Request {
         address indexed dataConsumer,
         address indexed dataProvider,
         bytes32 indexed requestId,
-        bytes4 callbackFunctionSignature,
         uint256 requestedData,
-        uint256 gasUsedToCall
+        address gasPayer
     );
 
     // RequestCancelled event. Emitted when a data consumer cancels a request
