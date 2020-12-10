@@ -16,4 +16,9 @@ contract MockToken is ERC20 {
         _setupDecimals(decimals);
         _mint(msg.sender, initSupply);
     }
+
+    function gimme() public {
+        uint256 amount = uint256(10) ** decimals();
+        _mint(msg.sender, amount);
+    }
 }
