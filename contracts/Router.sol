@@ -2,7 +2,6 @@
 
 pragma solidity ^0.6.0;
 
-import "./lib/Request.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -23,7 +22,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * This contract uses {AccessControl} to lock permissioned functions using the
  * different roles.
  */
-contract Router is AccessControl, Request {
+contract Router is AccessControl {
     using SafeMath for uint256;
     using Address for address;
 
@@ -33,7 +32,21 @@ contract Router is AccessControl, Request {
     // The expected amount of gas that fulfillRequest will consume.
     // Used to calculate the refund to the provider, if the
     // provider expects the consumer to pay for the gas.
-    uint256 public constant EXPECTED_GAS = 85100;
+    uint256 public constant EXPECTED_GAS = 88900;
+
+    /*
+     * STRUCTURES
+     */
+
+    struct DataRequest {
+        address dataConsumer;
+        address payable dataProvider;
+        bytes4 callbackFunction;
+        uint256 expires;
+        uint256 fee;
+        uint256 gasPrice;
+        bool isSet;
+    }
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
@@ -280,6 +293,8 @@ contract Router is AccessControl, Request {
         totalTokensHeld = totalTokensHeld.add(_fee);
         tokensHeldForPayment[dataConsumer][_dataProvider] = tokensHeldForPayment[dataConsumer][_dataProvider].add(_fee);
         require(token.transferFrom(dataConsumer, address(this), _fee), "Router: token.transferFrom failed");
+
+        // ToDo - check if provider or consumer pays gas. If consumer, check there's enough top up gas deposited
 
         dataRequests[reqId] = DataRequest(
           {
@@ -593,6 +608,32 @@ contract Router is AccessControl, Request {
      */
     function getProviderPaysGas(address _dataProvider) external view returns (bool) {
         return providerPaysGas[_dataProvider];
+    }
+
+    /*
+     * PRIVATE
+     */
+
+    function generateRequestId(
+        address _dataConsumer,
+        uint256 _requestNonce,
+        address _dataProvider,
+        string memory _data,
+        bytes4 _callbackFunctionSignature,
+        uint256 gasPriceGwei,
+        bytes32 _salt
+    ) private pure returns (bytes32 requestId) {
+        return keccak256(
+            abi.encodePacked(
+                _dataConsumer,
+                _requestNonce,
+                _dataProvider,
+                _data,
+                _callbackFunctionSignature,
+                gasPriceGwei,
+                _salt
+            )
+        );
     }
 
     modifier onlyAdmin() {
