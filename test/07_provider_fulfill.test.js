@@ -13,10 +13,15 @@ const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
 const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
+const signData = async function(reqId, priceToSend, consumerContractAddress, providerPk) {
+  const msg = generateSigMsg(reqId, priceToSend, consumerContractAddress)
+  return web3.eth.accounts.sign(msg, providerPk)
+}
+
 function generateSigMsg(requestId, data, consumerAddress) {
   return web3.utils.soliditySha3(
     { 'type': 'bytes32', 'value': requestId},
-    { 'type': 'uint256', 'value': data.toNumber()},
+    { 'type': 'uint256', 'value': data},
     { 'type': 'address', 'value': consumerAddress}
   )
 }
@@ -38,6 +43,15 @@ function generateRequestId(
     { 'type': 'uint256', 'value': gasPrice * (10 ** 9)},
     { 'type': 'bytes32', 'value': salt}
   )
+}
+
+const randomPrice = function() {
+  const rand = Math.floor(Math.random() * (999999999)) + 1
+  return web3.utils.toWei(String(rand), "ether")
+}
+
+const randomGasPrice = function(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 describe('Provider - fulfillment tests', function () {
@@ -85,11 +99,11 @@ describe('Provider - fulfillment tests', function () {
       // add a dataProvider
       await this.MockConsumerContract.addDataProvider(dataProvider, fee, {from: dataConsumerOwner});
 
-      // Admin Transfer 10 Tokens to dataConsumerOwner
-      await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+      // Admin Transfer 100 Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer(dataConsumerOwner, new BN(100 * (10 ** decimals)), {from: admin})
 
-      // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
-      await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+      // Transfer 10 Tokens to MockConsumerContract from dataConsumerOwner
+      await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN(10 * (10 ** decimals)), {from: dataConsumerOwner})
 
       await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: web3.utils.toWei("0.1", "ether") })
     })
@@ -126,6 +140,57 @@ describe('Provider - fulfillment tests', function () {
       const retPrice = await this.MockConsumerContract.price()
       expect(retPrice.toNumber()).to.equal(priceToSend.toNumber())
     } )
+
+    it( '20 iterations: RequestFulfilled event emitted', async function () {
+      const routerSalt = await this.RouterContract.getSalt()
+      for(let i = 0; i < 20; i += 1) {
+        // simulate gas price fluctuation
+        const randGas = randomGasPrice(10, 20)
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+
+        const price = randomPrice()
+        const gasPriceGwei = randGas * ( 10 ** 9 )
+
+        const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+        const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+          from: dataProvider,
+          gasPrice: gasPriceGwei
+        } )
+
+        expectEvent( fulfullReceipt, 'RequestFulfilled', {
+          dataConsumer: this.MockConsumerContract.address,
+          dataProvider: dataProvider,
+          requestId: reqId,
+          requestedData: price,
+        } )
+      }
+    })
+
+    it( '20 iterations: price updated correctly', async function () {
+      const routerSalt = await this.RouterContract.getSalt()
+      for(let i = 0; i < 20; i += 1) {
+        // simulate gas price fluctuation
+        const randGas = randomGasPrice(10, 20)
+        const requestNonce = await this.MockConsumerContract.getRequestNonce()
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+        await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+
+        const price = randomPrice()
+        const gasPriceGwei = randGas * ( 10 ** 9 )
+
+        const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+        await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+          from: dataProvider,
+          gasPrice: gasPriceGwei
+        } )
+
+        // check price
+        const retPrice = await this.MockConsumerContract.price()
+        expect(retPrice).to.be.bignumber.equal(price)
+      }
+    })
 
     it( 'only requested, authorised dataProvider can fulfill a request', async function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
