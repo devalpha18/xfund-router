@@ -11,6 +11,7 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
+const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
 function generateSigMsg(requestId, data, consumerAddress) {
   return web3.utils.soliditySha3(
@@ -65,6 +66,11 @@ describe('Consumer - data request tests', function () {
 
     // admin deploy Router contract
     this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+
+    // Deploy ConsumerLib library and link
+    this.ConsumerLib = await ConsumerLib.new({from: admin})
+    await MockConsumer.detectNetwork();
+    await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
 
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
@@ -134,7 +140,7 @@ describe('Consumer - data request tests', function () {
       it( 'only dataConsumer (owner) can initialise a request - reverts with error', async function () {
         await expectRevert(
           this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: rando } ),
-          "Consumer: only owner can do this"
+          "ConsumerLib: only owner can do this"
         )
       } )
 
@@ -142,7 +148,7 @@ describe('Consumer - data request tests', function () {
         // gasLimit is 200 Gwei. Send with 300
         await expectRevert(
           this.MockConsumerContract.requestData( dataProvider, endpoint, 300, { from: dataConsumerOwner } ),
-          "Consumer: gasPrice > gasPriceLimit"
+          "ConsumerLib: gasPrice > gasPriceLimit"
         )
       } )
 
@@ -150,7 +156,7 @@ describe('Consumer - data request tests', function () {
         // rando is not authorised
         await expectRevert(
           this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } ),
-          "Consumer: _dataProvider does not have role DATA_PROVIDER"
+          "ConsumerLib: _dataProvider is not authorised"
         )
       } )
 
@@ -182,7 +188,7 @@ describe('Consumer - data request tests', function () {
         // dataProvider is no longer authorised
         await expectRevert(
           this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
-          "Consumer: _dataProvider does not have role DATA_PROVIDER"
+          "ConsumerLib: _dataProvider is not authorised"
         )
       } )
 
@@ -213,7 +219,7 @@ describe('Consumer - data request tests', function () {
     it( 'consumer contract must have enough tokens', async function () {
       await expectRevert(
         this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
-        "Consumer: this contract does not have enough tokens to pay fee"
+        "ConsumerLib: this contract does not have enough tokens to pay fee"
       )
     } )
 
@@ -223,21 +229,21 @@ describe('Consumer - data request tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
-        "Consumer: not enough Router allowance to pay fee"
+        "ConsumerLib: not enough Router allowance to pay fee"
       )
     } )
 
     it( 'request succeeds when contract balance and router allowance increases', async function () {
       await expectRevert(
         this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
-        "Consumer: this contract does not have enough tokens to pay fee"
+        "ConsumerLib: this contract does not have enough tokens to pay fee"
       )
 
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
 
       await expectRevert(
         this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
-        "Consumer: not enough Router allowance to pay fee"
+        "ConsumerLib: not enough Router allowance to pay fee"
       )
 
       // increase Router allowance

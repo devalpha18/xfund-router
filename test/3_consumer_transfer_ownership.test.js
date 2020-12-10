@@ -11,6 +11,7 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
+const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
 describe('Consumer - transfer ownership tests', function () {
   this.timeout(300000)
@@ -26,6 +27,11 @@ describe('Consumer - transfer ownership tests', function () {
     // admin deploy Router contract
     this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
 
+    // Deploy ConsumerLib library and link
+    this.ConsumerLib = await ConsumerLib.new({from: admin})
+    await MockConsumer.detectNetwork();
+    await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
+
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
 
@@ -33,10 +39,6 @@ describe('Consumer - transfer ownership tests', function () {
 
   it('initial owner should be deployer address', async function () {
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-  })
-
-  it('initial owner should have DEFAULT_ADMIN role', async function () {
-    expect(await this.MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(true)
   })
 
   it('owner can transfer ownership - should emit OwnershipTransferred event', async function () {
@@ -51,54 +53,12 @@ describe('Consumer - transfer ownership tests', function () {
     })
   })
 
-
-  it('owner can transfer ownership - should emit RoleGranted event for newOwner1', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    const receipt = await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    expectEvent(receipt, 'RoleGranted', {
-      role: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      account: newOwner1,
-      sender: dataConsumerOwner
-    })
-  })
-
-
-  it('owner can transfer ownership - should emit RoleRevoked event for dataConsumerOwner', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    const receipt = await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    expectEvent(receipt, 'RoleRevoked', {
-      role: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      account: dataConsumerOwner,
-      sender: dataConsumerOwner
-    })
-  })
-
   it('owner can transfer ownership - new owner should be newOwner1', async function () {
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
 
     await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
 
     expect(await this.MockConsumerContract.owner()).to.equal(newOwner1)
-  })
-
-  it('owner can transfer ownership - newOwner1 should have DEFAULT_ADMIN role', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    expect(await this.MockConsumerContract.hasRole("0x00", newOwner1)).to.equal(true)
-  })
-
-  it('owner can transfer ownership - dataConsumerOwner should no longer have DEFAULT_ADMIN role', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    expect(await this.MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(false)
   })
 
   it('new owner can also transfer ownership - should emit OwnershipTransferred event for newOwner2', async function () {
@@ -117,38 +77,6 @@ describe('Consumer - transfer ownership tests', function () {
     })
   })
 
-  it('new owner can also transfer ownership - should emit RoleGranted event for newOwner2', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    // first transfer from dataConsumerOwner to newOwner1
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    // trasfer from newOwner1 to newOwner2
-    const receipt2 = await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
-
-    expectEvent(receipt2, 'RoleGranted', {
-      role: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      account: newOwner2,
-      sender: newOwner1
-    })
-  })
-
-  it('new owner can also transfer ownership - should emit RoleRevoked event for newOwner1', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    // first transfer from dataConsumerOwner to newOwner1
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    // trasfer from newOwner1 to newOwner2
-    const receipt2 = await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
-
-    expectEvent(receipt2, 'RoleRevoked', {
-      role: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      account: newOwner1,
-      sender: newOwner1
-    })
-  })
-
   it('new owner can also transfer ownership - owner is newOwner2', async function () {
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
 
@@ -159,42 +87,6 @@ describe('Consumer - transfer ownership tests', function () {
     await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
 
     expect(await this.MockConsumerContract.owner()).to.equal(newOwner2)
-  })
-
-  it('new owner can also transfer ownership - newOwner2 has DEFAULT_ADMIN role', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    // first transfer from dataConsumerOwner to newOwner1
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    // trasfer from newOwner1 to newOwner2
-    await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
-
-    expect(await this.MockConsumerContract.hasRole("0x00", newOwner2)).to.equal(true)
-  })
-
-  it('new owner can also transfer ownership - newOwner1 no longer has DEFAULT_ADMIN role', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    // first transfer from dataConsumerOwner to newOwner1
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    // trasfer from newOwner1 to newOwner2
-    await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
-
-    expect(await this.MockConsumerContract.hasRole("0x00", newOwner1)).to.equal(false)
-  })
-
-  it('new owner can also transfer ownership - dataConsumerOwner no longer has DEFAULT_ADMIN role', async function () {
-    expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-
-    // first transfer from dataConsumerOwner to newOwner1
-    await this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner})
-
-    // trasfer from newOwner1 to newOwner2
-    await this.MockConsumerContract.transferOwnership(newOwner2, {from: newOwner1})
-
-    expect(await this.MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(false)
   })
 
   it('owner tokens are withdrawn from contract during ownership transfer', async function () {
@@ -247,11 +139,10 @@ describe('Consumer - transfer ownership tests', function () {
   it('only owner can transfer ownership', async function () {
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: rando}),
-      "Consumer: only owner can do this"
+      "ConsumerLib: only owner can do this"
     )
 
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-    expect(await this.MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(true)
   })
 
   it('tokens remain intact after failed ownership transfer', async function () {
@@ -262,11 +153,10 @@ describe('Consumer - transfer ownership tests', function () {
 
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: rando}),
-      "Consumer: only owner can do this"
+      "ConsumerLib: only owner can do this"
     )
 
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
-    expect(await this.MockConsumerContract.hasRole("0x00", dataConsumerOwner)).to.equal(true)
 
     // dataConsumerOwner should still have 9 tokens, and Consumer contract should still have 1 Token
     const dcBalance = await this.MockTokenContract.balanceOf(dataConsumerOwner)
@@ -282,7 +172,7 @@ describe('Consumer - transfer ownership tests', function () {
 
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner}),
-      "Consumer: owner must withdraw all gas from router first"
+      "ConsumerLib: owner must withdraw all gas from router first"
     )
   })
 
@@ -293,7 +183,7 @@ describe('Consumer - transfer ownership tests', function () {
 
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner}),
-      "Consumer: owner must withdraw all gas from router first"
+      "ConsumerLib: owner must withdraw all gas from router first"
     )
 
     const routerBalance = await web3.eth.getBalance(this.RouterContract.address)
@@ -308,7 +198,7 @@ describe('Consumer - transfer ownership tests', function () {
 
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: dataConsumerOwner}),
-      "Consumer: owner must withdraw all gas from router first"
+      "ConsumerLib: owner must withdraw all gas from router first"
     )
 
     const depositValue = await this.RouterContract.getGasDepositsForConsumer(this.MockConsumerContract.address)

@@ -29,7 +29,7 @@ contract MockBadConsumer {
     }
 
     // mimic a contract directly interecting with router and not implementing the Consumer library
-    function requestData(address _dataProvider, string memory _data)
+    function requestData(address payable _dataProvider, string memory _data)
     public returns (bool success) {
         nonce += 1;
         bytes32 requestId = keccak256(
@@ -59,7 +59,7 @@ contract MockBadConsumer {
     // mimic a contract directly interecting with router and not implementing the Consumer library
     // allow sending arbitrary params for testing
     function requestDataWithAllParams(
-        address _dataProvider,
+        address payable _dataProvider,
         uint256 _fee,
         uint256 _nonce,
         string memory _data,
@@ -92,7 +92,7 @@ contract MockBadConsumer {
     }
 
     function requestDataWithAllParamsAndRequestId(
-        address _dataProvider,
+        address payable _dataProvider,
         uint256 _fee,
         uint256 _nonce,
         string memory _data,

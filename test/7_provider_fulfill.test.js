@@ -11,6 +11,7 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
+const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
 function generateSigMsg(requestId, data, consumerAddress) {
   return web3.utils.soliditySha3(
@@ -62,6 +63,11 @@ describe('Provider - fulfillment tests', function () {
     // admin deploy Router contract
     this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
 
+    // Deploy ConsumerLib library and link
+    this.ConsumerLib = await ConsumerLib.new({from: admin})
+    await MockConsumer.detectNetwork();
+    await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
+
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
 
@@ -84,6 +90,8 @@ describe('Provider - fulfillment tests', function () {
 
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+
+      await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: web3.utils.toWei("0.1", "ether") })
     })
 
     it( 'dataProvider can fulfill a request', async function () {
@@ -112,7 +120,6 @@ describe('Provider - fulfillment tests', function () {
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider,
         requestId: reqId,
-        callbackFunctionSignature: callbackFuncSig,
         requestedData: new BN(priceToSend),
       } )
 
@@ -203,7 +210,7 @@ describe('Provider - fulfillment tests', function () {
 
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, priceToSend, sig.signature, {from: dataProvider, gasPrice: (gasPriceTooHigh * (10 ** 9))}),
-        "Router: tx.gasprice cannot exceed gas price consumer is willing to pay"
+        "Router: tx.gasprice too high"
       )
 
       // should still be zero

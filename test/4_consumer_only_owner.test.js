@@ -12,6 +12,11 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
+const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
+
+const REQUEST_VAR_GAS_PRICE_LIMIT = 1; // gas price limit in gwei the consumer is willing to pay for data processing
+const REQUEST_VAR_TOP_UP_LIMIT = 2; // max ETH that can be sent in a gas top up Tx
+const REQUEST_VAR_REQUEST_TIMEOUT = 3; // request timeout in seconds
 
 describe('Consumer - only owner function tests', function () {
   this.timeout(300000)
@@ -19,7 +24,7 @@ describe('Consumer - only owner function tests', function () {
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
-  const ROLE_DATA_PROVIDER = web3.utils.sha3('DATA_PROVIDER')
+
 
   beforeEach(async function () {
     // admin deploy Token contract
@@ -27,6 +32,11 @@ describe('Consumer - only owner function tests', function () {
 
     // admin deploy Router contract
     this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+
+    // Deploy ConsumerLib library and link
+    this.ConsumerLib = await ConsumerLib.new({from: admin})
+    await MockConsumer.detectNetwork();
+    await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
 
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
@@ -102,7 +112,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.withdrawAllTokens( { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
     } )
 
@@ -118,7 +128,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.withdrawAllTokens( { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // dataConsumerOwner should have 900 tokens again, and Consumer contract should have 100
@@ -200,7 +210,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
     } )
 
@@ -218,7 +228,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // dataConsumerOwner should have 900 tokens, and Consumer contract should have 100
@@ -309,7 +319,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.increaseRouterAllowance(allowance, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
     } )
 
@@ -326,7 +336,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.increaseRouterAllowance(allowance, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // router should have an allowance of zero
@@ -418,7 +428,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.decreaseRouterAllowance(decrease, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
     } )
 
@@ -438,7 +448,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.decreaseRouterAllowance(decrease, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // router should still have an allowance of 100
@@ -463,18 +473,6 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
-    it( 'owner can add a data provider - emits RoleGranted event', async function () {
-      const fee = 100
-
-      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-
-      expectEvent(receipt, 'RoleGranted', {
-        role: ROLE_DATA_PROVIDER,
-        account: dataProvider,
-        sender: dataConsumerOwner
-      })
-    } )
-
     it( 'owner can add a data provider - emits Router GrantProviderPermission event', async function () {
       const fee = 100
 
@@ -484,15 +482,6 @@ describe('Consumer - only owner function tests', function () {
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider,
       })
-    } )
-
-    it( 'owner can add a data provider - dataProvider has role DATA_PROVIDER', async function () {
-      const fee = 100
-
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-
-      // dataProvider should now have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
     } )
 
     it( 'owner can add a data provider - dataProvider is authorised for this contract on Router', async function () {
@@ -509,20 +498,8 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
-    } )
-
-    it( 'only owner can add a data provider - dataProvider should not have DATA_PROVIDER role', async function () {
-      const fee = 100
-
-      await expectRevert(
-        this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
-        "Consumer: only owner can do this"
-      )
-
-      // dataProvider should NOT have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( false )
     } )
 
     it( 'only owner can add a data provider - dataProvider should not be authorised on Router', async function () {
@@ -530,7 +507,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // dataProvider should now be authorised on Router for this contract
@@ -542,14 +519,14 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.addDataProvider(constants.ZERO_ADDRESS, fee, { from: dataConsumerOwner } ),
-        "Consumer: dataProvider cannot be the zero address"
+        "ConsumerLib: dataProvider cannot be the zero address"
       )
     } )
 
     it( 'addDataProvider - fee must be > 0', async function () {
       await expectRevert(
         this.MockConsumerContract.addDataProvider(dataProvider, 0, { from: dataConsumerOwner } ),
-        "Consumer: fee must be > 0"
+        "ConsumerLib: fee must be > 0"
       )
     } )
 
@@ -581,36 +558,6 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
-    it( 'owner can remove a data provider - emits RoleRevoked event', async function () {
-      const fee = 100
-
-      // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-
-      const receipt = await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
-
-      expectEvent(receipt, 'RoleRevoked', {
-        role: ROLE_DATA_PROVIDER,
-        account: dataProvider,
-        sender: dataConsumerOwner
-      })
-
-    } )
-
-    it( 'owner can remove a data provider - dataProvider no longer has DATA_PROVIDER role in contract', async function () {
-      const fee = 100
-
-      // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-      // dataProvider should now have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
-
-      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
-
-      // dataProvider should no longer have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( false )
-    } )
-
     it( 'owner can remove a data provider - dataProvider no longer authorised for this contract in Router', async function () {
       const fee = 100
 
@@ -633,24 +580,9 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
-    } )
-
-    it( 'only owner can remove a data provider - dataProvider should still have DATA_PROVIDER role', async function () {
-      const fee = 100
-
-      // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-
-      await expectRevert(
-        this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
-        "Consumer: only owner can do this"
-      )
-
-      // dataProvider should still have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( true )
     } )
 
     it( 'only owner can remove a data provider - dataProvider should still be authorised in Router', async function () {
@@ -661,7 +593,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // dataProvider should still be authorised in Router
@@ -671,11 +603,9 @@ describe('Consumer - only owner function tests', function () {
     it( 'cannot remove non existent data provider', async function () {
       await expectRevert(
         this.MockConsumerContract.removeDataProvider(dataProvider, { from: dataConsumerOwner } ),
-        "Consumer: _dataProvider does not have role DATA_PROVIDER"
+        "ConsumerLib: _dataProvider is not authorised"
       )
 
-      // dataProvider should not have DATA_PROVIDER role
-      expect( await this.MockConsumerContract.hasRole(ROLE_DATA_PROVIDER, dataProvider) ).to.equal( false )
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
     } )
 
@@ -724,7 +654,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.setDataProviderFee(dataProvider, newFee, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // should still be 100
@@ -743,11 +673,10 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.setDataProviderFee(dataProvider, 0, { from: dataConsumerOwner } ),
-        "Consumer: fee must be > 0"
+        "ConsumerLib: fee must be > 0"
       )
 
       // should still be 100
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
       const f2 = await this.MockConsumerContract.getDataProviderFee(dataProvider)
       expect( f2.toNumber() ).to.equal( fee )
     } )
@@ -756,7 +685,7 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
       await expectRevert(
         this.MockConsumerContract.setDataProviderFee(dataProvider, fee, { from: dataConsumerOwner } ),
-        "Consumer: _dataProvider does not have role DATA_PROVIDER"
+        "ConsumerLib: _dataProvider is not authorised"
       )
     } )
   })
@@ -765,24 +694,25 @@ describe('Consumer - only owner function tests', function () {
    * Misc tests
    */
   describe('misc.', function () {
-    it( 'owner can set gas price limit - emits SetGasPriceLimit event', async function () {
+    it( 'owner can set gas price limit - emits SetRequestVar event', async function () {
 
       const newLimit = 80
-      const receipt = await this.MockConsumerContract.setGasPriceLimit(newLimit,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT, newLimit,  { from: dataConsumerOwner } )
 
-      expectEvent( receipt, 'SetGasPriceLimit', {
+      expectEvent( receipt, 'SetRequestVar', {
         sender: dataConsumerOwner,
-        oldLimit: new BN(200),
-        newLimit: new BN(newLimit),
+        oldValue: new BN(200),
+        newValue: new BN(newLimit),
+        variable: new BN(REQUEST_VAR_GAS_PRICE_LIMIT),
       } )
     } )
 
     it( 'owner can set gas price limit - limit reduced from 200 to 80', async function () {
 
       const newLimit = 80
-      await this.MockConsumerContract.setGasPriceLimit(newLimit,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT, newLimit,  { from: dataConsumerOwner } )
 
-      const limit = await this.MockConsumerContract.getGasPriceLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT)
       expect( limit.toNumber() ).to.equal( newLimit )
 
     } )
@@ -791,45 +721,46 @@ describe('Consumer - only owner function tests', function () {
 
       const newLimit = 80
       await expectRevert(
-        this.MockConsumerContract.setGasPriceLimit(newLimit, { from: rando } ),
-        "Consumer: only owner can do this"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT, newLimit, { from: rando } ),
+        "ConsumerLib: only owner can do this"
       )
 
       // should still be the default 200
-      const limit = await this.MockConsumerContract.getGasPriceLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT)
       expect( limit.toNumber() ).to.equal( 200 )
     } )
 
     it( 'new gas price limit must be > 0', async function () {
 
       await expectRevert(
-        this.MockConsumerContract.setGasPriceLimit(0, { from: dataConsumerOwner } ),
-        "Consumer: gasPriceLimit must be > 0"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT, 0, { from: dataConsumerOwner } ),
+        "ConsumerLib: _value must be > 0"
       )
 
       // should still be the default 200
-      const limit = await this.MockConsumerContract.getGasPriceLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT)
       expect( limit.toNumber() ).to.equal( 200 )
     } )
 
-    it( 'owner can set request timeout - emits SetRequestTimout event', async function () {
+    it( 'owner can set request timeout - emits SetRequestVar event', async function () {
 
       const newLimit = 500
-      const receipt = await this.MockConsumerContract.setRequestTimeout(newLimit,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, newLimit,  { from: dataConsumerOwner } )
 
-      expectEvent( receipt, 'SetRequestTimout', {
+      expectEvent( receipt, 'SetRequestVar', {
         sender: dataConsumerOwner,
-        oldTimeout: new BN(300),
-        newTimeout: new BN(newLimit),
+        oldValue: new BN(300),
+        newValue: new BN(newLimit),
+        variable: new BN(REQUEST_VAR_REQUEST_TIMEOUT),
       } )
     } )
 
     it( 'owner can set request timeout - limit changed from 300 to 500', async function () {
 
       const newLimit = 500
-      await this.MockConsumerContract.setRequestTimeout(newLimit,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, newLimit,  { from: dataConsumerOwner } )
 
-      const limit = await this.MockConsumerContract.getRequestTimeout()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_REQUEST_TIMEOUT)
       expect( limit.toNumber() ).to.equal( newLimit )
 
     } )
@@ -838,24 +769,24 @@ describe('Consumer - only owner function tests', function () {
 
       const newLimit = 500
       await expectRevert(
-        this.MockConsumerContract.setRequestTimeout(newLimit, { from: rando } ),
-        "Consumer: only owner can do this"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, newLimit, { from: rando } ),
+        "ConsumerLib: only owner can do this"
       )
 
       // should still be the default 300
-      const limit = await this.MockConsumerContract.getRequestTimeout()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_REQUEST_TIMEOUT)
       expect( limit.toNumber() ).to.equal( 300 )
     } )
 
     it( 'new request timeout must be > 0', async function () {
 
       await expectRevert(
-        this.MockConsumerContract.setRequestTimeout(0, { from: dataConsumerOwner } ),
-        "Consumer: newTimeout must be > 0"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 0, { from: dataConsumerOwner } ),
+        "ConsumerLib: _value must be > 0"
       )
 
       // should still be the default 300
-      const limit = await this.MockConsumerContract.getRequestTimeout()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_REQUEST_TIMEOUT)
       expect( limit.toNumber() ).to.equal( 300 )
     } )
 
@@ -883,7 +814,7 @@ describe('Consumer - only owner function tests', function () {
 
       await expectRevert(
         this.MockConsumerContract.setRouter(newRouterContract.address, { from: rando } ),
-        "Consumer: only owner can do this"
+        "ConsumerLib: only owner can do this"
       )
 
       // should still be original router address
@@ -894,7 +825,7 @@ describe('Consumer - only owner function tests', function () {
     it( 'router cannot be zero address', async function () {
       await expectRevert(
         this.MockConsumerContract.setRouter(constants.ZERO_ADDRESS, { from: dataConsumerOwner } ),
-        "Consumer: router cannot be the zero address"
+        "ConsumerLib: router cannot be the zero address"
       )
 
       // should still be original router address
@@ -904,31 +835,32 @@ describe('Consumer - only owner function tests', function () {
     it( 'router must be a contract', async function () {
       await expectRevert(
         this.MockConsumerContract.setRouter(eoa, { from: dataConsumerOwner } ),
-        "Consumer: router address must be a contract"
+        "ConsumerLib: router address must be a contract"
       )
 
       // should still be original router address
       expect( await this.MockConsumerContract.getRouterAddress() ).to.equal( this.RouterContract.address )
     } )
 
-    it( 'owner can set gas topup limit - emits SetGasTopUpLimit event', async function () {
+    it( 'owner can set gas topup limit - emits SetRequestVar event', async function () {
 
       const newLimit = web3.utils.toWei("1", "ether")
-      const receipt = await this.MockConsumerContract.setGasTopUpLimit(newLimit,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, newLimit,  { from: dataConsumerOwner } )
 
-      expectEvent( receipt, 'SetGasTopUpLimit', {
+      expectEvent( receipt, 'SetRequestVar', {
         sender: dataConsumerOwner,
-        oldLimit: web3.utils.toWei("0.5", "ether"),
-        newLimit: newLimit,
+        oldValue: web3.utils.toWei("0.5", "ether"),
+        newValue: newLimit,
+        variable: new BN(REQUEST_VAR_TOP_UP_LIMIT),
       } )
     } )
 
     it( 'owner can set gas topup limit - increase to 1 eth', async function () {
 
       const newLimit = web3.utils.toWei("1", "ether")
-      await this.MockConsumerContract.setGasTopUpLimit(newLimit,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, newLimit,  { from: dataConsumerOwner } )
 
-      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_TOP_UP_LIMIT )
       expect( limit.toString() ).to.equal( newLimit.toString() )
 
     } )
@@ -938,12 +870,12 @@ describe('Consumer - only owner function tests', function () {
       const newLimit = web3.utils.toWei("1", "ether")
       const oldLimit = web3.utils.toWei("0.5", "ether")
       await expectRevert(
-        this.MockConsumerContract.setGasTopUpLimit(newLimit, { from: rando } ),
-        "Consumer: only owner can do this"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, newLimit, { from: rando } ),
+        "ConsumerLib: only owner can do this"
       )
 
       // should still be the default 200
-      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_TOP_UP_LIMIT )
       expect( limit.toString() ).to.equal( oldLimit.toString() )
     } )
 
@@ -951,12 +883,12 @@ describe('Consumer - only owner function tests', function () {
 
       const oldLimit = web3.utils.toWei("0.5", "ether")
       await expectRevert(
-        this.MockConsumerContract.setGasTopUpLimit(0, { from: dataConsumerOwner } ),
-        "Consumer: _gasTopUpLimit must be > 0"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, 0, { from: dataConsumerOwner } ),
+        "ConsumerLib: _value must be > 0"
       )
 
       // should still be the default
-      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_TOP_UP_LIMIT )
       expect( limit.toString() ).to.equal( oldLimit.toString() )
     } )
 
@@ -965,12 +897,12 @@ describe('Consumer - only owner function tests', function () {
       const newLimit = web3.utils.toWei("1.5", "ether")
       const oldLimit = web3.utils.toWei("0.5", "ether")
       await expectRevert(
-        this.MockConsumerContract.setGasTopUpLimit(newLimit, { from: dataConsumerOwner } ),
-        "Consumer: _gasTopUpLimit must be <= Router gasTopUpLimit"
+        this.MockConsumerContract.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, newLimit, { from: dataConsumerOwner } ),
+        "ConsumerLib: _value must be <= Router gasTopUpLimit"
       )
 
       // should still be the default 200
-      const limit = await this.MockConsumerContract.getGasTopUpLimit()
+      const limit = await this.MockConsumerContract.getRequestVar(REQUEST_VAR_TOP_UP_LIMIT )
       expect( limit.toString() ).to.equal( oldLimit.toString() )
     } )
   })
