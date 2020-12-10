@@ -29,10 +29,12 @@ contract Router is AccessControl {
     /*
      * CONSTANTS
      */
-    // The expected amount of gas that fulfillRequest will consume.
+    // The expected amount of gas that a small fulfillRequest will consume.
     // Used to calculate the refund to the provider, if the
     // provider expects the consumer to pay for the gas.
-    uint256 public constant EXPECTED_GAS = 88900;
+    // Note: This is increased during fulfillRequest if the actual cost
+    // is more.
+    uint256 public constant EXPECTED_GAS = 85000;
 
     /*
      * STRUCTURES
