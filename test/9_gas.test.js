@@ -12,6 +12,11 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
+const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
+
+const REQUEST_VAR_GAS_PRICE_LIMIT = 1; // gas price limit in gwei the consumer is willing to pay for data processing
+const REQUEST_VAR_TOP_UP_LIMIT = 2; // max ETH that can be sent in a gas top up Tx
+const REQUEST_VAR_REQUEST_TIMEOUT = 3; // request timeout in seconds
 
 const calculateCost = async function(receipts, value) {
   let totalCost = new BN(value)
@@ -43,6 +48,11 @@ describe('Consumer - Gas top up and withdraw', function () {
 
     // admin deploy Router contract
     this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+
+    // Deploy ConsumerLib library and link
+    this.ConsumerLib = await ConsumerLib.new({from: admin})
+    await MockConsumer.detectNetwork();
+    await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
 
     // dataConsumerOwner1 deploy Consumer contract
     this.MockConsumerContract1 = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner1})
@@ -476,7 +486,7 @@ describe('Consumer - Gas top up and withdraw', function () {
 
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue }),
-          "Consumer: _dataProvider does not have role DATA_PROVIDER"
+          "Consumer: _dataProvider is not authorised"
         )
       } )
 
@@ -484,7 +494,7 @@ describe('Consumer - Gas top up and withdraw', function () {
         const silly = web3.utils.toWei("150", "ether")
         const topupValue = web3.utils.toWei("101", "ether")
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
-        await this.MockConsumerContract1.setGasTopUpLimit(silly, { from: dataConsumerOwner1 })
+        await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
         // add a data provider
         await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
         await expectRevert(
@@ -497,7 +507,7 @@ describe('Consumer - Gas top up and withdraw', function () {
         const silly = web3.utils.toWei("150", "ether")
         const topupValue = web3.utils.toWei("101", "ether")
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
-        await this.MockConsumerContract1.setGasTopUpLimit(silly, { from: dataConsumerOwner1 })
+        await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
 
         // add a data provider
         await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
@@ -518,7 +528,7 @@ describe('Consumer - Gas top up and withdraw', function () {
         const silly = web3.utils.toWei("150", "ether")
         const topupValue = web3.utils.toWei("101", "ether")
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
-        await this.MockConsumerContract1.setGasTopUpLimit(silly, { from: dataConsumerOwner1 })
+        await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
 
         // add a data provider
         await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )

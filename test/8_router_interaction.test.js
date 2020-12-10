@@ -13,6 +13,11 @@ const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contrac
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
 const MockBadConsumer = contract.fromArtifact('MockBadConsumer') // Loads a compiled contract
+const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
+
+const REQUEST_VAR_GAS_PRICE_LIMIT = 1; // gas price limit in gwei the consumer is willing to pay for data processing
+const REQUEST_VAR_TOP_UP_LIMIT = 2; // max ETH that can be sent in a gas top up Tx
+const REQUEST_VAR_REQUEST_TIMEOUT = 3; // request timeout in seconds
 
 function generateSigMsg(requestId, data, consumerAddress) {
   return web3.utils.soliditySha3(
@@ -63,6 +68,11 @@ describe('Router - interaction tests', function () {
 
     // admin deploy Router contract
     this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+
+    // Deploy ConsumerLib library and link
+    this.ConsumerLib = await ConsumerLib.new({from: admin})
+    await MockConsumer.detectNetwork();
+    await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
 
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
@@ -545,7 +555,7 @@ describe('Router - interaction tests', function () {
 
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, 100, sig.signature, {from: dataProvider}),
-        "Router: request id does not exist"
+        "Router: request does not exist"
       )
     })
 
@@ -628,7 +638,7 @@ describe('Router - interaction tests', function () {
       // lib will return a difference address, hence the "does not have DATA_PROVIDER" error
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, 200, sig.signature, {from: dataProvider}),
-        "Consumer: dataProvider does not have DATA_PROVIDER"
+        "Consumer: provider is not authorised"
       )
     })
   })
