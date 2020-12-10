@@ -1,9 +1,10 @@
 {
   "manifestVersion": "2.2",
   "contracts": {
+    "ConsumerLib": "ConsumerLib",
+    "Router": "Router",
     "MockToken": "mocks/MockToken",
-    "MockConsumer": "mocks/MockConsumer",
-    "Router": "Router"
+    "MockConsumer": "mocks/MockConsumer"
   },
   "dependencies": {},
   "name": "xFUND-Router",

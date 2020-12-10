@@ -27,6 +27,7 @@
     "@poanet/solidity-flattener": "^3.0.5",
     "@truffle/hdwallet-provider": "^1.0.43",
     "chai": "^4.2.0",
+    "chai-bn": "^0.2.1",
     "dotenv": "^8.2.0",
     "ganache-cli": "^6.10.1",
     "mocha": "^8.1.1",
