@@ -1,11 +1,13 @@
 {
-  "name": "xfund-router",
+  "name": "@unification-com/xfund-router",
   "version": "0.0.1",
   "description": "xFUND Router & Data Consumer Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
+    "build": "oz compile",
     "test": "mocha --exit --recursive",
-    "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol"
+    "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol",
+    "prepublishOnly": "oz compile"
   },
   "repository": {
     "type": "git",
@@ -40,5 +42,10 @@
   "resolutions": {
     "**/**/elliptic": "^6.5.3",
     "**/**/lodash": "^4.17.19"
-  }
+  },
+  "files": [
+    "/contracts/**/*.sol",
+    "/build/contracts/*.json",
+    "!/contracts/mocks"
+  ]
 }
