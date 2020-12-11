@@ -16,9 +16,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * The consumer initiates a data request by forwarding the request to the Router
  * smart contract, from where the data provider(s) pick up and process the
  * data request, and forward it back to the specified callback function.
- *
- * This contract uses {AccessControl} to lock permissioned functions using the
- * different roles.
  */
 contract Consumer {
     using SafeMath for uint256;
