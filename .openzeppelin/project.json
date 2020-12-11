@@ -3,8 +3,8 @@
   "contracts": {
     "ConsumerLib": "ConsumerLib",
     "Router": "Router",
-    "MockToken": "mocks/MockToken",
-    "MockConsumer": "mocks/MockConsumer"
+    "MockToken": "MockToken",
+    "MockConsumer": "MockConsumer"
   },
   "dependencies": {},
   "name": "xFUND-Router",
