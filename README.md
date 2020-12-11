@@ -1,19 +1,33 @@
 # xFUND Router & Data Consumer Solidity Smart Contracts
 
+A suite of smart contracts to enable data from external sources (such as Finchains.io)
+to be included in your smart contracts. The suite comprises of:
 
-## Prerequisites
+1) A deployed Router smart contract. This facilitates receiving and forwarding data requests,
+   between Consumers and Providers, in addition to processing xFUND payments for data provision.
+2) A Consumer Library smart contract, which is integrated into your own smart contract in 
+   order for data requests to be initialised (via the Router), and data to be received (from
+   a designated Provider)
+   
+The remainder of this `README` is aimed at developers who wish to develop and test the suite itself.
+For an integration guide, and how to use the suite in your own smart contracts, please
+see the [Documentation](docs/index.md)
 
-### NodeJS
+## Development and Testing
+
+### Prerequisites
+
+#### NodeJS
 The `openzeppelin/test-environment` packages and dependencies require
 NodeJS >= `v8.9.4` and <= `v12.18.3` (excluding `v11`) in order to correctly install. 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage NodeJS 
 installations.
 
-### Yarn
+#### Yarn
 
 [Yarn](https://classic.yarnpkg.com/en/docs/install) is recommended for package management.
 
-## Compile
+### Compile
 
 Run:
 
@@ -30,7 +44,7 @@ npx oz compile
 
 to compile smart contracts
 
-## Unit Tests
+### Unit Tests
 
 To run all tests:
 
@@ -46,9 +60,9 @@ Or, individual test files:
 npx mocha test/[TEST_FILE] --exit
 ```
 
-## Development & Testing
+### Deployment & Interaction
 
-### Run `ganache-cli`
+#### Run `ganache-cli`
 
 If `ganache-cli` is not installed, install with:
 
@@ -65,7 +79,7 @@ npx ganache-cli --deterministic
 The `--deterministic` flag will ensure the same keys and accounts are generated
 each time
 
-### Deploy the smart contracts
+#### Deploy the smart contracts
 
 Compile the contracts, if not already compiled:
 
@@ -111,9 +125,9 @@ e.g.
 ✓ Deployed instance of MockConsumer
 ```
 
-### Interaction - as a Consumer
+#### Interaction - as a Consumer
 
-#### Initialisation
+##### Initialisation
 
 1. Grab some tokens from the `MockToken` smart contract.
    
@@ -176,7 +190,7 @@ forward 0.5 ETH to the `Router` contract, which will hold it on your behalf.
 ETH held by the `Router` can be fully withdrawn at any time, and will only ever be used
 to reimburse the specified provider wallet address.
 
-#### Requesting Data
+##### Requesting Data
 
 First, check the current `price` in your `MockConsumer` contract. Run:
 
@@ -211,7 +225,7 @@ You should see something like:
  - DataRequestSubmitted(0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1, 0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B, 0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d, 100000000, PRICE.BTC.USD.AVG, 1607693356, 80000000000, 0x1cc750077c717d6cd1a122b93383bc84b5cadde0f69313564c9488d7618e956c, 0x28482da5)
 ```
 
-### Interaction - as a Provider
+#### Interaction - as a Provider
 
 A Consumer requests data, but a provider Oracle needs to be running in order to fulfill
 requests.
@@ -249,7 +263,7 @@ the data to the requesting `MockConsumer` smart contract.
 
 **Note**: The price returned by the Oracle is always standardised to `actualPrice * (10 ** 18)`
 
-#### Check Price in `MockConsumer`
+##### Check Price in `MockConsumer`
 
 Once the provider has fulfilled the request, the `price` value should have been updated
 in the `MockConsumer` smart contract. Run:
