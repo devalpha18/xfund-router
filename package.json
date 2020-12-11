@@ -46,6 +46,11 @@
   "files": [
     "/contracts/**/*.sol",
     "/build/contracts/*.json",
-    "!/contracts/mocks"
+    "/docs/**/*.md",
+    "!/contracts/mocks",
+    "!/contracts/Router.sol",
+    "!/build/contracts/Mock*.json",
+    "!/build/contracts/Router.json",
+    "!/build/contracts/AccessControl.json"
   ]
 }
