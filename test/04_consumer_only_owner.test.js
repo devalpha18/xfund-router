@@ -530,6 +530,14 @@ describe('Consumer - only owner function tests', function () {
       )
     } )
 
+    it( 'addDataProvider - fee must be >= provider min fee', async function () {
+      await this.RouterContract.setProviderMinFee(1000, {from: dataProvider})
+      await expectRevert(
+        this.MockConsumerContract.addDataProvider(dataProvider, 500, { from: dataConsumerOwner } ),
+        "ConsumerLib: fee must be >= min provider fee"
+      )
+    } )
+
     it( 'owner can remove a data provider - emits RemovedDataProvider event', async function () {
       const fee = 100
 

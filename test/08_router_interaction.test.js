@@ -303,6 +303,54 @@ describe('Router - interaction tests', function () {
         expect( limit.toString() ).to.equal( oldLimit.toString() )
       } )
     })
+
+    /*
+     * Provider getter/setters
+     */
+    describe('provider getters/setters', function () {
+      it( 'getProviderPaysGas is initially false', async function () {
+        expect(await this.RouterContract.getProviderPaysGas(dataProvider)).to.equal(false)
+      })
+
+      it( 'getProviderMinFee is initially 0', async function () {
+        expect(await this.RouterContract.getProviderMinFee(dataProvider)).to.be.bignumber.equal(new BN(0))
+      })
+
+      it( 'provider can setProviderPaysGas - correctly set', async function () {
+        await this.RouterContract.setProviderPaysGas(true, {from: dataProvider})
+        expect(await this.RouterContract.getProviderPaysGas(dataProvider)).to.equal(true)
+
+        await this.RouterContract.setProviderPaysGas(false, {from: dataProvider})
+        expect(await this.RouterContract.getProviderPaysGas(dataProvider)).to.equal(false)
+      })
+
+      it( 'provider can setProviderPaysGas - emits SetProviderPaysGas event', async function () {
+        const receipt = await this.RouterContract.setProviderPaysGas(true, {from: dataProvider})
+        expectEvent( receipt, 'SetProviderPaysGas', {
+          dataProvider: dataProvider,
+          providerPays: true,
+        } )
+
+        const receipt1 = await this.RouterContract.setProviderPaysGas(false, {from: dataProvider})
+        expectEvent( receipt1, 'SetProviderPaysGas', {
+          dataProvider: dataProvider,
+          providerPays: false,
+        } )
+      })
+
+      it( 'provider can setProviderMinFee - correctly set', async function () {
+        await this.RouterContract.setProviderMinFee(10000, {from: dataProvider})
+        expect(await this.RouterContract.getProviderMinFee(dataProvider)).to.be.bignumber.equal(new BN("10000"))
+      })
+
+      it( 'provider can setProviderMinFee - emits SetProviderMinFee event', async function () {
+        const receipt = await this.RouterContract.setProviderMinFee(10000, {from: dataProvider})
+        expectEvent( receipt, 'SetProviderMinFee', {
+          dataProvider: dataProvider,
+          minFee: new BN("10000"),
+        } )
+      })
+    })
   })
 
   /*
