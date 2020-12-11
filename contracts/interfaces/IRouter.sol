@@ -13,4 +13,5 @@ interface IRouter {
     function topUpGas(address) external payable returns (bool);
     function withDrawGasTopUpForProvider(address) external returns (uint256);
     function getGasDepositsForConsumer(address) external returns (uint256);
+    function getProviderMinFee(address) external returns (uint256);
 }
