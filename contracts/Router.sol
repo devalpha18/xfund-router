@@ -50,6 +50,11 @@ contract Router is AccessControl {
         bool isSet;
     }
 
+    struct DataProvider {
+        bool providerPaysGas;
+        uint256 minFee;
+    }
+
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
     bytes32 private salt;
     uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
@@ -58,7 +63,7 @@ contract Router is AccessControl {
     uint256 private totalGasDeposits;
     mapping(address => uint256) private gasDepositsForConsumer;
     mapping(address => mapping(address => uint256)) private gasDepositsForConsumerProviders;
-    mapping(address => bool) private providerPaysGas;
+    mapping(address => DataProvider) private dataProviders;
 
     // Tokens held for payment
     uint256 private totalTokensHeld;
@@ -120,6 +125,7 @@ contract Router is AccessControl {
     event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
 
     event SetProviderPaysGas(address indexed dataProvider, bool providerPays);
+    event SetProviderMinFee(address indexed dataProvider, uint256 minFee);
 
     event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
     event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
@@ -170,8 +176,19 @@ contract Router is AccessControl {
      * @return success
      */
     function setProviderPaysGas(bool _providerPays) public returns (bool success) {
-        providerPaysGas[msg.sender] = _providerPays;
+        dataProviders[msg.sender].providerPaysGas = _providerPays;
         emit SetProviderPaysGas(msg.sender, _providerPays);
+        return true;
+    }
+
+    /**
+     * @dev setProviderMinFee - provider calls for setting its minimum fee
+     * @param _minFee uint256 - minimum fee provider will accept to fulfill request
+     * @return success
+     */
+    function setProviderMinFee(uint256 _minFee) public returns (bool success) {
+        dataProviders[msg.sender].minFee = _minFee;
+        emit SetProviderMinFee(msg.sender, _minFee);
         return true;
     }
 
@@ -353,7 +370,7 @@ contract Router is AccessControl {
         dataConsumer.functionCall(abi.encodeWithSelector(callbackFunction, _requestedData, _requestId, _signature));
 
         address gasPayer = dataProvider;
-        if(!providerPaysGas[dataProvider]) {
+        if(!dataProviders[dataProvider].providerPaysGas) {
             gasPayer = dataConsumer;
         }
 
@@ -609,7 +626,16 @@ contract Router is AccessControl {
      * @return bool
      */
     function getProviderPaysGas(address _dataProvider) external view returns (bool) {
-        return providerPaysGas[_dataProvider];
+        return dataProviders[_dataProvider].providerPaysGas;
+    }
+
+    /**
+     * @dev getProviderMinFee - returns minimum fee provider will accept to fulfill data request
+     * @param _dataProvider address of data provider
+     * @return uint256
+     */
+    function getProviderMinFee(address _dataProvider) external view returns (uint256) {
+        return dataProviders[_dataProvider].minFee;
     }
 
     /*
