@@ -108,6 +108,7 @@ library ConsumerLib {
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
         require(!self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: dataProvider already authorised");
         require(_fee > 0, "ConsumerLib: fee must be > 0");
+        require(_fee >= self.router.getProviderMinFee(_dataProvider), "ConsumerLib: fee must be >= min provider fee");
         // msg.sender to Router will be the address of this contract
         require(self.router.grantProviderPermission(_dataProvider), "ConsumerLib: failed to grant dataProvider on Router");
         self.dataProviders[_dataProvider] = DataProvider({
@@ -229,6 +230,7 @@ library ConsumerLib {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         require(_fee > 0, "ConsumerLib: fee must be > 0");
+        require(_fee >= self.router.getProviderMinFee(_dataProvider), "ConsumerLib: fee must be >= min provider fee");
         uint256 oldFee = self.dataProviders[_dataProvider].fee;
         SetDataProviderFee(msg.sender, _dataProvider, oldFee, _fee);
         self.dataProviders[_dataProvider].fee = _fee;
