@@ -29,7 +29,7 @@ contract MockBadConsumerBadImpl is Consumer {
     // Minimal implementation - bad, does not have data validation
     function requestDataNoCheck(
         address payable _dataProvider,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice)
     public returns (bytes32 requestId) {
         // call the underlying Consumer.sol lib's submitDataRequest function
@@ -50,7 +50,7 @@ contract MockBadConsumerBadImpl is Consumer {
     // Has large receiving function
     function requestDataBigFunc(
         address payable _dataProvider,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice)
     public returns (bytes32 requestId) {
         // call the underlying Consumer.sol lib's submitDataRequest function

@@ -20,16 +20,16 @@ library ConsumerLib {
      */
 
     struct DataProvider {
-        bool isAuthorised;
         uint256 fee;
+        bool isAuthorised;
     }
 
     struct State {
         IRouter router; // the deployed address of Router smart contract
         IERC20_Ex token; // deployed address of the Token smart contract
         address payable OWNER; // wallet address of the Token holder who will pay fees
-        uint256 requestNonce; // incremented nonce to help prevent request replays
         bytes32 routerSalt;
+        uint256 requestNonce; // incremented nonce to help prevent request replays
 
         // common request variables
         mapping(uint8 => uint256) requestVars;
@@ -281,7 +281,7 @@ library ConsumerLib {
     function submitDataRequest(
         State storage self,
         address payable _dataProvider,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice,
         bytes4 _callbackFunctionSignature
     ) public

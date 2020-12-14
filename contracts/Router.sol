@@ -43,10 +43,10 @@ contract Router is AccessControl {
     struct DataRequest {
         address dataConsumer;
         address payable dataProvider;
-        bytes4 callbackFunction;
         uint256 expires;
         uint256 fee;
         uint256 gasPrice;
+        bytes4 callbackFunction;
         bool isSet;
     }
 
@@ -86,7 +86,7 @@ contract Router is AccessControl {
         address indexed dataConsumer,
         address indexed dataProvider,
         uint256 fee,
-        string data,
+        bytes32 data,
         bytes32 indexed requestId,
         uint256 gasPrice,
         uint256 expires
@@ -278,7 +278,7 @@ contract Router is AccessControl {
         address payable _dataProvider,
         uint256 _fee,
         uint256 _requestNonce,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice,
         uint256 _expires,
         bytes32 _requestId,

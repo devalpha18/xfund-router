@@ -43,7 +43,7 @@ contract MockConsumer is Consumer {
         address indexed dataConsumer,
         address indexed dataProvider,
         uint256 fee,
-        string data,
+        bytes32 data,
         bytes32 indexed requestId,
         uint256 gasPrice,
         uint256 expires
@@ -100,14 +100,14 @@ contract MockConsumer is Consumer {
      * can initialise a request, and that the provider is authorised respectively.
      *
      * @param _dataProvider payable address of the data provider
-     * @param _data string value of data being requested, e.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
+     * @param _data bytes32 value of data being requested, e.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
      * @param _gasPrice uint256 max gas price consumer is willing to pay, in gwei. * (10 ** 9) conversion
      *        is done automatically within the Consumer.sol lib's submitDataRequest function
      * @return requestId bytes32 request ID which can be used to track/cancel the request
      */
     function requestData(
         address payable _dataProvider,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice)
     public returns (bytes32 requestId) {
         // call the underlying Consumer.sol lib's submitDataRequest function
