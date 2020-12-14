@@ -21,18 +21,7 @@ contract MockConsumer is Consumer {
 
     // Mirrored ConsumerLib events for web3 client decoding & testing
 
-    event DataRequestSubmitted(
-        address sender,
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint256 fee,
-        string endpoint,
-        uint256 expires,
-        uint256 gasPrice,
-        bytes32 indexed requestId,
-        bytes4 callbackFunctionSignature
-    );
-
+    event DataRequestSubmitted(bytes32 indexed requestId);
     event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
     event OwnershipTransferred(address indexed sender, address indexed previousOwner, address indexed newOwner);
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);

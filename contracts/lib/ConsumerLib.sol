@@ -45,18 +45,7 @@ library ConsumerLib {
      * EVENTS
      */
 
-    event DataRequestSubmitted(
-        address sender,
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint256 fee,
-        string endpoint,
-        uint256 expires,
-        uint256 gasPrice,
-        bytes32 indexed requestId,
-        bytes4 callbackFunctionSignature
-    );
-
+    event DataRequestSubmitted(bytes32 indexed requestId);
     event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
     event OwnershipTransferred(address indexed sender, address indexed previousOwner, address indexed newOwner);
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
@@ -340,18 +329,8 @@ library ConsumerLib {
 
         self.requestNonce += 1;
 
-        // only emitted if the router request is successful. Data provider can cross reference and check
-        emit DataRequestSubmitted(
-            msg.sender,
-            address(this), // request comes from the address of this contract
-            _dataProvider,
-            fee,
-            _data,
-            expires,
-            gasPriceGwei,
-            reqId,
-            _callbackFunctionSignature
-        );
+        // only emitted if the router request is successful.
+        emit DataRequestSubmitted(reqId);
         return reqId;
     }
 
