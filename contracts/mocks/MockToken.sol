@@ -9,6 +9,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @dev {ERC20} token
  */
 contract MockToken is ERC20 {
+
+    mapping(address => uint256) gimmes;
+
     /**
      * See {ERC20-constructor}.
      */
@@ -18,7 +21,10 @@ contract MockToken is ERC20 {
     }
 
     function gimme() public {
+        uint256 lastGimme = gimmes[msg.sender];
+        require(now - lastGimme >= 1 hours, "please wait 1 hour");
         uint256 amount = uint256(10) ** decimals();
+        gimmes[msg.sender] = now;
         _mint(msg.sender, amount);
     }
 }

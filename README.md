@@ -41,12 +41,14 @@ to install the Node packages and dependencies
 
 Run:
 ```bash 
-npx oz compile
+npx truffle compile
 ```
 
 to compile smart contracts
 
 ### Unit Tests
+
+**Note**: The unit tests utilise the `openzeppelin/test-environment`, not `truffle test`.
 
 To run all tests:
 
@@ -54,9 +56,9 @@ To run all tests:
 yarn test
 ```
 
-Note - running all tests will take a few minutes.
+Running all tests will take a few minutes.
 
-Or, individual test files:
+To run individual test files:
 
 ```bash
 npx mocha test/[TEST_FILE] --exit
@@ -64,115 +66,74 @@ npx mocha test/[TEST_FILE] --exit
 
 ### Deployment & Interaction
 
-#### Run `ganache-cli`
-
-If `ganache-cli` is not installed, install with:
-
-```bash
-npm install -i ganache-cli
-```
-
-Run `ganache-cli` with:
-
-```bash
-npx ganache-cli --deterministic
-```
-
-The `--deterministic` flag will ensure the same keys and accounts are generated
-each time
-
-#### Deploy the smart contracts
-
 Compile the contracts, if not already compiled:
 
 ```
-npx oz compile
+npx truffle compile
 ```
 
-Deploy each contract specified below with:
+Run the `truffle` development console:
 
 ```bash
-npx oz deploy
+npx truffle develop
 ```
 
-selecting `development` as the deployment target environment
+**Note**: Make a not of the address and private key for `account[1]`. This will be
+required later for Data Provider interaction.
 
-1. Deploy `MockToken` smart contract
-   
-e.g.
-```
-? name: string: MOCK
-? symbol: string: MOCK
-? initSupply: uint256: 1000000000000000
-? decimals: uint8: 9
-```
+#### Deploy the smart contracts
 
-2. Deploy `Router` smart contract, using address for `MockToken`, and unique salt
+Run the `truffle` migrations, within the `development` console:
 
-e.g.
-
-``` 
-? _token: address: 0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab
-? _salt: bytes32: 0x5555b7aed0cddd0ef60bef8afb21a7b282d54789ef7d9fd89037475e6fc16e89
-```
-
-3. Deploy `MockConsumer`, using the `Router` address as input. This will also automatically
-   deploy the `ConsumerLib` smart contract.
-
-e.g.
-
-``` 
-? _router: address: 0x5b1869D9A4C187F2EAa108f3062412ecf0526b24
-✓ ConsumerLib library uploaded
-✓ Deployed instance of MockConsumer
+```bash
+truffle(develop)> migrate
 ```
 
 #### Interaction - as a Consumer
 
+Within the `truffle` development console, load the contract instances, and accounts
+ready for interaction
+
+```bash 
+truffle(develop)> let accounts = await web3.eth.getAccounts()
+truffle(develop)> let mockToken = await MockToken.deployed()
+truffle(develop)> let mockConsumer = await MockConsumer.deployed()
+truffle(develop)> let router = await Router.deployed()
+truffle(develop)> let consumerOwner = accounts[0]
+truffle(develop)> let provider = accounts[1]
+```
+
 ##### Initialisation
 
-1. Grab some tokens from the `MockToken` smart contract.
-   
-The `gimme` function acts as a faucet, minting 10 tokens. Run:
+1. Grab some tokens from the `MockToken` smart contract for the `consumerOwner`. Run:
 
+```bash
+truffle(develop)> mockToken.gimme({from: consumerOwner})
 ```
-npx oz sent-tx
-```
-
-select `development`, `MockToken`, and finally `gimme()`.
 
 2. Increase the `Router` Token allowance for the `MockConsumer` contract, so that the Router
    can hold and forward fees to the provider. Run:
    
-``` 
-npx oz send-tx
+```bash
+truffle(develop)> mockConsumer.increaseRouterAllowance("115792089237316195423570985008687907853269984665640564039457584007913129639935", {from: consumerOwner})
 ```
-
-select `development`, `MockConsumer`, and finally `increaseRouterAllowance(_routerAllowance: uint256)`.
-
-Enter `115792089237316195423570985008687907853269984665640564039457584007913129639935` as the value
 
 3. Authorise a data provider to fulfil data requests and allow them to send data to your
    `MockConsumer` smart contract. Run:
    
-``` 
-npx oz send-tx
+```bash
+truffle(develop)> mockConsumer.addDataProvider(provider, 100000000, {from: consumerOwner})
 ```
 
-select `development`, `MockConsumer`, and finally `addDataProvider(_dataProvider: address, _fee: uint256)`.
-
-Enter `0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d` and `100000000` (0.1 MOCKs) as the 
-address and fee respectively.
+This will add the wallet address of the `provider` with a fee of 0.1 MOCKs.
 
 4. Transfer some `MOCK` tokens to your `MockConsumer` smart contract. Run:
 
-``` 
-npx oz send-tx
+```bash
+truffle(develop)> mockToken.transfer(mockConsumer.address, 10000000000)
 ```
 
-select `development`, `MockToken` and `transfer(recipient: address, amount: uint256)`
-
-Enter the address of your `MockConsumer` smart contract, and `10000000000` (10 MOCKs)
+This will send 10 MOCKs to the MockConsumer smart contract.
 
 5. Top up gas allowance on the `Router` smart contract. This will send ETH to the
    the `Router`, allowing it to refund any gas the provider spends sending data 
@@ -180,14 +141,9 @@ Enter the address of your `MockConsumer` smart contract, and `10000000000` (10 M
    can be fully withdrawn at any time. The source of the ETH is the `MockConsumer` contract
    owner (the wallet that deployed the contract). Run:
 
-``` 
-npx oz send-tx --value=500000000000000000
+```bash
+truffle(develop)> mockConsumer.topUpGas(provider, {from: consumerOwner, value: 500000000000000000})
 ```
-
-select `development`, `MockConsumer` and `topUpGas(_dataProvider: address)`.
-
-Enter the provider's address `0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d`. This will 
-forward 0.5 ETH to the `Router` contract, which will hold it on your behalf.
 
 ETH held by the `Router` can be fully withdrawn at any time, and will only ever be used
 to reimburse the specified provider wallet address.
@@ -196,35 +152,17 @@ to reimburse the specified provider wallet address.
 
 First, check the current `price` in your `MockConsumer` contract. Run:
 
-``` 
-npx oz call
+```bash
+truffle(develop)> let priceBefore = await mockConsumer.price()
+truffle(develop)> priceBefore.toString()
 ```
 
-select `development`, `MockConsumer` and `price()`. The result should be 0.
+The result should be 0.
 
 Next, request some data from the provider. Run:
 
-``` 
-npx oz send-tx
-```
-
-select `development`, `MockConsumer` and `requestData(_dataProvider: address, _data: string, _gasPrice: uint256)`
-
-Enter:
-
-``` 
-? _dataProvider: address: 0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d
-? _data: string: PRICE.BTC.USD.AVG
-? _gasPrice: uint256: 80
-```
-
-You should see something like:
-
-``` 
- - Transfer(0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B, 0x5b1869D9A4C187F2EAa108f3062412ecf0526b24, 100000000)
- - Approval(0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B, 0x5b1869D9A4C187F2EAa108f3062412ecf0526b24, 115792089237316195423570985008687907853269984665640564039457584007913029639935)
- - DataRequested(0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B, 0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d, 100000000, PRICE.BTC.USD.AVG, 0x1cc750077c717d6cd1a122b93383bc84b5cadde0f69313564c9488d7618e956c, 80000000000, 1607693356, 0x28482da5)
- - DataRequestSubmitted(0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1, 0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B, 0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d, 100000000, PRICE.BTC.USD.AVG, 1607693356, 80000000000, 0x1cc750077c717d6cd1a122b93383bc84b5cadde0f69313564c9488d7618e956c, 0x28482da5)
+```bash
+truffle(develop)> mockConsumer.requestData(provider, "PRICE.BTC.USD.AVG", 80, {from: consumerOwner})
 ```
 
 #### Interaction - as a Provider
@@ -232,13 +170,21 @@ You should see something like:
 A Consumer requests data, but a provider Oracle needs to be running in order to fulfill
 requests.
 
-1. Copy `example.provider.env` to a `.env` file, and modify the following values (assuming `ganache-cli` is running with 
-   the `--deterministic` flag)
+1. Copy `example.provider.env` to a `.env` file, and modify the following values. The
+   `CONTRACT_ADDRESS` is the Router smart contract's address, and can be acquired
+   by running:
    
+```bash 
+truffle(develop)> router.address
+```
+
+The values for `WALLET_PKEY` and `WALLET_ADDRESS` are whatever you noted down when initialising 
+`truffle develop` earlier.
+
 ``` 
-CONTRACT_ADDRESS=0x5b1869D9A4C187F2EAa108f3062412ecf0526b24
-WALLET_PKEY=0x646f1ce2fdad0e6deeeb5c7e8e5543bdde65e86029e2fd9fc169899c440a7913
-WALLET_ADDRESS=0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d
+CONTRACT_ADDRESS=
+WALLET_PKEY=
+WALLET_ADDRESS=
 ```
 
 **Note:** the `CONTRACT_ADDRESS` should be the address of the `Router` smart contract.
@@ -270,9 +216,10 @@ the data to the requesting `MockConsumer` smart contract.
 Once the provider has fulfilled the request, the `price` value should have been updated
 in the `MockConsumer` smart contract. Run:
 
-``` 
-npx oz call
+```bash
+truffle(develop)> let priceAfter = await mockConsumer.price()
+truffle(develop)> priceAfter.toString()
 ```
 
-select `development`, `MockConsumer` and `price()`. The result should now be a non-zero
+The result should now be a non-zero
 value, e.g. `17884795591666666666666`.

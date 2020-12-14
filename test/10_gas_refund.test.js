@@ -122,7 +122,7 @@ describe('Provider - gas refund tests', function () {
   // const priceToSend = new BN("115792089237316195423570985008687907853269984665640564039457584007913129639935")
   const priceToSend = new BN("2000000000000000000000")
   const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 6000
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 4000
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 5000
 
   // deploy contracts before every test
   beforeEach(async function () {
