@@ -37,9 +37,6 @@ contract MockBadConsumer {
                 address(this),
                 nonce,
                 _dataProvider,
-                _data,
-                this.recieveData.selector,
-                uint256(20000000000),
                 router.getSalt()
             )
         );
@@ -72,9 +69,6 @@ contract MockBadConsumer {
                 address(this),
                 _nonce,
                 _dataProvider,
-                _data,
-                this.recieveData.selector,
-                _gasPriceGwei,
                 router.getSalt()
             )
         );

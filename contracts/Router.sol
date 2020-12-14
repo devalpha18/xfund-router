@@ -295,9 +295,6 @@ contract Router is AccessControl {
             dataConsumer,
             _requestNonce,
             _dataProvider,
-            _data,
-            _callbackFunctionSignature,
-            _gasPrice,
             salt
         );
 
@@ -646,9 +643,6 @@ contract Router is AccessControl {
         address _dataConsumer,
         uint256 _requestNonce,
         address _dataProvider,
-        string memory _data,
-        bytes4 _callbackFunctionSignature,
-        uint256 gasPriceGwei,
         bytes32 _salt
     ) private pure returns (bytes32 requestId) {
         return keccak256(
@@ -656,9 +650,6 @@ contract Router is AccessControl {
                 _dataConsumer,
                 _requestNonce,
                 _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                gasPriceGwei,
                 _salt
             )
         );

@@ -302,9 +302,6 @@ library ConsumerLib {
             address(this),
             self.requestNonce,
             _dataProvider,
-            _data,
-            _callbackFunctionSignature,
-            gasPriceGwei,
             self.routerSalt
         );
 
@@ -355,9 +352,6 @@ library ConsumerLib {
         address _dataConsumer,
         uint256 _requestNonce,
         address _dataProvider,
-        string memory _data,
-        bytes4 _callbackFunctionSignature,
-        uint256 gasPriceGwei,
         bytes32 _salt
     ) internal pure returns (bytes32 requestId) {
         return keccak256(
@@ -365,9 +359,6 @@ library ConsumerLib {
                 _dataConsumer,
                 _requestNonce,
                 _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                gasPriceGwei,
                 _salt
             )
         );
