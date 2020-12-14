@@ -96,8 +96,6 @@ describe('Consumer - data request tests', function () {
         const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
-        console.log(reciept)
-
         expectEvent( reciept, 'DataRequestSubmitted', {
           requestId: reqId,
         } )
@@ -119,7 +117,6 @@ describe('Consumer - data request tests', function () {
           requestId: reqId,
           gasPrice: new BN( gasPrice * ( 10 ** 9 ) ),
           expires: expires,
-          callbackFunctionSignature: callbackFuncSig,
         } )
       } )
 
