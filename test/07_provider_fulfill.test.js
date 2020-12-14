@@ -116,13 +116,6 @@ describe('Provider - fulfillment tests', function () {
       const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reqReciept, 'DataRequestSubmitted', {
-        sender: dataConsumerOwner,
-        dataConsumer: this.MockConsumerContract.address,
-        dataProvider: dataProvider,
-        fee: fee,
-        endpoint: endpoint,
-        gasPrice: new BN(gasPrice * (10 ** 9)),
-        callbackFunctionSignature: callbackFuncSig,
         requestId: reqId,
       } )
 
@@ -200,13 +193,6 @@ describe('Provider - fulfillment tests', function () {
       const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reqReciept, 'DataRequestSubmitted', {
-        sender: dataConsumerOwner,
-        dataConsumer: this.MockConsumerContract.address,
-        dataProvider: dataProvider,
-        fee: fee,
-        endpoint: endpoint,
-        gasPrice: new BN(gasPrice * (10 ** 9)),
-        callbackFunctionSignature: callbackFuncSig,
         requestId: reqId,
       } )
 
@@ -232,13 +218,6 @@ describe('Provider - fulfillment tests', function () {
       const reqReciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reqReciept, 'DataRequestSubmitted', {
-        sender: dataConsumerOwner,
-        dataConsumer: this.MockConsumerContract.address,
-        dataProvider: dataProvider,
-        fee: fee,
-        endpoint: endpoint,
-        gasPrice: new BN(gasPrice * (10 ** 9)),
-        callbackFunctionSignature: callbackFuncSig,
         requestId: reqId,
       } )
 
