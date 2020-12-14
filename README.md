@@ -48,15 +48,17 @@ to compile smart contracts
 
 ### Unit Tests
 
+**Note**: The unit tests utilise the `openzeppelin/test-environment`, not `truffle test`.
+
 To run all tests:
 
 ```bash 
 yarn test
 ```
 
-Note - running all tests will take a few minutes.
+Running all tests will take a few minutes.
 
-Or, individual test files:
+To run individual test files:
 
 ```bash
 npx mocha test/[TEST_FILE] --exit

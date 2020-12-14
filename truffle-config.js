@@ -4,10 +4,9 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 const {
   ETH_PKEY_RINKEBY,
   INFURA_PROJECT_ID_RINKEBY,
-  RINKEBY_GAS_PRICE,
   ETH_PKEY_MAINNET,
   INFURA_PROJECT_ID_MAINNET,
-  MAINNET_GAS_PRICE } = process.env
+} = process.env
 
 module.exports = {
   networks: {
@@ -27,15 +26,15 @@ module.exports = {
       provider: () => new HDWalletProvider(
         [ETH_PKEY_RINKEBY], `https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID_RINKEBY}`, 0, 1
       ),
-      networkId: 4,
-      gasPrice: RINKEBY_GAS_PRICE || 10e9
+      network_id: 4,
+      gasPrice: 100000000000 // 100e9 = 100 gwei
     },
     mainnet: {
       provider: () => new HDWalletProvider(
         [ETH_PKEY_MAINNET], `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID_MAINNET}`, 0, 1
       ),
       network_id: 1,
-      gasPrice: MAINNET_GAS_PRICE || 120e9
+      gasPrice: 120000000000 // 120e9 = 120 gwei
     }
   },
 
