@@ -32,17 +32,11 @@ const generateRequestId = function(
   consumerAddress,
   requestNonce,
   dataProvider,
-  data,
-  callbackFunctionSignature,
-  gasPrice,
   salt) {
   return web3.utils.soliditySha3(
     { 'type': 'address', 'value': consumerAddress},
     { 'type': 'uint256', 'value': requestNonce.toNumber()},
     { 'type': 'address', 'value': dataProvider},
-    { 'type': 'string', 'value': data},
-    { 'type': 'bytes4', 'value': callbackFunctionSignature},
-    { 'type': 'uint256', 'value': gasPrice * (10 ** 9)},
     { 'type': 'bytes32', 'value': salt}
   )
 }
@@ -181,7 +175,7 @@ describe('Provider - gas refund tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -204,7 +198,7 @@ describe('Provider - gas refund tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -234,7 +228,7 @@ describe('Provider - gas refund tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -263,7 +257,7 @@ describe('Provider - gas refund tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -284,7 +278,7 @@ describe('Provider - gas refund tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -305,7 +299,7 @@ describe('Provider - gas refund tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -329,7 +323,7 @@ describe('Provider - gas refund tests', function () {
         const routerSalt = await this.RouterContract.getSalt()
         const gasPriceGwei = gasPrice * ( 10 ** 9 )
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -353,7 +347,7 @@ describe('Provider - gas refund tests', function () {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(50, 120)
           const requestNonce = await this.MockConsumerContract.getRequestNonce()
-          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
           await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
 
           const price = randomPrice()
@@ -380,7 +374,7 @@ describe('Provider - gas refund tests', function () {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)
           const requestNonce = await this.MockConsumerContract.getRequestNonce()
-          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
           await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
 
           const price = randomPrice()
@@ -411,7 +405,7 @@ describe('Provider - gas refund tests', function () {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)
           const requestNonce = await this.MockConsumerContract.getRequestNonce()
-          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
           await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
 
           const price = randomPrice()
@@ -449,7 +443,7 @@ describe('Provider - gas refund tests', function () {
             // simulate gas price fluctuation
             const randGas = randomGasPrice(10, 20)
             const requestNonce = await this.MockBadConsumerBadImplContract.getRequestNonce()
-            const reqId = generateRequestId( this.MockBadConsumerBadImplContract.address, requestNonce, dataProvider, endpoint, callbackFuncNoCheckSig, randGas, routerSalt )
+            const reqId = generateRequestId( this.MockBadConsumerBadImplContract.address, requestNonce, dataProvider, routerSalt )
             await this.MockBadConsumerBadImplContract.requestDataNoCheck( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
 
             const price = randomPrice()
@@ -481,7 +475,7 @@ describe('Provider - gas refund tests', function () {
             // simulate gas price fluctuation
             const randGas = randomGasPrice(10, 20)
             const requestNonce = await this.MockBadConsumerBadImplContract.getRequestNonce()
-            const reqId = generateRequestId( this.MockBadConsumerBadImplContract.address, requestNonce, dataProvider, endpoint, callbackFuncBigFuncSig, randGas, routerSalt )
+            const reqId = generateRequestId( this.MockBadConsumerBadImplContract.address, requestNonce, dataProvider, routerSalt )
 
             // calling this should cost around 200000 gas
             await this.MockBadConsumerBadImplContract.requestDataBigFunc( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
@@ -520,7 +514,7 @@ describe('Provider - gas refund tests', function () {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)
           const requestNonce = await this.MockConsumerContract.getRequestNonce()
-          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
           await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
 
           const price = randomPrice()
@@ -554,7 +548,7 @@ describe('Provider - gas refund tests', function () {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)
           const requestNonce = await this.MockConsumerContract.getRequestNonce()
-          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, randGas, routerSalt )
+          const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
           await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
 
           const price = randomPrice()

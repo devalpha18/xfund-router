@@ -33,17 +33,11 @@ function generateRequestId(
   consumerAddress,
   requestNonce,
   dataProvider,
-  data,
-  callbackFunctionSignature,
-  gasPrice,
   salt) {
   return web3.utils.soliditySha3(
     { 'type': 'address', 'value': consumerAddress},
     { 'type': 'uint256', 'value': requestNonce.toNumber()},
     { 'type': 'address', 'value': dataProvider},
-    { 'type': 'string', 'value': data},
-    { 'type': 'bytes4', 'value': callbackFunctionSignature},
-    { 'type': 'uint256', 'value': gasPrice * (10 ** 9)},
     { 'type': 'bytes32', 'value': salt}
   )
 }
@@ -103,7 +97,7 @@ describe('Consumer - request cancellation tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, routerSalt )
 
       // set request timeout to 1 second
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
@@ -127,7 +121,7 @@ describe('Consumer - request cancellation tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, routerSalt )
 
       // set request timeout to 1 second
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
@@ -153,7 +147,7 @@ describe('Consumer - request cancellation tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, routerSalt )
 
       // set request timeout to 1 second
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
@@ -175,7 +169,7 @@ describe('Consumer - request cancellation tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, routerSalt )
 
       // cancel request
       await expectRevert(
@@ -188,7 +182,7 @@ describe('Consumer - request cancellation tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, routerSalt )
 
       // set request timeout to 100 seconds
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 100, { from: dataConsumerOwner1 })
@@ -255,7 +249,7 @@ describe('Consumer - request cancellation tests', function () {
 
         const requestNonce = await this.MockConsumerContract1.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
-        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, routerSalt )
 
         // initialise request
         await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -274,7 +268,7 @@ describe('Consumer - request cancellation tests', function () {
       it( 'single data cancellation success - ERC20 router contract balance is zero', async function () {
         const requestNonce = await this.MockConsumerContract1.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
-        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, routerSalt )
 
         // initialise request
         await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -293,7 +287,7 @@ describe('Consumer - request cancellation tests', function () {
       it( 'single data cancellation success - ERC20 consumer contract balance is 1000', async function () {
         const requestNonce = await this.MockConsumerContract1.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
-        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, routerSalt )
 
         // initialise request
         await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -312,7 +306,7 @@ describe('Consumer - request cancellation tests', function () {
       it( 'single data cancellation success - router contract getTotalTokensHeld is zero', async function () {
         const requestNonce = await this.MockConsumerContract1.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
-        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, routerSalt )
 
         // initialise request
         await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -331,7 +325,7 @@ describe('Consumer - request cancellation tests', function () {
       it( 'single data cancellation success - Router getTokensHeldFor for consumer contract/provider should be 0', async function () {
         const requestNonce = await this.MockConsumerContract1.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
-        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, routerSalt )
 
         // initialise request
         await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -361,7 +355,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request for provider 2
           const requestNonceP2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, routerSalt )
 
           // initialise request2 from provider2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -392,7 +386,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request for provider 2
           const requestNonceP2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, routerSalt )
 
           // initialise request2 from provider2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -423,7 +417,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request for provider 2
           const requestNonceP2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, routerSalt )
 
           // initialise request2 from provider2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -454,7 +448,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request for provider 2
           const requestNonceP2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, routerSalt )
 
           // initialise request2 from provider2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -485,7 +479,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request for provider 2
           const requestNonceP2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdP2 = generateRequestId( this.MockConsumerContract1.address, requestNonceP2, dataProvider2, routerSalt )
 
           // initialise request2 from provider2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -519,7 +513,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -527,7 +521,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -563,7 +557,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -571,7 +565,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -608,7 +602,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -616,7 +610,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -653,7 +647,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -661,7 +655,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -698,7 +692,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -706,7 +700,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -743,7 +737,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -751,7 +745,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -787,7 +781,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -795,7 +789,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )
@@ -832,7 +826,7 @@ describe('Consumer - request cancellation tests', function () {
 
           // generate request ID for request from c1 for p2
           const requestNonceC1P2 = await this.MockConsumerContract1.getRequestNonce()
-          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC1P2 = generateRequestId( this.MockConsumerContract1.address, requestNonceC1P2, dataProvider2, routerSalt )
 
           // initialise request2 from c1 for p2
           await this.MockConsumerContract1.requestData( dataProvider2, endpoint, gasPrice, { from: dataConsumerOwner1 } )
@@ -840,7 +834,7 @@ describe('Consumer - request cancellation tests', function () {
           //// C2
           // generate request ID for request from c2 for p1
           const requestNonceC2P1 = await this.MockConsumerContract2.getRequestNonce()
-          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, endpoint, callbackFuncSig, gasPrice, routerSalt )
+          const reqIdC2P1 = generateRequestId( this.MockConsumerContract2.address, requestNonceC2P1, dataProvider1, routerSalt )
 
           // initialise request2 from c2 for p1
           await this.MockConsumerContract2.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner2 } )

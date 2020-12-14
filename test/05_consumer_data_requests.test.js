@@ -29,17 +29,11 @@ function generateRequestId(
   consumerAddress,
   requestNonce,
   dataProvider,
-  data,
-  callbackFunctionSignature,
-  gasPrice,
   salt) {
   return web3.utils.soliditySha3(
     { 'type': 'address', 'value': consumerAddress},
     { 'type': 'uint256', 'value': requestNonce.toNumber()},
     { 'type': 'address', 'value': dataProvider},
-    { 'type': 'string', 'value': data},
-    { 'type': 'bytes4', 'value': callbackFunctionSignature},
-    { 'type': 'uint256', 'value': gasPrice * (10 ** 9)},
     { 'type': 'bytes32', 'value': salt}
   )
 }
@@ -48,7 +42,6 @@ describe('Consumer - data request tests', function () {
   this.timeout(300000)
 
   const [admin, dataProvider, dataConsumerOwner, rando, dataProvider2, dataConsumerOwner2] = accounts
-  const [adminPk, dataProviderPk, dataConsumerPk, randoPk, dataProvider2Pk] = privateKeys
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const fee = new BN(0.1 * ( 10 ** 9 ))
@@ -56,8 +49,6 @@ describe('Consumer - data request tests', function () {
   const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const gasPrice = 100 // gwei, 10 ** 9 done in contract
   const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
-  const priceToSend = new BN("1000")
-  const ROLE_DATA_PROVIDER = web3.utils.sha3('DATA_PROVIDER')
 
   // deploy contracts before every test
   beforeEach(async function () {
@@ -102,8 +93,10 @@ describe('Consumer - data request tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        console.log(reciept)
 
         expectEvent( reciept, 'DataRequestSubmitted', {
           requestId: reqId,
@@ -114,7 +107,7 @@ describe('Consumer - data request tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt )
         const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
         const expires = await this.RouterContract.getDataRequestExpires( reqId )
 
@@ -160,7 +153,7 @@ describe('Consumer - data request tests', function () {
         // add rando as new provider
         await this.MockConsumerContract.addDataProvider( rando, fee, { from: dataConsumerOwner } );
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, rando, endpoint, callbackFuncSig, gasPrice, routerSalt )
+        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, rando, routerSalt )
         const reciept = await this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expectEvent( reciept, 'DataRequestSubmitted', {
@@ -237,7 +230,7 @@ describe('Consumer - data request tests', function () {
 
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
       const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       expectEvent( reciept, 'DataRequestSubmitted', {

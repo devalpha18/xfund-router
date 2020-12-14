@@ -31,17 +31,11 @@ function generateRequestId(
   consumerAddress,
   requestNonce,
   dataProvider,
-  data,
-  callbackFunctionSignature,
-  gasPrice,
   salt) {
   return web3.utils.soliditySha3(
     { 'type': 'address', 'value': consumerAddress},
     { 'type': 'uint256', 'value': requestNonce.toNumber()},
     { 'type': 'address', 'value': dataProvider},
-    { 'type': 'string', 'value': data},
-    { 'type': 'bytes4', 'value': callbackFunctionSignature},
-    { 'type': 'uint256', 'value': gasPrice * (10 ** 9)},
     { 'type': 'bytes32', 'value': salt}
   )
 }
@@ -146,7 +140,7 @@ describe('Router - interaction tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expect(await this.RouterContract.requestExists(reqId)).to.equal(true)
@@ -170,7 +164,7 @@ describe('Router - interaction tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expect(await this.RouterContract.getDataRequestConsumer(reqId)).to.equal(this.MockConsumerContract.address)
@@ -194,7 +188,7 @@ describe('Router - interaction tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expect(await this.RouterContract.getDataRequestProvider(reqId)).to.equal(dataProvider)
@@ -220,7 +214,7 @@ describe('Router - interaction tests', function () {
         const routerSalt = await this.RouterContract.getSalt()
         const now = Math.floor(Date.now() / 1000)
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const expires = await this.RouterContract.getDataRequestExpires(reqId)
@@ -246,7 +240,7 @@ describe('Router - interaction tests', function () {
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const gasPriceInRequest = await this.RouterContract.getDataRequestGasPrice(reqId)
@@ -619,7 +613,7 @@ describe('Router - interaction tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
@@ -645,7 +639,7 @@ describe('Router - interaction tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       // after data request has been sent, dataProvider is revoked
@@ -676,7 +670,7 @@ describe('Router - interaction tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
@@ -712,7 +706,7 @@ describe('Router - interaction tests', function () {
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
       const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, endpoint, callbackFuncSig, gasPrice, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       await expectRevert(
