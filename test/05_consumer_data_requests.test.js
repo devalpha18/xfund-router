@@ -45,10 +45,9 @@ describe('Consumer - data request tests', function () {
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const fee = new BN(0.1 * ( 10 ** 9 ))
-  const endpoint = "PRICE.BTC.USD.AVG"
+  const endpoint = web3.utils.asciiToHex("PRICE.BTC.USD.AVG")
   const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const gasPrice = 100 // gwei, 10 ** 9 done in contract
-  const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
 
   // deploy contracts before every test
   beforeEach(async function () {
@@ -113,7 +112,7 @@ describe('Consumer - data request tests', function () {
           dataConsumer: this.MockConsumerContract.address,
           dataProvider: dataProvider,
           fee: fee,
-          data: endpoint,
+          data: `${endpoint}000000000000000000000000000000`,
           requestId: reqId,
           gasPrice: new BN( gasPrice * ( 10 ** 9 ) ),
           expires: expires,
