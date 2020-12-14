@@ -89,8 +89,7 @@ contract Router is AccessControl {
         string data,
         bytes32 indexed requestId,
         uint256 gasPrice,
-        uint256 expires,
-        bytes4 callbackFunctionSignature
+        uint256 expires
     );
 
     // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
@@ -332,8 +331,7 @@ contract Router is AccessControl {
             _data,
             _requestId,
             _gasPrice,
-            _expires,
-            _callbackFunctionSignature
+            _expires
         );
         return true;
     }

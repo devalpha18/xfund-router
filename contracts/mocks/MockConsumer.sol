@@ -46,8 +46,7 @@ contract MockConsumer is Consumer {
         string data,
         bytes32 indexed requestId,
         uint256 gasPrice,
-        uint256 expires,
-        bytes4 callbackFunctionSignature
+        uint256 expires
     );
 
     // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
