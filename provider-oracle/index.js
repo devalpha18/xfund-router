@@ -35,7 +35,7 @@ const run = async () => {
           const dataConsumer = event.returnValues.dataConsumer
           const dataProvider = event.returnValues.dataProvider
           const fee = event.returnValues.fee
-          const dataToGet = event.returnValues.data
+          const dataToGet = Web3.utils.hexToAscii(event.returnValues.data)
           const requestId = event.returnValues.requestId
           const gasPriceWei = event.returnValues.gasPrice // already in wei
 
