@@ -6,9 +6,9 @@ Addresses for the currently deployed contracts, required for interaction and int
 
 ### Testnet (Rinkeby)
 
-xFUND Mock Token: `0xc12678b997ce94e9f3921B65AD144565dC20Aefc`  
-Router: `0x7a99f98EfC7C1313E3a8FA4Be36aE2b100a1622F`  
-ConsumerLib: `0x36aeb34DC2c0aC64819308c96696803c3FB8d19d`  
+xFUND Mock Token: `0x04FC4E27e3482D72ac18c6D763B68e30A663C698`  
+Router: `0x92249d1FDFD418253365c347b0Ac12C3E714Ab34`  
+ConsumerLib: `0x07F578CE57f511b589F7280C00f841931f3d0856`  
 
 ### Mainnet (Rinkeby)
 
