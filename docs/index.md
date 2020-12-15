@@ -6,9 +6,9 @@ Addresses for the currently deployed contracts, required for interaction and int
 
 ### Testnet (Rinkeby)
 
-Token: TBD  
-Router: TBD  
-ConsumerLib: TBD  
+xFUND Mock Token: `0xc12678b997ce94e9f3921B65AD144565dC20Aefc`  
+Router: `0x7a99f98EfC7C1313E3a8FA4Be36aE2b100a1622F`  
+ConsumerLib: `0x36aeb34DC2c0aC64819308c96696803c3FB8d19d`  
 
 ### Mainnet (Rinkeby)
 
@@ -33,7 +33,23 @@ yarn add @unification-com/xfund-router
 import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
 ```
 
-3. Implement a `requestData` function, for example:
+3. Extend your contract, adding `is Consumer`:
+
+```solidity
+contract MockConsumer is Consumer {
+```
+
+4. Ensure your `constructor` function has a parameter to accept the `Router` smart contract
+   address, and pass it to the `Consumer`:
+   
+```solidity
+constructor(address _router)
+    public Consumer(_router) {
+        // other stuff...
+    }
+```
+
+5. Implement a `requestData` function, for example:
 
 ```solidity
 function requestData(
@@ -46,7 +62,7 @@ function requestData(
     }
 ```
 
-4. Implement a function for data Providers to send data, e.g.
+6. Implement a function for data Providers to send data, e.g.
 
 ```solidity
 function recieveData(
@@ -63,6 +79,25 @@ function recieveData(
     }
 ```
 
+7. Link our deployed `ConsumerLib` library contract to your contract
+
+For example, using `truffle`, a very simple migration script for `Rinkeby` testnet 
+may look like:
+
+```javascript
+// Load the ConsumerLib contract
+const ConsumerLib = artifacts.require("ConsumerLib")
+
+// Load my contract which implements ConsumerLib
+const MyContract = artifacts.require("MyContract")
+
+module.exports = function(deployer) {
+  // Link my contract to the deployed ConsumerLib contract
+   MyContract.link("ConsumerLib", "0x36aeb34DC2c0aC64819308c96696803c3FB8d19d")
+   deployer.deploy(MockConsumer, "0x7a99f98EfC7C1313E3a8FA4Be36aE2b100a1622F")
+}
+```
+
 ## Initialisation Quickstart
 
 Once integrated, compiled and deployed, you will need to send some transactions to the
@@ -77,7 +112,10 @@ and provider authorisation. This involves:
    This allows you to submit data requests, and your contract to pay fees. The required amount 
    of `xFUND` to pay for a request fee is sent to the `Router` with each request. Requests can
    be cancelled by you, and the `xFUND` reclaimed if a request is not fulfilled by a provider.
-   Your contract may need periodically topping up with `xFUND`
+   Your contract may need periodically topping up with `xFUND`.  
+   
+   **Note**: The `xFUNDMOCK` Token on Rinkeby testnet has a faucet function, `gimme()` which can be used
+   to grab some test tokens.
 3) "Topping up" gas payments on the `Router` - a small amount of ETH will be held by the `Router`
    on your behalf in order to reimburse data providers for the cost of sending a Tx to your contract
    and submitting the data to you. This can be periodically topped up in small amounts, and can

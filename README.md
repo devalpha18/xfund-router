@@ -223,3 +223,11 @@ truffle(develop)> priceAfter.toString()
 
 The result should now be a non-zero
 value, e.g. `17884795591666666666666`.
+
+#### Dev Notes
+
+Verify contracts on Etherscan after deployment - set `ETHERSCAN_API` in `.env`, then run:
+
+```bash 
+npx truffle run verify [ContractName] --network=[network]
+```

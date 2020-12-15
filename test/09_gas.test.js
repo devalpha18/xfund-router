@@ -38,7 +38,6 @@ describe('Consumer - Gas top up and withdraw', function () {
   const [admin, dataConsumerOwner1, dataConsumerOwner2, dataProvider1, dataProvider2, rando, eoa] = accounts
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const initialAmount = 1000
   const amountForContract = 100
 
@@ -47,7 +46,7 @@ describe('Consumer - Gas top up and withdraw', function () {
     this.MockTokenContract = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
 
     // admin deploy Router contract
-    this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+    this.RouterContract = await Router.new(this.MockTokenContract.address, {from: admin})
 
     // Deploy ConsumerLib library and link
     this.ConsumerLib = await ConsumerLib.new({from: admin})

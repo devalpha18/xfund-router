@@ -63,9 +63,6 @@ contract Router is AccessControl {
     // track fees held by this contract
     uint256 public totalFees = 0;
 
-    // contract's unique salt
-    bytes32 private salt;
-
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
 
     // Eth held for provider gas payments
@@ -117,9 +114,6 @@ contract Router is AccessControl {
         uint256 refund
     );
 
-    // SaltSet used during deployment
-    event SaltSet(bytes32 salt);
-
     // TokenSet used during deployment
     event TokenSet(address tokenAddress);
 
@@ -132,27 +126,17 @@ contract Router is AccessControl {
     event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
-    // Mirrored ERC20 events for web3 client decoding
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
     /**
-     * @dev Contract constructor. Accepts the address for a Token smart contract,
-     * and unique salt.
+     * @dev Contract constructor. Accepts the address for a Token smart contract.
      * @param _token address must be for an ERC-20 token (e.g. xFUND)
-     * @param _salt unique salt for this contract
      */
-    constructor(address _token, bytes32 _salt) public {
+    constructor(address _token) public {
         require(_token != address(0), "Router: token cannot be zero address");
         require(_token.isContract(), "Router: token address must be a contract");
-        require(_salt[0] != 0 && _salt != 0x0, "Router: must include salt");
         token = IERC20(_token);
-        salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-//        totalTokensHeld = 0;
         gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
-        emit SaltSet(_salt);
     }
 
     /**
@@ -290,13 +274,17 @@ contract Router is AccessControl {
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
         require(_expires > now, "Router: expiration must be > now");
+        require(token.balanceOf(dataConsumer) >= _fee, "Router: contract does not have enough tokens to pay fee");
+        require(token.allowance(dataConsumer, address(this)) >= _fee, "Router: not enough allowance to pay fee");
 
         // recreate request ID from params sent
-        bytes32 reqId = generateRequestId(
-            dataConsumer,
-            _requestNonce,
-            _dataProvider,
-            salt
+        bytes32 reqId = keccak256(
+            abi.encodePacked(
+                dataConsumer,
+                _dataProvider,
+                address(this),
+                _requestNonce
+            )
         );
 
         require(reqId == _requestId, "Router: reqId != _requestId");
@@ -399,7 +387,7 @@ contract Router is AccessControl {
             gasDepositsForConsumerProviders[dataConsumer][dataProvider] = gasDepositsForConsumerProviders[dataConsumer][dataProvider].sub(ethRefund);
 
             emit GasRefundedToProvider(dataConsumer, dataProvider, ethRefund);
-            // send back to consumer contract
+            // refund the provider
             Address.sendValue(dataProvider, ethRefund);
         }
 
@@ -483,14 +471,6 @@ contract Router is AccessControl {
     }
 
     /**
-     * @dev getSalt - get the salt used for generating request IDs
-     * @return bytes32 salt
-     */
-    function getSalt() external view returns (bytes32) {
-        return salt;
-    }
-
-    /**
      * @dev getDataRequestConsumer - get the dataConsumer for a request
      * @param _requestId bytes32 request id
      * @return address data consumer contract address
@@ -524,15 +504,6 @@ contract Router is AccessControl {
      */
     function getDataRequestGasPrice(bytes32 _requestId) external view returns (uint256) {
         return dataRequests[_requestId].gasPrice;
-    }
-
-    /**
-     * @dev getDataRequestCallback - get the callback function signature for a request
-     * @param _requestId bytes32 request id
-     * @return bytes4 callback function signature
-     */
-    function getDataRequestCallback(bytes32 _requestId) external view returns (bytes4) {
-        return dataRequests[_requestId].callbackFunction;
     }
 
     /**
@@ -601,24 +572,8 @@ contract Router is AccessControl {
     }
 
     /*
-     * PRIVATE
+     * MODIFIERS
      */
-
-    function generateRequestId(
-        address _dataConsumer,
-        uint256 _requestNonce,
-        address _dataProvider,
-        bytes32 _salt
-    ) private pure returns (bytes32 requestId) {
-        return keccak256(
-            abi.encodePacked(
-                _dataConsumer,
-                _requestNonce,
-                _dataProvider,
-                _salt
-            )
-        );
-    }
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");

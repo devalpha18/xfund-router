@@ -31,12 +31,12 @@ function generateRequestId(
   consumerAddress,
   requestNonce,
   dataProvider,
-  salt) {
+  routerAddress) {
   return web3.utils.soliditySha3(
     { 'type': 'address', 'value': consumerAddress},
-    { 'type': 'uint256', 'value': requestNonce.toNumber()},
     { 'type': 'address', 'value': dataProvider},
-    { 'type': 'bytes32', 'value': salt}
+    { 'type': 'address', 'value': routerAddress},
+    { 'type': 'uint256', 'value': requestNonce.toNumber()}
   )
 }
 
@@ -49,7 +49,6 @@ describe('Router - interaction tests', function () {
   const initSupply = 1000 * (10 ** decimals)
   const fee = new BN(0.1 * ( 10 ** 9 ))
   const endpoint = web3.utils.asciiToHex("PRICE.BTC.USD.AVG")
-  const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const gasPrice = 100 // gwei, 10 ** 9 done in contract
   const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
   const priceToSend = new BN("1000")
@@ -61,7 +60,7 @@ describe('Router - interaction tests', function () {
     this.MockTokenContract = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
 
     // admin deploy Router contract
-    this.RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
+    this.RouterContract = await Router.new(this.MockTokenContract.address, {from: admin})
 
     // Deploy ConsumerLib library and link
     this.ConsumerLib = await ConsumerLib.new({from: admin})
@@ -79,35 +78,24 @@ describe('Router - interaction tests', function () {
   describe('basic queries and interaction', function () {
     it( 'getToken returns expected address', async function () {
       const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
-      const mockRouter = await Router.new(mockToken.address, salt, {from: admin})
+      const mockRouter = await Router.new(mockToken.address, {from: admin})
 
       const storedAddress = await mockRouter.getTokenAddress()
       expect(storedAddress).to.equal(mockToken.address)
     } )
 
-    it( 'getSalt returns expected value', async function () {
-      const newSalt = web3.utils.soliditySha3(web3.utils.randomHex(32))
-      const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
-      const mockRouter = await Router.new(mockToken.address, newSalt, {from: admin})
-
-      const storedSalt = await mockRouter.getSalt()
-      expect(storedSalt).to.equal(newSalt)
-    } )
-
     it( 'getGasTopUpLimit returns expected value', async function () {
       const expected = web3.utils.toWei("1", "ether")
-      const newSalt = web3.utils.soliditySha3(web3.utils.randomHex(32))
       const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
-      const mockRouter = await Router.new(mockToken.address, newSalt, {from: admin})
+      const mockRouter = await Router.new(mockToken.address, {from: admin})
 
       const storedGasTopUpLimit = await mockRouter.getGasTopUpLimit()
       expect(storedGasTopUpLimit.toString()).to.equal(expected.toString())
     } )
 
     it( 'providerIsAuthorised returns expected value', async function () {
-      const newSalt = web3.utils.soliditySha3(web3.utils.randomHex(32))
       const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
-      const mockRouter = await Router.new(mockToken.address, newSalt, {from: admin})
+      const mockRouter = await Router.new(mockToken.address, {from: admin})
       const mockConsumer = await MockConsumer.new(mockRouter.address, {from: dataConsumerOwner})
       await mockConsumer.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
 
@@ -136,11 +124,10 @@ describe('Router - interaction tests', function () {
         // increase Router allowance
         await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-        // get current nonce and salt so the request ID can be recreated
+        // get current nonce so the request ID can be recreated
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
-        const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expect(await this.RouterContract.requestExists(reqId)).to.equal(true)
@@ -160,11 +147,10 @@ describe('Router - interaction tests', function () {
         // increase Router allowance
         await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-        // get current nonce and salt so the request ID can be recreated
+        // get current nonce so the request ID can be recreated
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
-        const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expect(await this.RouterContract.getDataRequestConsumer(reqId)).to.equal(this.MockConsumerContract.address)
@@ -184,11 +170,10 @@ describe('Router - interaction tests', function () {
         // increase Router allowance
         await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-        // get current nonce and salt so the request ID can be recreated
+        // get current nonce so the request ID can be recreated
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
-        const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         expect(await this.RouterContract.getDataRequestProvider(reqId)).to.equal(dataProvider)
@@ -209,12 +194,11 @@ describe('Router - interaction tests', function () {
         // increase Router allowance
         await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-        // get current nonce and salt so the request ID can be recreated
+        // get current nonce so the request ID can be recreated
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
-        const routerSalt = await this.RouterContract.getSalt()
         const now = Math.floor(Date.now() / 1000)
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const expires = await this.RouterContract.getDataRequestExpires(reqId)
@@ -236,11 +220,10 @@ describe('Router - interaction tests', function () {
         // increase Router allowance
         await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-        // get current nonce and salt so the request ID can be recreated
+        // get current nonce so the request ID can be recreated
         const requestNonce = await this.MockConsumerContract.getRequestNonce()
-        const routerSalt = await this.RouterContract.getSalt()
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
         await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const gasPriceInRequest = await this.RouterContract.getDataRequestGasPrice(reqId)
@@ -428,6 +411,12 @@ describe('Router - interaction tests', function () {
     } )
 
     it( 'request ids must match', async function () {
+      // Admin Transfer 10 Tokens to dataConsumerOwner
+      await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
+      // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
+      await this.MockTokenContract.transfer(this.BadConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+      // increase Router allowance
+      await this.BadConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
       await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
       const rubbishRequestId = web3.utils.soliditySha3(web3.utils.randomHex(32))
 
@@ -601,9 +590,8 @@ describe('Router - interaction tests', function () {
       await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
@@ -625,11 +613,10 @@ describe('Router - interaction tests', function () {
       // increase Router allowance
       await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-      // get current nonce and salt so the request ID can be recreated
+      // get current nonce so the request ID can be recreated
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       // after data request has been sent, dataProvider is revoked
@@ -656,11 +643,10 @@ describe('Router - interaction tests', function () {
       // increase Router allowance
       await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-      // get current nonce and salt so the request ID can be recreated
+      // get current nonce so the request ID can be recreated
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
@@ -692,11 +678,10 @@ describe('Router - interaction tests', function () {
       // increase Router allowance
       await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
 
-      // get current nonce and salt so the request ID can be recreated
+      // get current nonce so the request ID can be recreated
       const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const routerSalt = await this.RouterContract.getSalt()
 
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, routerSalt)
+      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
       await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
       await expectRevert(

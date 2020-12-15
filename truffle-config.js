@@ -6,6 +6,7 @@ const {
   INFURA_PROJECT_ID_RINKEBY,
   ETH_PKEY_MAINNET,
   INFURA_PROJECT_ID_MAINNET,
+  ETHERSCAN_API,
 } = process.env
 
 module.exports = {
@@ -23,19 +24,33 @@ module.exports = {
       network_id: "*",
     },
     rinkeby: {
-      provider: () => new HDWalletProvider(
-        [ETH_PKEY_RINKEBY], `https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID_RINKEBY}`, 0, 1
-      ),
-      network_id: 4,
-      gasPrice: 100000000000 // 100e9 = 100 gwei
+      provider: () =>
+        new HDWalletProvider({
+          privateKeys: [ETH_PKEY_RINKEBY],
+          providerOrUrl: `https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID_RINKEBY}`
+        }),
+      network_id: "4",
+      gas: 10000000,
+      gasPrice: 100000000000,
+      skipDryRun: true,
     },
     mainnet: {
-      provider: () => new HDWalletProvider(
-        [ETH_PKEY_MAINNET], `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID_MAINNET}`, 0, 1
-      ),
-      network_id: 1,
+      provider: () =>
+        new HDWalletProvider({
+          privateKeys: [ETH_PKEY_MAINNET],
+          providerOrUrl: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID_MAINNET}`
+        }),
+      network_id: "1",
       gasPrice: 120000000000 // 120e9 = 120 gwei
     }
+  },
+
+  plugins: [
+    'truffle-plugin-verify'
+  ],
+
+  api_keys: {
+    etherscan: ETHERSCAN_API
   },
 
   // Set default mocha options here, use special reporters etc.
