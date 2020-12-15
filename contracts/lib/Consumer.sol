@@ -191,7 +191,7 @@ contract Consumer {
      */
     function submitDataRequest(
         address payable _dataProvider,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice,
         bytes4 _callbackFunctionSignature
     ) public

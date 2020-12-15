@@ -1,13 +1,13 @@
 {
   "name": "@unification-com/xfund-router",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "xFUND Router & Data Consumer Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
-    "build": "truffle compile",
+    "build": "rimraf build && truffle compile",
     "test": "mocha --exit --recursive",
     "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol",
-    "prepublishOnly": "truffle compile"
+    "prepublishOnly": "rimraf build && truffle compile"
   },
   "repository": {
     "type": "git",
@@ -37,7 +37,8 @@
     "ganache-cli": "^6.12.1",
     "mocha": "^8.2.1",
     "truffle": "^5.1.57",
-    "web3": "^1.3.0"
+    "web3": "^1.3.0",
+    "rimraf": "^3.0.2"
   },
   "resolutions": {
     "**/**/elliptic": "^6.5.3",

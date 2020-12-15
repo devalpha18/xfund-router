@@ -20,16 +20,16 @@ library ConsumerLib {
      */
 
     struct DataProvider {
-        bool isAuthorised;
         uint256 fee;
+        bool isAuthorised;
     }
 
     struct State {
         IRouter router; // the deployed address of Router smart contract
         IERC20_Ex token; // deployed address of the Token smart contract
         address payable OWNER; // wallet address of the Token holder who will pay fees
-        uint256 requestNonce; // incremented nonce to help prevent request replays
         bytes32 routerSalt;
+        uint256 requestNonce; // incremented nonce to help prevent request replays
 
         // common request variables
         mapping(uint8 => uint256) requestVars;
@@ -45,18 +45,7 @@ library ConsumerLib {
      * EVENTS
      */
 
-    event DataRequestSubmitted(
-        address sender,
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint256 fee,
-        string endpoint,
-        uint256 expires,
-        uint256 gasPrice,
-        bytes32 indexed requestId,
-        bytes4 callbackFunctionSignature
-    );
-
+    event DataRequestSubmitted(bytes32 indexed requestId);
     event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
     event OwnershipTransferred(address indexed sender, address indexed previousOwner, address indexed newOwner);
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
@@ -104,7 +93,7 @@ library ConsumerLib {
      * @return success
      */
     function addDataProvider(State storage self, address _dataProvider, uint256 _fee) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
         require(!self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: dataProvider already authorised");
         require(_fee > 0, "ConsumerLib: fee must be > 0");
@@ -129,7 +118,7 @@ library ConsumerLib {
     function removeDataProvider(State storage self, address _dataProvider)
     public
     returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // msg.sender to Router will be the address of this contract
         require(self.router.revokeProviderPermission(_dataProvider), "ConsumerLib: failed to revoke dataProvider on Router");
@@ -147,7 +136,7 @@ library ConsumerLib {
      * @return success
      */
     function transferOwnership(State storage self, address payable newOwner) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(newOwner != address(0), "ConsumerLib: new owner cannot be the zero address");
         require(self.router.getGasDepositsForConsumer(address(this)) == 0, "ConsumerLib: owner must withdraw all gas from router first");
         require(withdrawAllTokens(self), "ConsumerLib: failed to withdraw tokens from Router");
@@ -163,7 +152,7 @@ library ConsumerLib {
      * @return success
      */
     function withdrawAllTokens(State storage self) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         uint256 amount = self.token.balanceOf(address(this));
         if(amount > 0) {
             require(self.token.transfer(self.OWNER, amount), "ConsumerLib: token withdraw failed");
@@ -180,7 +169,7 @@ library ConsumerLib {
      * @return success
      */
     function withdrawTokenAmount(State storage self, uint256 _amount) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         uint256 contractBalance = self.token.balanceOf(address(this));
         require(contractBalance > 0, "ConsumerLib: contract has zero token balance");
         require(self.token.transfer(self.OWNER, _amount), "ConsumerLib: token withdraw failed");
@@ -197,7 +186,7 @@ library ConsumerLib {
      * @return success
      */
     function increaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.token.increaseAllowance(address(self.router), _routerAllowance), "ConsumerLib: failed to increase Router token allowance");
         emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
         return true;
@@ -211,7 +200,7 @@ library ConsumerLib {
      * @return success
      */
     function decreaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.token.decreaseAllowance(address(self.router), _routerAllowance), "ConsumerLib: failed to increase Router token allowance");
         emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
         return true;
@@ -227,7 +216,7 @@ library ConsumerLib {
     function setDataProviderFee(State storage self, address _dataProvider, uint256 _fee)
     public
     returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         require(_fee > 0, "ConsumerLib: fee must be > 0");
         require(_fee >= self.router.getProviderMinFee(_dataProvider), "ConsumerLib: fee must be >= min provider fee");
@@ -251,7 +240,7 @@ library ConsumerLib {
     * @return success
     */
     function setRequestVar(State storage self, uint8 _var, uint256 _value) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_value > 0, "ConsumerLib: _value must be > 0");
         if(_var == REQUEST_VAR_TOP_UP_LIMIT) {
             require(_value <= self.router.getGasTopUpLimit(), "ConsumerLib: _value must be <= Router gasTopUpLimit");
@@ -269,7 +258,7 @@ library ConsumerLib {
      * @return success
      */
     function setRouter(State storage self, address _router) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_router != address(0), "ConsumerLib: router cannot be the zero address");
         require(_router.isContract(), "ConsumerLib: router address must be a contract");
         address oldRouter = address(self.router);
@@ -292,12 +281,12 @@ library ConsumerLib {
     function submitDataRequest(
         State storage self,
         address payable _dataProvider,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPrice,
         bytes4 _callbackFunctionSignature
     ) public
     returns (bytes32 requestId) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // check gas isn't stupidly high
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
@@ -313,9 +302,6 @@ library ConsumerLib {
             address(this),
             self.requestNonce,
             _dataProvider,
-            _data,
-            _callbackFunctionSignature,
-            gasPriceGwei,
             self.routerSalt
         );
 
@@ -331,27 +317,17 @@ library ConsumerLib {
                 _dataProvider,
                 fee,
                 self.requestNonce,
-                _data,
                 gasPriceGwei,
                 expires,
                 reqId,
+                _data,
                 _callbackFunctionSignature
-            ), "ConsumerLib: router.initialiseRequest failed");
+            ));
 
         self.requestNonce += 1;
 
-        // only emitted if the router request is successful. Data provider can cross reference and check
-        emit DataRequestSubmitted(
-            msg.sender,
-            address(this), // request comes from the address of this contract
-            _dataProvider,
-            fee,
-            _data,
-            expires,
-            gasPriceGwei,
-            reqId,
-            _callbackFunctionSignature
-        );
+        // only emitted if the router request is successful.
+        emit DataRequestSubmitted(reqId);
         return reqId;
     }
 
@@ -364,7 +340,7 @@ library ConsumerLib {
     function cancelRequest(State storage self, bytes32 _requestId)
     public
     returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner can do this");
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataRequests[_requestId], "ConsumerLib: request id does not exist");
         require(self.router.cancelRequest(_requestId), "ConsumerLib: router.cancelRequest failed");
         emit RequestCancellationSubmitted(msg.sender, _requestId);
@@ -376,9 +352,6 @@ library ConsumerLib {
         address _dataConsumer,
         uint256 _requestNonce,
         address _dataProvider,
-        string memory _data,
-        bytes4 _callbackFunctionSignature,
-        uint256 gasPriceGwei,
         bytes32 _salt
     ) internal pure returns (bytes32 requestId) {
         return keccak256(
@@ -386,9 +359,6 @@ library ConsumerLib {
                 _dataConsumer,
                 _requestNonce,
                 _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                gasPriceGwei,
                 _salt
             )
         );

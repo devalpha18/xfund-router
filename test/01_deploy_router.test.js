@@ -36,18 +36,6 @@ describe('Router - deploy', function () {
     expect(await RouterContract.hasRole("0x00", admin)).to.equal(true)
   })
 
-  it('can deploy Router with Token and Salt - totalTokensHeld is zero', async function () {
-    const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
-    const totalTokensHeld = await RouterContract.getTotalTokensHeld()
-    expect(totalTokensHeld.toNumber()).to.equal(0)
-  })
-
-  it('can deploy Router with Token and Salt - tokens held for any address pair is zero', async function () {
-    const RouterContract = await Router.new(this.MockTokenContract.address, salt, {from: admin})
-    const totalHeld = await RouterContract.getTokensHeldFor(dataConsumer, dataProvider)
-    expect(totalHeld.toNumber()).to.equal(0)
-  })
-
   it('must deploy with token', async function () {
     await expectRevert(
       Router.new(constants.ZERO_ADDRESS, salt, {from: admin}),

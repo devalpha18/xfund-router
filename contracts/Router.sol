@@ -34,7 +34,7 @@ contract Router is AccessControl {
     // provider expects the consumer to pay for the gas.
     // Note: This is increased during fulfillRequest if the actual cost
     // is more.
-    uint256 public constant EXPECTED_GAS = 85000;
+    uint256 public constant EXPECTED_GAS = 81000;
 
     /*
      * STRUCTURES
@@ -43,10 +43,10 @@ contract Router is AccessControl {
     struct DataRequest {
         address dataConsumer;
         address payable dataProvider;
-        bytes4 callbackFunction;
         uint256 expires;
         uint256 fee;
         uint256 gasPrice;
+        bytes4 callbackFunction;
         bool isSet;
     }
 
@@ -55,20 +55,23 @@ contract Router is AccessControl {
         uint256 minFee;
     }
 
-    IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
-    bytes32 private salt;
     uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
 
     // Eth held for provider gas payments
     uint256 private totalGasDeposits;
+
+    // track fees held by this contract
+    uint256 public totalFees = 0;
+
+    // contract's unique salt
+    bytes32 private salt;
+
+    IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
+
+    // Eth held for provider gas payments
     mapping(address => uint256) private gasDepositsForConsumer;
     mapping(address => mapping(address => uint256)) private gasDepositsForConsumerProviders;
     mapping(address => DataProvider) private dataProviders;
-
-    // Tokens held for payment
-    uint256 private totalTokensHeld;
-    // Mapping for [dataConsumers] to [dataProviders] to hold tokens held for data payments
-    mapping(address => mapping(address => uint256)) private tokensHeldForPayment;
 
     // Mapping for [dataConsumers] to [dataProviders].
     // A dataProvider is authorised to provide data for the dataConsumer
@@ -78,7 +81,6 @@ contract Router is AccessControl {
     mapping(bytes32 => DataRequest) public dataRequests;
 
     // track fees held by this contract
-    uint256 public totalFees = 0;
     mapping(address => mapping(address => uint256)) public feesHeld;
 
     // DataRequested event. Emitted when a data request has been initialised
@@ -86,11 +88,10 @@ contract Router is AccessControl {
         address indexed dataConsumer,
         address indexed dataProvider,
         uint256 fee,
-        string data,
+        bytes32 data,
         bytes32 indexed requestId,
         uint256 gasPrice,
-        uint256 expires,
-        bytes4 callbackFunctionSignature
+        uint256 expires
     );
 
     // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
@@ -148,7 +149,7 @@ contract Router is AccessControl {
         token = IERC20(_token);
         salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        totalTokensHeld = 0;
+//        totalTokensHeld = 0;
         gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
         emit SaltSet(_salt);
@@ -279,10 +280,10 @@ contract Router is AccessControl {
         address payable _dataProvider,
         uint256 _fee,
         uint256 _requestNonce,
-        string memory _data,
         uint256 _gasPrice,
         uint256 _expires,
         bytes32 _requestId,
+        bytes32 _data,
         bytes4 _callbackFunctionSignature
     ) public returns (bool success) {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
@@ -295,37 +296,21 @@ contract Router is AccessControl {
             dataConsumer,
             _requestNonce,
             _dataProvider,
-            _data,
-            _callbackFunctionSignature,
-            _gasPrice,
             salt
         );
 
         require(reqId == _requestId, "Router: reqId != _requestId");
         require(!dataRequests[reqId].isSet, "Router: request id already initialised");
 
-        // dataConsumer (msg.sender) is the address of the Consumer smart contract calling this function.
-        // It must have enough Tokens to pay for the dataProvider's fee
-        // Fee is initially transferred into the balane of this Router contract and held
-        // until either the request is fulfilled, or the Consumer cancels the request
-        // Will actually return underlying ERC20 error "ERC20: transfer amount exceeds balance"
-        totalTokensHeld = totalTokensHeld.add(_fee);
-        tokensHeldForPayment[dataConsumer][_dataProvider] = tokensHeldForPayment[dataConsumer][_dataProvider].add(_fee);
-        require(token.transferFrom(dataConsumer, address(this), _fee), "Router: token.transferFrom failed");
+        DataRequest storage dr = dataRequests[reqId];
 
-        // ToDo - check if provider or consumer pays gas. If consumer, check there's enough top up gas deposited
-
-        dataRequests[reqId] = DataRequest(
-          {
-            dataConsumer: dataConsumer,
-            dataProvider: _dataProvider,
-            callbackFunction: _callbackFunctionSignature,
-            expires: _expires,
-            fee: _fee,
-            gasPrice: _gasPrice,
-            isSet: true
-          }
-        );
+        dr.dataConsumer = dataConsumer;
+        dr.dataProvider = _dataProvider;
+        dr.callbackFunction = _callbackFunctionSignature;
+        dr.expires = _expires;
+        dr.fee = _fee;
+        dr.gasPrice = _gasPrice;
+        dr.isSet = true;
 
         // Transfer successful - emit the DataRequested event
         emit DataRequested(
@@ -335,8 +320,7 @@ contract Router is AccessControl {
             _data,
             _requestId,
             _gasPrice,
-            _expires,
-            _callbackFunctionSignature
+            _expires
         );
         return true;
     }
@@ -382,11 +366,13 @@ contract Router is AccessControl {
             gasPayer
         );
 
-        // Pay dataProvider (msg.sender) from tokens held by this contract
-        // which were put into "escrow" during the initialiseRequest function
-        totalTokensHeld = totalTokensHeld.sub(fee, "Router: fee amount exceeds router totalTokensHeld");
-        tokensHeldForPayment[dataConsumer][msg.sender] = tokensHeldForPayment[dataConsumer][msg.sender].sub(fee, "Router: fee amount exceeds router tokensHeldForPayment for pair");
-        require(token.transfer(msg.sender, fee), "Router: token.transfer failed");
+        // Pay dataProvider (msg.sender) from tokens held by the consumer's contract
+        // dataConsumer (msg.sender) is the address of the Consumer smart contract
+        // for which the provider is fulfilling the request.
+        // It must have enough Tokens to pay for the dataProvider's fee.
+        // Will return underlying ERC20 error "ERC20: transfer amount exceeds balance"
+        // if the Consumer's contract does not have enough tokens to pay
+        require(token.transferFrom(dataConsumer, msg.sender, fee));
 
         uint256 gasUsedToCall = gasLeftStart - gasleft();
         if(gasPayer != dataProvider) {
@@ -447,11 +433,6 @@ contract Router is AccessControl {
             tokenRefund
         );
 
-        // Refund Tokens to dataConsumer (msg.sender)
-        totalTokensHeld = totalTokensHeld.sub(tokenRefund, "Router: refund amount exceeds router totalTokensHeld");
-        tokensHeldForPayment[msg.sender][dataProvider] = tokensHeldForPayment[msg.sender][dataProvider].sub(tokenRefund, "Router: refund amount exceeds router tokensHeldForPayment for pair");
-        require(token.transfer(msg.sender, tokenRefund), "Router: token.transfer failed");
-
         delete dataRequests[_requestId];
 
         return true;
@@ -507,25 +488,6 @@ contract Router is AccessControl {
      */
     function getSalt() external view returns (bytes32) {
         return salt;
-    }
-
-    /**
-     * @dev getTotalTokensHeld - get total tokens currently held by this contract
-     * @return uint256 totalTokensHeld
-     */
-    function getTotalTokensHeld() external view returns (uint256) {
-        return totalTokensHeld;
-    }
-
-    /**
-     * @dev getTokensHeldFor - get tokens currently held by this contract
-     * for a consumer/provider pair
-     * @param _dataConsumer address of data consumer
-     * @param _dataProvider address of data provider
-     * @return uint256 totalTokensHeld
-     */
-    function getTokensHeldFor(address _dataConsumer, address _dataProvider) external view returns (uint256) {
-        return tokensHeldForPayment[_dataConsumer][_dataProvider];
     }
 
     /**
@@ -646,9 +608,6 @@ contract Router is AccessControl {
         address _dataConsumer,
         uint256 _requestNonce,
         address _dataProvider,
-        string memory _data,
-        bytes4 _callbackFunctionSignature,
-        uint256 gasPriceGwei,
         bytes32 _salt
     ) private pure returns (bytes32 requestId) {
         return keccak256(
@@ -656,9 +615,6 @@ contract Router is AccessControl {
                 _dataConsumer,
                 _requestNonce,
                 _dataProvider,
-                _data,
-                _callbackFunctionSignature,
-                gasPriceGwei,
                 _salt
             )
         );

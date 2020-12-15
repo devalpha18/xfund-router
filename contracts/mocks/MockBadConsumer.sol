@@ -29,7 +29,7 @@ contract MockBadConsumer {
     }
 
     // mimic a contract directly interecting with router and not implementing the Consumer library
-    function requestData(address payable _dataProvider, string memory _data)
+    function requestData(address payable _dataProvider, bytes32 _data)
     public returns (bool success) {
         nonce += 1;
         bytes32 requestId = keccak256(
@@ -37,9 +37,6 @@ contract MockBadConsumer {
                 address(this),
                 nonce,
                 _dataProvider,
-                _data,
-                this.recieveData.selector,
-                uint256(20000000000),
                 router.getSalt()
             )
         );
@@ -48,10 +45,10 @@ contract MockBadConsumer {
             _dataProvider,
             100,
             nonce,
-            _data,
             20000000000,
             now + 300,
             requestId,
+            _data,
             this.recieveData.selector
         );
     }
@@ -62,7 +59,7 @@ contract MockBadConsumer {
         address payable _dataProvider,
         uint256 _fee,
         uint256 _nonce,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPriceGwei,
         uint256 expires
     )
@@ -72,9 +69,6 @@ contract MockBadConsumer {
                 address(this),
                 _nonce,
                 _dataProvider,
-                _data,
-                this.recieveData.selector,
-                _gasPriceGwei,
                 router.getSalt()
             )
         );
@@ -83,10 +77,10 @@ contract MockBadConsumer {
             _dataProvider,
             _fee,
             _nonce,
-            _data,
             _gasPriceGwei,
             expires,
             requestId,
+            _data,
             this.recieveData.selector
         );
     }
@@ -95,7 +89,7 @@ contract MockBadConsumer {
         address payable _dataProvider,
         uint256 _fee,
         uint256 _nonce,
-        string memory _data,
+        bytes32 _data,
         uint256 _gasPriceGwei,
         uint256 expires,
         bytes32 _requestId
@@ -105,10 +99,10 @@ contract MockBadConsumer {
             _dataProvider,
             _fee,
             _nonce,
-            _data,
             _gasPriceGwei,
             expires,
             _requestId,
+            _data,
             this.recieveData.selector
         );
     }
