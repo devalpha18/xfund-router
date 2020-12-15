@@ -161,7 +161,7 @@ describe('Consumer - request cancellation tests', function () {
       // cancel request
       await expectRevert(
         this.MockConsumerContract.cancelRequest( reqId, { from: rando } ),
-        "ConsumerLib: only owner can do this"
+        "ConsumerLib: only owner"
       )
     } )
 

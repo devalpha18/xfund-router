@@ -139,7 +139,7 @@ describe('Consumer - transfer ownership tests', function () {
   it('only owner can transfer ownership', async function () {
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: rando}),
-      "ConsumerLib: only owner can do this"
+      "ConsumerLib: only owner"
     )
 
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)
@@ -153,7 +153,7 @@ describe('Consumer - transfer ownership tests', function () {
 
     await expectRevert(
       this.MockConsumerContract.transferOwnership(newOwner1, {from: rando}),
-      "ConsumerLib: only owner can do this"
+      "ConsumerLib: only owner"
     )
 
     expect(await this.MockConsumerContract.owner()).to.equal(dataConsumerOwner)

@@ -355,7 +355,7 @@ describe('Router - interaction tests', function () {
       const reqId = web3.utils.soliditySha3(web3.utils.randomHex(32))
       const cbSig = web3.eth.abi.encodeFunctionSignature('nowt(uint256)')
       await expectRevert(
-        this.RouterContract.initialiseRequest(dataProvider, 100, 0, "SOME.STUFF", 20, 200, reqId, cbSig, {from: dataConsumerOwner}),
+        this.RouterContract.initialiseRequest(dataProvider, 100, 0, 20, 200, reqId, "SOME.STUFF", cbSig, {from: dataConsumerOwner}),
         "Router: only a contract can initialise a request"
       )
     } )

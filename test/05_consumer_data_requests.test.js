@@ -122,7 +122,7 @@ describe('Consumer - data request tests', function () {
       it( 'only dataConsumer (owner) can initialise a request - reverts with error', async function () {
         await expectRevert(
           this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: rando } ),
-          "ConsumerLib: only owner can do this"
+          "ConsumerLib: only owner"
         )
       } )
 
