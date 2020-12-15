@@ -28,7 +28,6 @@ library ConsumerLib {
         IRouter router; // the deployed address of Router smart contract
         IERC20_Ex token; // deployed address of the Token smart contract
         address payable OWNER; // wallet address of the Token holder who will pay fees
-        bytes32 routerSalt;
         uint256 requestNonce; // incremented nonce to help prevent request replays
 
         // common request variables
@@ -71,7 +70,6 @@ library ConsumerLib {
         // set up router and token
         self.router = IRouter(_router);
         self.token = IERC20_Ex(self.router.getTokenAddress());
-        self.routerSalt = self.router.getSalt();
 
         // set token & contract owner
         self.OWNER = msg.sender;
@@ -297,9 +295,9 @@ library ConsumerLib {
         bytes32 reqId = keccak256(
             abi.encodePacked(
                 address(this),
-                self.requestNonce,
                 _dataProvider,
-                self.routerSalt
+                address(self.router),
+                self.requestNonce
             )
         );
 

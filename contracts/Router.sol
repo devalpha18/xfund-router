@@ -63,9 +63,6 @@ contract Router is AccessControl {
     // track fees held by this contract
     uint256 public totalFees = 0;
 
-    // contract's unique salt
-    bytes32 private salt;
-
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
 
     // Eth held for provider gas payments
@@ -117,9 +114,6 @@ contract Router is AccessControl {
         uint256 refund
     );
 
-    // SaltSet used during deployment
-    event SaltSet(bytes32 salt);
-
     // TokenSet used during deployment
     event TokenSet(address tokenAddress);
 
@@ -133,21 +127,16 @@ contract Router is AccessControl {
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
     /**
-     * @dev Contract constructor. Accepts the address for a Token smart contract,
-     * and unique salt.
+     * @dev Contract constructor. Accepts the address for a Token smart contract.
      * @param _token address must be for an ERC-20 token (e.g. xFUND)
-     * @param _salt unique salt for this contract
      */
-    constructor(address _token, bytes32 _salt) public {
+    constructor(address _token) public {
         require(_token != address(0), "Router: token cannot be zero address");
         require(_token.isContract(), "Router: token address must be a contract");
-        require(_salt[0] != 0 && _salt != 0x0, "Router: must include salt");
         token = IERC20(_token);
-        salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
-        emit SaltSet(_salt);
     }
 
     /**
@@ -292,9 +281,9 @@ contract Router is AccessControl {
         bytes32 reqId = keccak256(
             abi.encodePacked(
                 dataConsumer,
-                _requestNonce,
                 _dataProvider,
-                salt
+                address(this),
+                _requestNonce
             )
         );
 
@@ -479,14 +468,6 @@ contract Router is AccessControl {
      */
     function getTokenAddress() external view returns (address) {
         return address(token);
-    }
-
-    /**
-     * @dev getSalt - get the salt used for generating request IDs
-     * @return bytes32 salt
-     */
-    function getSalt() external view returns (bytes32) {
-        return salt;
     }
 
     /**
