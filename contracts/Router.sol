@@ -55,18 +55,26 @@ contract Router is AccessControl {
         uint256 minFee;
     }
 
-    IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
-    bytes32 private salt;
     uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
+    // Tokens held for payment
+    uint256 private totalTokensHeld;
 
     // Eth held for provider gas payments
     uint256 private totalGasDeposits;
+
+    // track fees held by this contract
+    uint256 public totalFees = 0;
+
+    // contract's unique salt
+    bytes32 private salt;
+
+    IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
+
+    // Eth held for provider gas payments
     mapping(address => uint256) private gasDepositsForConsumer;
     mapping(address => mapping(address => uint256)) private gasDepositsForConsumerProviders;
     mapping(address => DataProvider) private dataProviders;
 
-    // Tokens held for payment
-    uint256 private totalTokensHeld;
     // Mapping for [dataConsumers] to [dataProviders] to hold tokens held for data payments
     mapping(address => mapping(address => uint256)) private tokensHeldForPayment;
 
@@ -78,7 +86,6 @@ contract Router is AccessControl {
     mapping(bytes32 => DataRequest) public dataRequests;
 
     // track fees held by this contract
-    uint256 public totalFees = 0;
     mapping(address => mapping(address => uint256)) public feesHeld;
 
     // DataRequested event. Emitted when a data request has been initialised
@@ -278,10 +285,10 @@ contract Router is AccessControl {
         address payable _dataProvider,
         uint256 _fee,
         uint256 _requestNonce,
-        bytes32 _data,
         uint256 _gasPrice,
         uint256 _expires,
         bytes32 _requestId,
+        bytes32 _data,
         bytes4 _callbackFunctionSignature
     ) public returns (bool success) {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
@@ -309,19 +316,15 @@ contract Router is AccessControl {
         tokensHeldForPayment[dataConsumer][_dataProvider] = tokensHeldForPayment[dataConsumer][_dataProvider].add(_fee);
         require(token.transferFrom(dataConsumer, address(this), _fee), "Router: token.transferFrom failed");
 
-        // ToDo - check if provider or consumer pays gas. If consumer, check there's enough top up gas deposited
+        DataRequest storage dr = dataRequests[reqId];
 
-        dataRequests[reqId] = DataRequest(
-          {
-            dataConsumer: dataConsumer,
-            dataProvider: _dataProvider,
-            callbackFunction: _callbackFunctionSignature,
-            expires: _expires,
-            fee: _fee,
-            gasPrice: _gasPrice,
-            isSet: true
-          }
-        );
+        dr.dataConsumer = dataConsumer;
+        dr.dataProvider = _dataProvider;
+        dr.callbackFunction = _callbackFunctionSignature;
+        dr.expires = _expires;
+        dr.fee = _fee;
+        dr.gasPrice = _gasPrice;
+        dr.isSet = true;
 
         // Transfer successful - emit the DataRequested event
         emit DataRequested(
