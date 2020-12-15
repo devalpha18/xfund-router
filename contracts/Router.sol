@@ -132,10 +132,6 @@ contract Router is AccessControl {
     event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
-    // Mirrored ERC20 events for web3 client decoding
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
     /**
      * @dev Contract constructor. Accepts the address for a Token smart contract,
      * and unique salt.
@@ -149,7 +145,6 @@ contract Router is AccessControl {
         token = IERC20(_token);
         salt = _salt;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-//        totalTokensHeld = 0;
         gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
         emit SaltSet(_salt);
@@ -292,11 +287,13 @@ contract Router is AccessControl {
         require(_expires > now, "Router: expiration must be > now");
 
         // recreate request ID from params sent
-        bytes32 reqId = generateRequestId(
-            dataConsumer,
-            _requestNonce,
-            _dataProvider,
-            salt
+        bytes32 reqId = keccak256(
+            abi.encodePacked(
+                dataConsumer,
+                _requestNonce,
+                _dataProvider,
+                salt
+            )
         );
 
         require(reqId == _requestId, "Router: reqId != _requestId");
@@ -601,24 +598,8 @@ contract Router is AccessControl {
     }
 
     /*
-     * PRIVATE
+     * MODIFIERS
      */
-
-    function generateRequestId(
-        address _dataConsumer,
-        uint256 _requestNonce,
-        address _dataProvider,
-        bytes32 _salt
-    ) private pure returns (bytes32 requestId) {
-        return keccak256(
-            abi.encodePacked(
-                _dataConsumer,
-                _requestNonce,
-                _dataProvider,
-                _salt
-            )
-        );
-    }
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
