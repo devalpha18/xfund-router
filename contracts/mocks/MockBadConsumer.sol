@@ -35,9 +35,9 @@ contract MockBadConsumer {
         bytes32 requestId = keccak256(
             abi.encodePacked(
                 address(this),
-                nonce,
                 _dataProvider,
-                router.getSalt()
+                address(router),
+                nonce
             )
         );
 
@@ -67,9 +67,9 @@ contract MockBadConsumer {
         bytes32 requestId = keccak256(
             abi.encodePacked(
                 address(this),
-                _nonce,
                 _dataProvider,
-                router.getSalt()
+                address(router),
+                _nonce
             )
         );
 
