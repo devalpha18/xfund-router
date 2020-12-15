@@ -99,7 +99,7 @@ library ConsumerLib {
         require(_fee > 0, "ConsumerLib: fee must be > 0");
         require(_fee >= self.router.getProviderMinFee(_dataProvider), "ConsumerLib: fee must be >= min provider fee");
         // msg.sender to Router will be the address of this contract
-        require(self.router.grantProviderPermission(_dataProvider), "ConsumerLib: failed to grant dataProvider on Router");
+        require(self.router.grantProviderPermission(_dataProvider));
         self.dataProviders[_dataProvider] = DataProvider({
             isAuthorised: true,
             fee: _fee
@@ -121,7 +121,7 @@ library ConsumerLib {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // msg.sender to Router will be the address of this contract
-        require(self.router.revokeProviderPermission(_dataProvider), "ConsumerLib: failed to revoke dataProvider on Router");
+        require(self.router.revokeProviderPermission(_dataProvider));
         self.dataProviders[_dataProvider].isAuthorised = false;
         emit RemovedDataProvider(msg.sender, _dataProvider);
         return true;
@@ -187,7 +187,7 @@ library ConsumerLib {
      */
     function increaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.token.increaseAllowance(address(self.router), _routerAllowance), "ConsumerLib: failed to increase Router token allowance");
+        require(self.token.increaseAllowance(address(self.router), _routerAllowance));
         emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
         return true;
     }
@@ -201,7 +201,7 @@ library ConsumerLib {
      */
     function decreaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.token.decreaseAllowance(address(self.router), _routerAllowance), "ConsumerLib: failed to increase Router token allowance");
+        require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
         emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
         return true;
     }
@@ -292,17 +292,15 @@ library ConsumerLib {
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
         // check there are enough tokens, and that the router has a high enough allowance to pay fees
         uint256 fee = self.dataProviders[_dataProvider].fee;
-        require(self.token.balanceOf(address(this)) >= fee, "ConsumerLib: this contract does not have enough tokens to pay fee");
-        require(self.token.allowance(address(this), address(self.router)) >= fee, "ConsumerLib: not enough Router allowance to pay fee");
-
-        uint256 gasPriceGwei = _gasPrice * (10 ** 9);
 
         // generate the requestId
-        bytes32 reqId = generateRequestId(
-            address(this),
-            self.requestNonce,
-            _dataProvider,
-            self.routerSalt
+        bytes32 reqId = keccak256(
+            abi.encodePacked(
+                address(this),
+                self.requestNonce,
+                _dataProvider,
+                self.routerSalt
+            )
         );
 
         require(!self.dataRequests[reqId], "ConsumerLib: request id already exists");
@@ -317,9 +315,9 @@ library ConsumerLib {
                 _dataProvider,
                 fee,
                 self.requestNonce,
-                gasPriceGwei,
+                _gasPrice * (10 ** 9), // gwei to wei
                 expires,
-                reqId,
+                reqId, // will be regenerated and cross referenced in Router
                 _data,
                 _callbackFunctionSignature
             ));
@@ -342,25 +340,9 @@ library ConsumerLib {
     returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataRequests[_requestId], "ConsumerLib: request id does not exist");
-        require(self.router.cancelRequest(_requestId), "ConsumerLib: router.cancelRequest failed");
+        require(self.router.cancelRequest(_requestId));
         emit RequestCancellationSubmitted(msg.sender, _requestId);
         delete self.dataRequests[_requestId];
         return true;
-    }
-
-    function generateRequestId(
-        address _dataConsumer,
-        uint256 _requestNonce,
-        address _dataProvider,
-        bytes32 _salt
-    ) internal pure returns (bytes32 requestId) {
-        return keccak256(
-            abi.encodePacked(
-                _dataConsumer,
-                _requestNonce,
-                _dataProvider,
-                _salt
-            )
-        );
     }
 }

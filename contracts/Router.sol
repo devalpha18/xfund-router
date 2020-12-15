@@ -285,6 +285,8 @@ contract Router is AccessControl {
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
         require(_expires > now, "Router: expiration must be > now");
+        require(token.balanceOf(dataConsumer) >= _fee, "Router: contract does not have enough tokens to pay fee");
+        require(token.allowance(dataConsumer, address(this)) >= _fee, "Router: not enough allowance to pay fee");
 
         // recreate request ID from params sent
         bytes32 reqId = keccak256(
@@ -396,7 +398,7 @@ contract Router is AccessControl {
             gasDepositsForConsumerProviders[dataConsumer][dataProvider] = gasDepositsForConsumerProviders[dataConsumer][dataProvider].sub(ethRefund);
 
             emit GasRefundedToProvider(dataConsumer, dataProvider, ethRefund);
-            // send back to consumer contract
+            // refund the provider
             Address.sendValue(dataProvider, ethRefund);
         }
 
@@ -521,15 +523,6 @@ contract Router is AccessControl {
      */
     function getDataRequestGasPrice(bytes32 _requestId) external view returns (uint256) {
         return dataRequests[_requestId].gasPrice;
-    }
-
-    /**
-     * @dev getDataRequestCallback - get the callback function signature for a request
-     * @param _requestId bytes32 request id
-     * @return bytes4 callback function signature
-     */
-    function getDataRequestCallback(bytes32 _requestId) external view returns (bytes4) {
-        return dataRequests[_requestId].callbackFunction;
     }
 
     /**
