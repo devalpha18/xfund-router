@@ -49,8 +49,10 @@
     "/build/contracts/*.json",
     "/docs/**/*.md",
     "!/contracts/mocks",
+    "!/contracts/Migrations.sol",
     "!/contracts/Router.sol",
     "!/build/contracts/Mock*.json",
+    "!/build/contracts/Migrations.json",
     "!/build/contracts/Router.json",
     "!/build/contracts/AccessControl.json"
   ]
