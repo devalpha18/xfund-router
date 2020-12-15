@@ -48,7 +48,7 @@ describe('Router - interaction tests', function () {
   const decimals = 9
   const initSupply = 1000 * (10 ** decimals)
   const fee = new BN(0.1 * ( 10 ** 9 ))
-  const endpoint = "PRICE.BTC.USD.AVG"
+  const endpoint = web3.utils.asciiToHex("PRICE.BTC.USD.AVG")
   const salt = web3.utils.soliditySha3(web3.utils.randomHex(32), new Date())
   const gasPrice = 100 // gwei, 10 ** 9 done in contract
   const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
@@ -355,7 +355,7 @@ describe('Router - interaction tests', function () {
       const reqId = web3.utils.soliditySha3(web3.utils.randomHex(32))
       const cbSig = web3.eth.abi.encodeFunctionSignature('nowt(uint256)')
       await expectRevert(
-        this.RouterContract.initialiseRequest(dataProvider, 100, 0, 20, 200, reqId, "SOME.STUFF", cbSig, {from: dataConsumerOwner}),
+        this.RouterContract.initialiseRequest(dataProvider, 100, 0, 20, 200, reqId, web3.utils.asciiToHex("SOME.STUFF"), cbSig, {from: dataConsumerOwner}),
         "Router: only a contract can initialise a request"
       )
     } )
@@ -468,16 +468,6 @@ describe('Router - interaction tests', function () {
           {from: dataConsumerOwner}
         ),
         "Router: expiration must be > now"
-      )
-    } )
-
-    it( 'not enough tokens', async function () {
-      await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
-
-      // Consumer contract does not have enough tokens to pay provider fee
-      await expectRevert(
-        this.BadConsumerContract.requestData(dataProvider, endpoint, {from: dataConsumerOwner}),
-        "ERC20: transfer amount exceeds balance"
       )
     } )
 
