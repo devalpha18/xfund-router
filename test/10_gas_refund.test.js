@@ -229,7 +229,8 @@ describe('Provider - gas refund tests', function () {
         const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
 
         const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-        const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+        const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
+
         const diff = refundAmount.sub( actualSpent )
 
         // expected balance calculated from diff between actual cost and refund amount
@@ -259,7 +260,7 @@ describe('Provider - gas refund tests', function () {
         const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
 
         const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-        const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+        const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
 
         // expected balance calculated from start balance, and costs/refund
         const expectedMinBalanceFromSpends = new BN( providerBalanceBefore ).sub( actualSpent ).add( refundAmount )
@@ -304,7 +305,7 @@ describe('Provider - gas refund tests', function () {
           gasPrice: gasPriceGwei
         } )
 
-        const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+        const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
 
         expect( refundAmount ).to.be.bignumber.gt( new BN( 0 ) )
       } )
@@ -326,7 +327,7 @@ describe('Provider - gas refund tests', function () {
         } )
 
         const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-        const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+        const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
         const diff = refundAmount.sub( actualSpent )
 
         expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
@@ -402,7 +403,7 @@ describe('Provider - gas refund tests', function () {
           } )
 
           const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-          const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+          const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
           const diff = refundAmount.sub( actualSpent )
 
           expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
@@ -471,7 +472,7 @@ describe('Provider - gas refund tests', function () {
             } )
 
             const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-            const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+            const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
             const diff = refundAmount.sub( actualSpent )
 
             expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
@@ -505,7 +506,7 @@ describe('Provider - gas refund tests', function () {
             } )
 
             const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-            const refundAmount = fulfullReceipt.receipt.logs[3].args.amount
+            const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
             const diff = refundAmount.sub( actualSpent )
 
             expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
