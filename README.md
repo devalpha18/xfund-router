@@ -115,7 +115,7 @@ truffle(develop)> mockToken.gimme({from: consumerOwner})
    can hold and forward fees to the provider. Run:
    
 ```bash
-truffle(develop)> mockConsumer.increaseRouterAllowance("115792089237316195423570985008687907853269984665640564039457584007913129639935", {from: consumerOwner})
+truffle(develop)> mockConsumer.setRouterAllowance("115792089237316195423570985008687907853269984665640564039457584007913129639935", true, {from: consumerOwner})
 ```
 
 3. Authorise a data provider to fulfil data requests and allow them to send data to your
