@@ -125,16 +125,6 @@ contract Consumer {
     }
 
     /**
-     * @dev setDataProviderFee set the fee for a data provider
-     *
-     * @param _dataProvider the address of the data provider
-     * @param _fee the data provider's fee
-     */
-    function setDataProviderFee(address _dataProvider, uint256 _fee) public {
-        require(consumerState.setDataProviderFee(_dataProvider, _fee));
-    }
-
-    /**
     * @dev setRequestVar set the specified variable. Request variables are used
     * when initialising a request, and are common settings for requests.
     *
