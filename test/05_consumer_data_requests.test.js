@@ -89,7 +89,7 @@ describe('Consumer - data request tests', function () {
     // set up ideal scenario for these tests
     beforeEach(async function () {
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
 
       // add a dataProvider
       await this.MockConsumerContract.addDataProvider(dataProvider, fee, {from: dataConsumerOwner});
@@ -108,10 +108,9 @@ describe('Consumer - data request tests', function () {
     describe('initialise requests', function () {
 
       it( 'dataConsumer (owner) can initialise a request - emits DataRequestSubmitted event', async function () {
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address )
         const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        const reqId = await getReqIdFromReceipt(reciept)
 
         expectEvent( reciept, 'DataRequestSubmitted', {
           requestId: reqId,
@@ -119,10 +118,8 @@ describe('Consumer - data request tests', function () {
       } )
 
       it( 'dataConsumer (owner) can initialise a request - Router emits DataRequested event', async function () {
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address )
         const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = await getReqIdFromReceipt(reciept)
         const expires = await this.RouterContract.getDataRequestExpires( reqId )
 
         expectEvent( reciept, 'DataRequested', {
@@ -137,9 +134,8 @@ describe('Consumer - data request tests', function () {
       } )
 
       it( 'request ID correctly generated', async function () {
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
 
-        const expectedReqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address )
+        const expectedReqId = generateRequestId( this.MockConsumerContract.address, new BN(0), dataProvider, this.RouterContract.address )
         const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
 
         const actualReqId = getReqIdFromReceipt(reciept)
@@ -172,13 +168,11 @@ describe('Consumer - data request tests', function () {
       } )
 
       it( 'dataConsumer (owner) can add rando as new data provider and initialise a request', async function () {
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
         // add rando as new provider
         await this.MockConsumerContract.addDataProvider( rando, fee, { from: dataConsumerOwner } );
 
-        const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, rando, this.RouterContract.address )
         const reciept = await this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = await getReqIdFromReceipt(reciept)
 
         expectEvent( reciept, 'DataRequestSubmitted', {
           requestId: reqId,
@@ -244,11 +238,10 @@ describe('Consumer - data request tests', function () {
       )
 
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
 
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
       const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const reqId = await getReqIdFromReceipt(reciept)
 
       expectEvent( reciept, 'DataRequestSubmitted', {
         requestId: reqId,
@@ -283,7 +276,7 @@ describe('Consumer - data request tests', function () {
         // add Data provider
         await this.MockConsumerContract.addDataProvider( dataProvider, dpFee, { from: dataConsumerOwner } );
         // increase router allowance
-        await this.MockConsumerContract.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), { from: dataConsumerOwner } )
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
 
         // request 1, pay 100
         const r1 = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
@@ -324,7 +317,7 @@ describe('Consumer - data request tests', function () {
         // add Data provider2
         await this.MockConsumerContract.addDataProvider( dataProvider2, dp2Fee, { from: dataConsumerOwner } );
         // increase router allowance
-        await this.MockConsumerContract.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), { from: dataConsumerOwner } )
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
 
         // request 1 from provider 1, pay 100
         const r1 = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
@@ -373,7 +366,7 @@ describe('Consumer - data request tests', function () {
         // add Data provider2
         await MockConsumerContract1.addDataProvider( dataProvider2, c1p2Fee, { from: dataConsumerOwner } );
         // increase router allowance
-        await MockConsumerContract1.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), { from: dataConsumerOwner } )
+        await MockConsumerContract1.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
 
         // dataConsumerOwner2 deploy Consumer contract
         const MockConsumerContract2 = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner2})
@@ -384,7 +377,7 @@ describe('Consumer - data request tests', function () {
         // add Data provider2
         await MockConsumerContract2.addDataProvider( dataProvider2, c2p2Fee, { from: dataConsumerOwner2 } );
         // increase router allowance
-        await MockConsumerContract2.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), { from: dataConsumerOwner2 } )
+        await MockConsumerContract2.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner2 } )
 
         // request 1 - consumer 1 from provider 1, pay 100
         const r1 = await MockConsumerContract1.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )

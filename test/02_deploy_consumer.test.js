@@ -46,12 +46,6 @@ describe('Consumer - deploy', function () {
     expect(await MockConsumerContract.owner()).to.equal(dataConsumerOwner)
   })
 
-  it('start requestNonce is 0', async function () {
-    const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
-    const requestNonce = await MockConsumerContract.getRequestNonce()
-    expect(requestNonce.toNumber()).to.equal(0)
-  })
-
   it('start gasPriceLimit is 200', async function () {
     const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
     const gasPriceLimit = await MockConsumerContract.getRequestVar(REQUEST_VAR_GAS_PRICE_LIMIT)

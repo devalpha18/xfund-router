@@ -27,9 +27,8 @@ contract MockConsumer is Consumer {
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
     event IncreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
     event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
-    event AddedDataProvider(address indexed sender, address indexed provider, uint256 fee);
+    event AddedDataProvider(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
     event RemovedDataProvider(address indexed sender, address indexed provider);
-    event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
     event SetRequestVar(address indexed sender, uint8 variable, uint256 oldValue, uint256 newValue);
 
     event RequestCancellationSubmitted(address sender, bytes32 requestId);

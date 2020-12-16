@@ -50,9 +50,8 @@ library ConsumerLib {
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
     event IncreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
     event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
-    event AddedDataProvider(address indexed sender, address indexed provider, uint256 fee);
+    event AddedDataProvider(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
     event RemovedDataProvider(address indexed sender, address indexed provider);
-    event SetDataProviderFee(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
     event SetRequestVar(address indexed sender, uint8 variable, uint256 oldValue, uint256 newValue);
 
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
@@ -84,7 +83,8 @@ library ConsumerLib {
 
     /**
      * @dev addDataProvider add a new authorised data provider to this contract, and
-     * authorise it to provide data via the Router
+     * authorise it to provide data via the Router. Can also be used to modify
+     * a provider's fee
      *
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
@@ -93,16 +93,26 @@ library ConsumerLib {
     function addDataProvider(State storage self, address _dataProvider, uint256 _fee) public returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
-        require(!self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: dataProvider already authorised");
-        require(_fee > 0, "ConsumerLib: fee must be > 0");
-        require(_fee >= self.router.getProviderMinFee(_dataProvider), "ConsumerLib: fee must be >= min provider fee");
-        // msg.sender to Router will be the address of this contract
-        require(self.router.grantProviderPermission(_dataProvider));
-        self.dataProviders[_dataProvider] = DataProvider({
-            isAuthorised: true,
-            fee: _fee
-        });
-        emit AddedDataProvider(msg.sender, _dataProvider, _fee);
+
+        DataProvider storage dp = self.dataProviders[_dataProvider];
+
+        // new provider. Initial fee must be > 0
+        if(dp.fee == 0) {
+            require(_fee > 0, "ConsumerLib: fee must be > 0");
+        }
+
+        uint256 oldFee = dp.fee;
+
+        // only set if the fee is > 0
+        if(_fee > 0) {
+            dp.fee = _fee;
+        }
+
+        if(!dp.isAuthorised) {
+            dp.isAuthorised = true;
+            require(self.router.grantProviderPermission(_dataProvider));
+        }
+        emit AddedDataProvider(msg.sender, _dataProvider, oldFee, dp.fee);
         return true;
     }
 
@@ -160,67 +170,23 @@ library ConsumerLib {
     }
 
     /**
-     * @dev withdrawTokenAmount allows the token holder (contract owner) to withdraw
-     * the specified amount of Tokens held by this contract back to themselves.
-     *
-     * @param _amount the amount of tokens the owner would like to withdraw
-     * @return success
-     */
-    function withdrawTokenAmount(State storage self, uint256 _amount) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        uint256 contractBalance = self.token.balanceOf(address(this));
-        require(contractBalance > 0, "ConsumerLib: contract has zero token balance");
-        require(self.token.transfer(self.OWNER, _amount), "ConsumerLib: token withdraw failed");
-        emit WithdrawTokensFromContract(msg.sender, address(this), self.OWNER, _amount);
-        return true;
-    }
-
-    /**
-     * @dev increaseRouterAllowance allows the token holder (contract owner) to
-     * increase the token allowance for the Router, in order for the Router to
+     * @dev setRouterAllowance allows the token holder (contract owner) to
+     * increase/decrease the token allowance for the Router, in order for the Router to
      * pay fees for data requests
      *
-     * @param _routerAllowance the amount of tokens the owner would like to increase allocation by
+     * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
+     * @param _increase bool true to increase, false to decrease
      * @return success
      */
-    function increaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
+    function setRouterAllowance(State storage self, uint256 _routerAllowance, bool _increase) public returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.token.increaseAllowance(address(self.router), _routerAllowance));
-        emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
-        return true;
-    }
-
-    /**
-     * @dev decreaseRouterAllowance allows the token holder (contract owner) to
-     * reduce the token allowance for the Router
-     *
-     * @param _routerAllowance the amount of tokens the owner would like to decrease allocation by
-     * @return success
-     */
-    function decreaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
-        emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
-        return true;
-    }
-
-    /**
-     * @dev setDataProviderFee set the fee for a data provider
-     *
-     * @param _dataProvider the address of the data provider
-     * @param _fee the data provider's fee
-     * @return success
-     */
-    function setDataProviderFee(State storage self, address _dataProvider, uint256 _fee)
-    public
-    returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
-        require(_fee > 0, "ConsumerLib: fee must be > 0");
-        require(_fee >= self.router.getProviderMinFee(_dataProvider), "ConsumerLib: fee must be >= min provider fee");
-        uint256 oldFee = self.dataProviders[_dataProvider].fee;
-        SetDataProviderFee(msg.sender, _dataProvider, oldFee, _fee);
-        self.dataProviders[_dataProvider].fee = _fee;
+        if(_increase) {
+            require(self.token.increaseAllowance(address(self.router), _routerAllowance));
+            emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+        } else {
+            require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
+            emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+        }
         return true;
     }
 

@@ -64,16 +64,6 @@ contract Consumer {
     }
 
     /**
-     * @dev withdrawTokenAmount allows the token holder (contract owner) to withdraw
-     * the specified amount of Tokens held by this contract back to themselves.
-     *
-     * @param _amount the amount of tokens the owner would like to withdraw
-     */
-    function withdrawTokenAmount(uint256 _amount) public {
-        require(consumerState.withdrawTokenAmount(_amount));
-    }
-
-    /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
      * and withdraws any tokens currentlry held by the contract.
      * Can only be called by the current owner.
@@ -83,24 +73,15 @@ contract Consumer {
     }
 
     /**
-     * @dev increaseRouterAllowance allows the token holder (contract owner) to
-     * increase the token allowance for the Router, in order for the Router to
+     * @dev setRouterAllowance allows the token holder (contract owner) to
+     * increase/decrease the token allowance for the Router, in order for the Router to
      * pay fees for data requests
      *
-     * @param _routerAllowance the amount of tokens the owner would like to increase allocation by
+     * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
+     * @param _increase bool true to increase, false to decrease
      */
-    function increaseRouterAllowance(uint256 _routerAllowance) public {
-        require(consumerState.increaseRouterAllowance(_routerAllowance));
-    }
-
-    /**
-     * @dev decreaseRouterAllowance allows the token holder (contract owner) to
-     * reduce the token allowance for the Router
-     *
-     * @param _routerAllowance the amount of tokens the owner would like to decrease allocation by
-     */
-    function decreaseRouterAllowance(uint256 _routerAllowance) public {
-        require(consumerState.decreaseRouterAllowance(_routerAllowance));
+    function setRouterAllowance(uint256 _routerAllowance, bool _increase) public {
+        require(consumerState.setRouterAllowance(_routerAllowance, _increase));
     }
 
     /**
@@ -125,23 +106,13 @@ contract Consumer {
     }
 
     /**
-     * @dev setDataProviderFee set the fee for a data provider
-     *
-     * @param _dataProvider the address of the data provider
-     * @param _fee the data provider's fee
-     */
-    function setDataProviderFee(address _dataProvider, uint256 _fee) public {
-        require(consumerState.setDataProviderFee(_dataProvider, _fee));
-    }
-
-    /**
     * @dev setRequestVar set the specified variable. Request variables are used
     * when initialising a request, and are common settings for requests.
     *
     * The variable to be set can be one of:
-    * 0x01 - gas price limit in gwei the consumer is willing to pay for data processing
-    * 0x02 - max ETH that can be sent in a gas top up Tx
-    * 0x03 - request timeout in seconds
+    * 1 - gas price limit in gwei the consumer is willing to pay for data processing
+    * 2 - max ETH that can be sent in a gas top up Tx
+    * 3 - request timeout in seconds
     *
     * @param _var bytes32 the variable being set.
     * @param _value uint256 the new value
@@ -221,16 +192,6 @@ contract Consumer {
      */
 
     /**
-     * @dev getContractTokenBalance quick proxy function to the Token smart contract to
-     * get the token balance of this smart contract
-     *
-     * @return uint256 token balance
-     */
-    function getContractTokenBalance() external view returns (uint256) {
-        return consumerState.token.balanceOf(address(this));
-    }
-
-    /**
      * @dev getRouterAddress returns the address of the Router smart contract being used
      *
      * @return address
@@ -246,15 +207,6 @@ contract Consumer {
      */
     function getDataProviderFee(address _dataProvider) external view returns (uint256) {
         return consumerState.dataProviders[_dataProvider].fee;
-    }
-
-    /**
-     * @dev getRequestNonce returns the current requestNonce
-     *
-     * @return uint256
-     */
-    function getRequestNonce() external view returns (uint256) {
-        return consumerState.requestNonce;
     }
 
     /**

@@ -27,6 +27,16 @@ function generateSigMsg(requestId, data, consumerAddress) {
   )
 }
 
+const getReqIdFromReceipt = function(receipt) {
+  for(let i = 0; i < receipt.logs.length; i += 1) {
+    const log = receipt.logs[i]
+    if(log.event === "DataRequested") {
+      return log.args.requestId
+    }
+  }
+  return null
+}
+
 function generateRequestId(
   consumerAddress,
   requestNonce,
@@ -122,13 +132,10 @@ describe('Router - interaction tests', function () {
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
         await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
         // increase Router allowance
-        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-        // get current nonce so the request ID can be recreated
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = getReqIdFromReceipt(reciept)
 
         expect(await this.RouterContract.requestExists(reqId)).to.equal(true)
       })
@@ -145,13 +152,10 @@ describe('Router - interaction tests', function () {
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
         await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
         // increase Router allowance
-        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-        // get current nonce so the request ID can be recreated
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = getReqIdFromReceipt(reciept)
 
         expect(await this.RouterContract.getDataRequestConsumer(reqId)).to.equal(this.MockConsumerContract.address)
       })
@@ -168,13 +172,10 @@ describe('Router - interaction tests', function () {
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
         await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
         // increase Router allowance
-        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-        // get current nonce so the request ID can be recreated
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = getReqIdFromReceipt(reciept)
 
         expect(await this.RouterContract.getDataRequestProvider(reqId)).to.equal(dataProvider)
       })
@@ -192,14 +193,12 @@ describe('Router - interaction tests', function () {
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
         await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
         // increase Router allowance
-        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-        // get current nonce so the request ID can be recreated
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
         const now = Math.floor(Date.now() / 1000)
 
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = getReqIdFromReceipt(receipt)
 
         const expires = await this.RouterContract.getDataRequestExpires(reqId)
         expect(expires.toNumber()).to.be.above(now)
@@ -218,13 +217,10 @@ describe('Router - interaction tests', function () {
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
         await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
         // increase Router allowance
-        await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+        await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-        // get current nonce so the request ID can be recreated
-        const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-        const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-        await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId = getReqIdFromReceipt(receipt)
 
         const gasPriceInRequest = await this.RouterContract.getDataRequestGasPrice(reqId)
         expect(gasPriceInRequest.toNumber()).to.equal(gasPrice * (10 ** 9))
@@ -416,7 +412,7 @@ describe('Router - interaction tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.BadConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
-      await this.BadConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.BadConsumerContract.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), {from: dataConsumerOwner})
       await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
       const rubbishRequestId = web3.utils.soliditySha3(web3.utils.randomHex(32))
 
@@ -467,7 +463,7 @@ describe('Router - interaction tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.BadConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
-      await this.BadConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.BadConsumerContract.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), {from: dataConsumerOwner})
 
       const now = Math.floor(Date.now() / 1000)
       const expires = now + 300
@@ -587,12 +583,10 @@ describe('Router - interaction tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-      await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const reqId = getReqIdFromReceipt(receipt)
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
       // signed by rando
@@ -611,13 +605,10 @@ describe('Router - interaction tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-      // get current nonce so the request ID can be recreated
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-      await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const reqId = getReqIdFromReceipt(receipt)
 
       // after data request has been sent, dataProvider is revoked
       await this.MockConsumerContract.removeDataProvider(dataProvider, {from: dataConsumerOwner})
@@ -641,13 +632,10 @@ describe('Router - interaction tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-      // get current nonce so the request ID can be recreated
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-      await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const reqId = getReqIdFromReceipt(receipt)
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
       const sig = await web3.eth.accounts.sign(msg, dataProviderPk)
@@ -676,13 +664,10 @@ describe('Router - interaction tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner})
+      await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
-      // get current nonce so the request ID can be recreated
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId(this.MockConsumerContract.address, requestNonce, dataProvider, this.RouterContract.address)
-      await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const reciept = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+      const reqId = await getReqIdFromReceipt(reciept)
 
       await expectRevert(
         this.BadConsumerContract.cancelDataRequest(reqId, {from: dataConsumerOwner}),

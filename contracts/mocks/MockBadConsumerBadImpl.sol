@@ -16,6 +16,18 @@ contract MockBadConsumerBadImpl is Consumer {
     event DoneDeletified(bytes32 indexed requestId);
     event Counted(uint256 newCounterVal);
 
+    // Mirrored Router events for web3 client decoding & testing
+    // DataRequested event. Emitted when a data request has been initialised
+    event DataRequested(
+        address indexed dataConsumer,
+        address indexed dataProvider,
+        uint256 fee,
+        bytes32 data,
+        bytes32 indexed requestId,
+        uint256 gasPrice,
+        uint256 expires
+    );
+
     constructor(address _router)
     public Consumer(_router) {
         price = 0;
