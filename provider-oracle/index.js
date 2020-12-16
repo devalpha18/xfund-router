@@ -19,11 +19,16 @@ const run = async () => {
   const runWhat = args["--run"]
   const eventToGet = args["--event"] || "DataRequested"
 
-  const fromBlock = process.env.CONTRACT_DEPLOYMENT_BLOCK || 0
+  const { WATCH_FROM_BLOCK, FINCHAINS_API_URL } = process.env
+
+  const fromBlock = WATCH_FROM_BLOCK || 0
 
   switch (runWhat) {
     case "run-oracle":
-      console.log(new Date(), "watching", eventToGet)
+      console.log(new Date(), "watching", eventToGet, "from block", fromBlock)
+      console.log(new Date(), "get supported pairs")
+      const supportedPairsRes = await fetch(`${FINCHAINS_API_URL}/pairs`)
+      const supportedPairs = await supportedPairsRes.json()
       watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
         if (err) {
           console.error(new Date(), "ERROR:")
@@ -43,16 +48,18 @@ const run = async () => {
           if(Web3.utils.toChecksumAddress(dataProvider) === Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)) {
             const requestExists = await getRequestExists(requestId)
             if(requestExists) {
-              await processRequest( dataToGet )
+              console.log(new Date(), "data requested", dataToGet, "from", dataConsumer)
+              await processRequest( dataToGet, supportedPairs )
                 .then(async (priceToSend) => {
                   if ( priceToSend.gt( new BN( "0" ) ) ) {
+                    console.log(new Date(), "fulfillRequest data", priceToSend.toString())
                     const txHash = await fulfillRequest(requestId, priceToSend, dataConsumer, gasPriceWei)
-                    console.log(new Date(), "txHash", txHash)
+                    console.log(new Date(), "fulfillRequest txHash", txHash)
                   }
                 })
                 .catch((err) => {
                   console.error(new Date(), "ERROR:")
-                  console.error(err)
+                  console.error(err.toString())
                 })
             } else {
               console.log(new Date(), "request", requestId, "does not exist. Probably already processed")
