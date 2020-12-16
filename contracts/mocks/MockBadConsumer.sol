@@ -23,6 +23,18 @@ contract MockBadConsumer {
         bytes signature
     );
 
+    // Mirrored Router events for web3 client decoding & testing
+    // DataRequested event. Emitted when a data request has been initialised
+    event DataRequested(
+        address indexed dataConsumer,
+        address indexed dataProvider,
+        uint256 fee,
+        bytes32 data,
+        bytes32 indexed requestId,
+        uint256 gasPrice,
+        uint256 expires
+    );
+
     constructor(address _router) public {
         router = IRouter(_router);
         token = IERC20_Ex(router.getTokenAddress());
