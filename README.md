@@ -130,7 +130,7 @@ This will add the wallet address of the `provider` with a fee of 0.1 MOCKs.
 4. Transfer some `MOCK` tokens to your `MockConsumer` smart contract. Run:
 
 ```bash
-truffle(develop)> mockToken.transfer(mockConsumer.address, 10000000000)
+truffle(develop)> mockToken.transfer(mockConsumer.address, 10000000000, {from: consumerOwner})
 ```
 
 This will send 10 MOCKs to the MockConsumer smart contract.
@@ -162,7 +162,8 @@ The result should be 0.
 Next, request some data from the provider. Run:
 
 ```bash
-truffle(develop)> mockConsumer.requestData(provider, "PRICE.BTC.USD.AVG", 80, {from: consumerOwner})
+truffle(develop)> let endpoint = web3.utils.asciiToHex("BTC.USD.PRC.AVG")
+truffle(develop)> mockConsumer.requestData(provider, endpoint, 80, {from: consumerOwner})
 ```
 
 #### Interaction - as a Provider
