@@ -9,8 +9,9 @@ Addresses for the currently deployed contracts, required for interaction and int
 xFUND Mock Token: `0x04FC4E27e3482D72ac18c6D763B68e30A663C698`  
 Router: `0x92249d1FDFD418253365c347b0Ac12C3E714Ab34`  
 ConsumerLib: `0x07F578CE57f511b589F7280C00f841931f3d0856`  
+Finchains Data Provider Oracle: `0x611661f4B5D82079E924AcE2A6D113fAbd214b14`
 
-### Mainnet (Rinkeby)
+### Mainnet
 
 xFUND Token: `0x892A6f9dF0147e5f079b0993F486F9acA3c87881`  
 Router: TBD  
@@ -30,7 +31,7 @@ yarn add @unification-com/xfund-router
 2. In your smart contract, import `Consumer.sol`:
 
 ```solidity
-import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
+import "@unification-com/xfund-router/contracts/v1/lib/Consumer.sol";
 ```
 
 3. Extend your contract, adding `is Consumer`:
