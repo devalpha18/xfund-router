@@ -221,16 +221,6 @@ contract Consumer {
      */
 
     /**
-     * @dev getContractTokenBalance quick proxy function to the Token smart contract to
-     * get the token balance of this smart contract
-     *
-     * @return uint256 token balance
-     */
-    function getContractTokenBalance() external view returns (uint256) {
-        return consumerState.token.balanceOf(address(this));
-    }
-
-    /**
      * @dev getRouterAddress returns the address of the Router smart contract being used
      *
      * @return address
