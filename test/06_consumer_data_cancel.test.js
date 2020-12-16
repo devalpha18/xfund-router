@@ -89,7 +89,7 @@ describe('Consumer - request cancellation tests', function () {
       this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner1})
 
       // increase Router allowance
-      await this.MockConsumerContract.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner1})
+      await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner1})
 
       // add a dataProvider1
       await this.MockConsumerContract.addDataProvider(dataProvider1, fee, {from: dataConsumerOwner1});
@@ -109,16 +109,12 @@ describe('Consumer - request cancellation tests', function () {
      * cancellation
      */
     it( 'dataConsumer (owner) can cancel a request - emits RequestCancellationSubmitted event', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, this.RouterContract.address )
-
       // set request timeout to 1 second
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
 
       // initialse request
-      await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
-
+      const reqReciept = await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+      const reqId = await getReqIdFromReceipt(reqReciept)
       // wait a sec...
       await sleepFor(1000)
 
@@ -132,16 +128,12 @@ describe('Consumer - request cancellation tests', function () {
     } )
 
     it( 'dataConsumer (owner) can cancel a request - Router emits RequestCancelled event', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, this.RouterContract.address )
-
       // set request timeout to 1 second
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
 
       // initialse request
-      await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
-
+      const reqReiept =  await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+      const reqId = await getReqIdFromReceipt(reqReiept)
       // wait a sec...
       await sleepFor(1000)
 
@@ -157,16 +149,12 @@ describe('Consumer - request cancellation tests', function () {
     } )
 
     it( 'only dataConsumer (owner) can cancel a request', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, this.RouterContract.address )
-
       // set request timeout to 1 second
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
 
       // initialse request
-      await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
-
+      const reqReciept = await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+      const reqId = await getReqIdFromReceipt(reqReciept)
       // wait a sec...
       await sleepFor(1000)
 
@@ -178,9 +166,7 @@ describe('Consumer - request cancellation tests', function () {
     } )
 
     it( 'request id must exist', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, this.RouterContract.address )
+      const reqId = generateRequestId( this.MockConsumerContract.address, new BN(0), dataProvider1, this.RouterContract.address )
 
       // cancel request
       await expectRevert(
@@ -190,15 +176,12 @@ describe('Consumer - request cancellation tests', function () {
     } )
 
     it( 'request must have expired', async function () {
-      const requestNonce = await this.MockConsumerContract.getRequestNonce()
-
-      const reqId = generateRequestId( this.MockConsumerContract.address, requestNonce, dataProvider1, this.RouterContract.address )
-
       // set request timeout to 100 seconds
       await this.MockConsumerContract.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 100, { from: dataConsumerOwner1 })
 
       // initialse request
-      await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+      const reciept = await this.MockConsumerContract.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+      const reqId = await getReqIdFromReceipt(reciept)
 
       // cancel request
       await expectRevert(
@@ -231,8 +214,8 @@ describe('Consumer - request cancellation tests', function () {
       this.MockConsumerContract2 = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner2})
 
       // increase Router allowances
-      await this.MockConsumerContract1.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner1})
-      await this.MockConsumerContract2.increaseRouterAllowance(new BN(999999 * ( 10 ** 9 )), {from: dataConsumerOwner2})
+      await this.MockConsumerContract1.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner1})
+      await this.MockConsumerContract2.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner2})
 
       // add dataProvider1
       await this.MockConsumerContract1.addDataProvider(dataProvider1, c1p1Fee, {from: dataConsumerOwner1});
@@ -260,11 +243,9 @@ describe('Consumer - request cancellation tests', function () {
 
     describe('basic tests', function () {
       it( 'single data cancellation success - ERC20 consumer contract balance remains 1000', async function () {
-        const requestNonce = await this.MockConsumerContract1.getRequestNonce()
-        const reqId = generateRequestId( this.MockConsumerContract1.address, requestNonce, dataProvider1, this.RouterContract.address )
-
         // initialise request
-        await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+        const reqReciept = await this.MockConsumerContract1.requestData( dataProvider1, endpoint, gasPrice, { from: dataConsumerOwner1 } )
+        const reqId = await getReqIdFromReceipt(reqReciept)
 
         const tot1 = await this.MockTokenContract.balanceOf(this.MockConsumerContract1.address)
         expect( tot1.toNumber() ).to.equal( initialContract1 )

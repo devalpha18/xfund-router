@@ -135,106 +135,6 @@ describe('Consumer - only owner function tests', function () {
       expect( dcBalance.toNumber() ).to.equal( expectedAmount )
       expect( contractBalance.toNumber() ).to.equal( expectedAmountForContract )
     } )
-
-    it( 'owner can withdrawTokenAmount - WithdrawTokensFromContract event emitted', async function () {
-      const initialAmount = 1000
-      const initialAmountForContract = 100
-      const amountToWithdraw = 50
-
-      // Admin Transfer 10 Tokens to dataConsumerOwner
-      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
-      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
-      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
-
-      const receipt = await this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: dataConsumerOwner } )
-
-      expectEvent( receipt, 'WithdrawTokensFromContract', {
-        sender: dataConsumerOwner,
-        from: this.MockConsumerContract.address,
-        to: dataConsumerOwner,
-        amount: new BN( amountToWithdraw )
-      } )
-    } )
-
-    it( 'owner can withdrawTokenAmount - ERC20 Transfer event emitted', async function () {
-      const initialAmount = 1000
-      const initialAmountForContract = 100
-      const amountToWithdraw = 50
-
-      // Admin Transfer 10 Tokens to dataConsumerOwner
-      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
-      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
-      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
-
-      const receipt = await this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: dataConsumerOwner } )
-
-      expectEvent( receipt, 'Transfer', {
-        from: this.MockConsumerContract.address,
-        to: dataConsumerOwner,
-        value: new BN( amountToWithdraw )
-      } )
-    } )
-
-    it( 'owner can withdrawTokenAmount - withdraw 50, owner has 950 balance, contract 50', async function () {
-      const initialAmount = 1000
-      const initialAmountForContract = 100
-      const amountToWithdraw = 50
-      const expectedAmount = 950
-      const expectedAmountForContract = 50
-
-      // Admin Transfer 10 Tokens to dataConsumerOwner
-      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
-      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
-      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
-
-      await this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: dataConsumerOwner } )
-
-      // dataConsumerOwner should have 950 tokens, and Consumer contract should have 50
-      const dcBalance = await this.MockTokenContract.balanceOf( dataConsumerOwner )
-      const contractBalance = await this.MockTokenContract.balanceOf( this.MockConsumerContract.address )
-      expect( dcBalance.toNumber() ).to.equal( expectedAmount )
-      expect( contractBalance.toNumber() ).to.equal( expectedAmountForContract )
-    } )
-
-    it( 'only owner can withdrawTokenAmount - expect revert with error', async function () {
-      const initialAmount = 1000
-      const initialAmountForContract = 100
-      const amountToWithdraw = 50
-
-      // Admin Transfer 10 Tokens to dataConsumerOwner
-      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
-      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
-      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
-
-      await expectRevert(
-        this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: rando } ),
-        "ConsumerLib: only owner"
-      )
-    } )
-
-    it( 'only owner can withdrawTokenAmount - attempt 50. Owner should remain 900, contract 100', async function () {
-      const initialAmount = 1000
-      const initialAmountForContract = 100
-      const amountToWithdraw = 50
-      const expectedAmount = 900
-      const expectedAmountForContract = 100
-
-      // Admin Transfer 10 Tokens to dataConsumerOwner
-      await this.MockTokenContract.transfer( dataConsumerOwner, initialAmount, { from: admin } )
-      // dataConsumerOwner Transfer 1 Tokens to MockConsumerContract
-      await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialAmountForContract, { from: dataConsumerOwner } )
-
-      await expectRevert(
-        this.MockConsumerContract.withdrawTokenAmount( amountToWithdraw, { from: rando } ),
-        "ConsumerLib: only owner"
-      )
-
-      // dataConsumerOwner should have 900 tokens, and Consumer contract should have 100
-      const dcBalance = await this.MockTokenContract.balanceOf( dataConsumerOwner )
-      const contractBalance = await this.MockTokenContract.balanceOf( this.MockConsumerContract.address )
-      expect( dcBalance.toNumber() ).to.equal( expectedAmount )
-      expect( contractBalance.toNumber() ).to.equal( expectedAmountForContract )
-    } )
   })
 
   /*
@@ -258,7 +158,7 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'IncreasedRouterAllowance', {
         sender: dataConsumerOwner,
@@ -278,7 +178,7 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'Approval', {
         owner: this.MockConsumerContract.address,
@@ -298,7 +198,7 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
       // router should have an allowance of 100
       const routerAllowanceAfter = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
@@ -316,7 +216,7 @@ describe('Consumer - only owner function tests', function () {
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
       await expectRevert(
-        this.MockConsumerContract.increaseRouterAllowance(allowance, { from: rando } ),
+        this.MockConsumerContract.setRouterAllowance(allowance, true, { from: rando } ),
         "ConsumerLib: only owner"
       )
     } )
@@ -333,7 +233,7 @@ describe('Consumer - only owner function tests', function () {
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
       await expectRevert(
-        this.MockConsumerContract.increaseRouterAllowance(allowance, { from: rando } ),
+        this.MockConsumerContract.setRouterAllowance(allowance, true, { from: rando } ),
         "ConsumerLib: only owner"
       )
 
@@ -353,9 +253,9 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRouterAllowance(decrease, false,  { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'DecreasedRouterAllowance', {
         sender: dataConsumerOwner,
@@ -377,9 +277,9 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.setRouterAllowance(decrease, false, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'Approval', {
         owner: this.MockConsumerContract.address,
@@ -400,9 +300,9 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.decreaseRouterAllowance(decrease,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(decrease, false, { from: dataConsumerOwner } )
 
       // router should have an allowance of 80
       const routerAllowanceAfter = await this.MockTokenContract.allowance(this.MockConsumerContract.address, this.RouterContract.address)
@@ -422,10 +322,10 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
       await expectRevert(
-        this.MockConsumerContract.decreaseRouterAllowance(decrease, { from: rando } ),
+        this.MockConsumerContract.setRouterAllowance(decrease, false, { from: rando } ),
         "ConsumerLib: only owner"
       )
     } )
@@ -442,10 +342,10 @@ describe('Consumer - only owner function tests', function () {
       // dataConsumerOwner Transfer Tokens to MockConsumerContract
       await this.MockTokenContract.transfer( this.MockConsumerContract.address, amountForContract, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.increaseRouterAllowance(allowance,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.setRouterAllowance(allowance, true, { from: dataConsumerOwner } )
 
       await expectRevert(
-        this.MockConsumerContract.decreaseRouterAllowance(decrease, { from: rando } ),
+        this.MockConsumerContract.setRouterAllowance(decrease, false, { from: rando } ),
         "ConsumerLib: only owner"
       )
 
