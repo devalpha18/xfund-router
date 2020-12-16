@@ -170,47 +170,23 @@ library ConsumerLib {
     }
 
     /**
-     * @dev withdrawTokenAmount allows the token holder (contract owner) to withdraw
-     * the specified amount of Tokens held by this contract back to themselves.
-     *
-     * @param _amount the amount of tokens the owner would like to withdraw
-     * @return success
-     */
-    function withdrawTokenAmount(State storage self, uint256 _amount) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        uint256 contractBalance = self.token.balanceOf(address(this));
-        require(contractBalance > 0, "ConsumerLib: contract has zero token balance");
-        require(self.token.transfer(self.OWNER, _amount), "ConsumerLib: token withdraw failed");
-        emit WithdrawTokensFromContract(msg.sender, address(this), self.OWNER, _amount);
-        return true;
-    }
-
-    /**
-     * @dev increaseRouterAllowance allows the token holder (contract owner) to
-     * increase the token allowance for the Router, in order for the Router to
+     * @dev setRouterAllowance allows the token holder (contract owner) to
+     * increase/decrease the token allowance for the Router, in order for the Router to
      * pay fees for data requests
      *
-     * @param _routerAllowance the amount of tokens the owner would like to increase allocation by
+     * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
+     * @param _increase bool true to increase, false to decrease
      * @return success
      */
-    function increaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
+    function setRouterAllowance(State storage self, uint256 _routerAllowance, bool _increase) public returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.token.increaseAllowance(address(self.router), _routerAllowance));
-        emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
-        return true;
-    }
-
-    /**
-     * @dev decreaseRouterAllowance allows the token holder (contract owner) to
-     * reduce the token allowance for the Router
-     *
-     * @param _routerAllowance the amount of tokens the owner would like to decrease allocation by
-     * @return success
-     */
-    function decreaseRouterAllowance(State storage self, uint256 _routerAllowance) public returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
-        emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+        if(_increase) {
+            require(self.token.increaseAllowance(address(self.router), _routerAllowance));
+            emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+        } else {
+            require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
+            emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+        }
         return true;
     }
 
