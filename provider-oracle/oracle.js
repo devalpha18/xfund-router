@@ -18,29 +18,34 @@ const apiBuilder = (dataToGet) => {
   const target = dataToGetArray[1] // GBP etc
   const type = dataToGetArray[2] // PRC, HI, LOW,
   const subtype = dataToGetArray[3] // AVG, LAT etc.
-  const exch1 = dataToGetArray[4]
-  const exch2 = dataToGetArray[5]
+  const supp1 = dataToGetArray[4]
+  const supp2 = dataToGetArray[5]
+  const supp3 = dataToGetArray[6]
 
   const pair = `${base}/${target}`
 
   // todo - switches on type & subtype.
 
-  const url = `${process.env.FINCHAINS_API_URL}/currency/${pair}/avg`
+  const url = `${process.env.FINCHAINS_API_URL}/currency/${pair}/avg/outlier`
 
-  return { url, pair, base, target, type, subtype, exch1, exch2 }
+  return { url, pair, base, target, type, subtype, supp1, supp2, supp3 }
 }
 
-// Request Format BASE.TARGET.TYPE.SUBTYPE[.ECHANGE1][.EXCHANGE2]
+// Request Format BASE.TARGET.TYPE.SUBTYPE[.SUPP1][.SUPP2][.SUPP3]
 // BASE: base currency, e.g. BTC, ETH etc.
 // TARGET: target currency, e.g. GBP, USD
 // TYPE: data point being requested, e.g. PRC (price), HI, LOW (volumes)
 // SUBTYPE: data sub type, e.g. AVG (average), LAT (latest),  DSC (discrepancies), EXC (specific exchange data)
 //          some sub types, e.g. EXC and DSC require additional data defining Exchanges to query, as defined below
-// ECHANGE1: code defining Exchange 1, e.g. GDX (coinbase) etc. required for TYPE queries such as EXC
-// ECHANGE2: code defining Exchange 2, e.g. GDX (coinbase) etc. required for comparisions on TYPEs such as DSC
+// SUPP1: any supplimentary request data, e.g. GDX (coinbase) etc. required for TYPE queries such as EXC,
+//        or IDQ (Median and Interquartile Deviation Method) for removing outliers from AVG calculations etc.
+// SUPP2: any supplimentary request data, e.g. GDX (coinbase) etc. required for comparisions on TYPEs such as DSC
+// SUPP3: any supplimentary request data
 //
 // Examples:
-// BTC.GBP.PRC.AVG - average BTC/GBP price, calculated from all supported exchanges
+// BTC.GBP.PRC.AVG - average BTC/GBP price, calculated from all supported exchanges over the last hour
+// BTC.GBP.PRC.AVG.IDQ - average BTC/GBP price, calculated from all supported exchanges over the last hour, removing outliers
+// BTC.GBP.PRC.AVG.IDQ.24HR - average BTC/GBP price, calculated from all supported exchanges over the last 24 hours, removing outliers
 // BTC.GBP.PRC.EXC.GDX.AVG - average BTC/GBP price from Coinbase
 // ETH.USD.PRC.EXC.BNC.LAT - latest ETH/USD price from Binance
 // BTC.ETH.PRC.DSC.BNC.GDX - latest BTC/ETH price discrepancy between Coinbase and Binance
