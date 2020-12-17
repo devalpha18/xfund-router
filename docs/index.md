@@ -6,9 +6,9 @@ Addresses for the currently deployed contracts, required for interaction and int
 
 ### Testnet (Rinkeby)
 
-xFUND Mock Token: `0x6c348b2b7B8337c8103F4393C69541bDB5158118`  
-Router: `0x9747Eb4c114848Ebd92D653d2297e82D1874B478`  
-ConsumerLib: `0x0e00E698598808bf7Fa1eB8d749fbb07E0550C54`  
+xFUND Mock Token: `0xF5eBB01E4A97DBc6f35FF5bC325A69c5eEd9D6b6`  
+Router: `0x17ebd1dd73Fe06dC9b7Aae9760f9ffc9b6dD0970`  
+ConsumerLib: `0xaEd88Fe9a21Ef675A928c3347dDaFA273EED3fD7`  
 Finchains Data Provider Oracle: `0x611661f4B5D82079E924AcE2A6D113fAbd214b14`
 
 ### Mainnet
