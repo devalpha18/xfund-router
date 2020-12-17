@@ -72,7 +72,7 @@ const run = async () => {
       break
     case "test-oracle":
       console.log("test-oracle")
-      processRequest( "PRICE.BTC.USD.AVG" )
+      processRequest( "PRICE.BTC.USD.AVG.IDQ" )
         .then(async (priceToSend) => {
           console.log(new Date(), "priceToSend", priceToSend.toString())
         })
