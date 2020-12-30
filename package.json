@@ -1,6 +1,6 @@
 {
   "name": "@unification-com/xfund-router",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "xFUND Router & Data Consumer Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
