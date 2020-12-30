@@ -7,7 +7,10 @@
     "build": "truffle compile",
     "test": "mocha --exit --recursive",
     "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol",
-    "prepublishOnly": "truffle compile"
+    "prepublishOnly": "truffle compile",
+    "docs:clean": "rimraf docs/api",
+    "docs:postclean": "rimraf docs/api/Migrations.md && rimraf docs/api/interfaces",
+    "docs:build": "npm run docs:clean && solidity-docgen -t ./docs/templates -o ./docs/api -e contracts/mocks && npm run docs:postclean"
   },
   "repository": {
     "type": "git",
@@ -37,6 +40,7 @@
     "ganache-cli": "^6.12.1",
     "mocha": "^8.2.1",
     "rimraf": "^3.0.2",
+    "solidity-docgen": "^0.5.11",
     "truffle": "^5.1.57",
     "truffle-plugin-verify": "^0.5.2",
     "web3": "^1.3.0"
