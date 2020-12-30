@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
- * @dev Data Request routing smart contract.
+ * @title Data Request routing smart contract.
  *
- * Routes requests for data from Consumers to authorised data providers.
+ * @dev Routes requests for data from Consumers to authorised data providers.
  * Data providers listen for requests and process data, sending it back to the
  * Consumer's smart contract.
  *
@@ -80,7 +80,16 @@ contract Router is AccessControl {
     // track fees held by this contract
     mapping(address => mapping(address => uint256)) public feesHeld;
 
-    // DataRequested event. Emitted when a data request has been initialised
+    /**
+     * @dev DataRequested. Emitted when a data request is sent by a Consumer.
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the data provider
+     * @param fee amount of xFUND paid for data request
+     * @param data data being requested
+     * @param requestId the request ID
+     * @param gasPrice max gas price the Consumer is willing to pay for data fulfilment
+     * @param expires request expire time, after which the Consumer can cancel the request
+     */
     event DataRequested(
         address indexed dataConsumer,
         address indexed dataProvider,
@@ -91,13 +100,30 @@ contract Router is AccessControl {
         uint256 expires
     );
 
-    // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
+    /**
+     * @dev GrantProviderPermission. Emitted when a Consumer grants permission to a provider
+     *      to fulfil data requests.
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the data provider
+     */
     event GrantProviderPermission(address indexed dataConsumer, address indexed dataProvider);
 
-    // RevokeProviderPermission event. Emitted when a data consumer revokes access for a data provider to provide data
+    /**
+     * @dev RevokeProviderPermission. Emitted when a Consumer revokes permission for a provider
+     *      to fulfil data requests.
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the data provider
+     */
     event RevokeProviderPermission(address indexed dataConsumer, address indexed dataProvider);
 
-    // RequestFulfilled event. Emitted when a data provider has sent the data requested
+    /**
+     * @dev RequestFulfilled. Emitted when a provider fulfils a data request
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the data provider
+     * @param requestId the request ID being fulfilled
+     * @param requestedData the data sent to the Consumer's contract
+     * @param gasPayer who paid the gas for fulfilling the request (provider or consumer)
+     */
     event RequestFulfilled(
         address indexed dataConsumer,
         address indexed dataProvider,
@@ -106,24 +132,71 @@ contract Router is AccessControl {
         address gasPayer
     );
 
-    // RequestCancelled event. Emitted when a data consumer cancels a request
+    /**
+     * @dev RequestCancelled. Emitted when a consumer cancels a data request
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the data provider
+     * @param requestId the request ID being cancelled
+     */
     event RequestCancelled(
         address indexed dataConsumer,
         address indexed dataProvider,
-        bytes32 indexed requestId,
-        uint256 refund
+        bytes32 indexed requestId
     );
 
-    // TokenSet used during deployment
+    /**
+     * @dev TokenSet. Emitted once during contract construction
+     * @param tokenAddress contract address of token being used to pay fees
+     */
     event TokenSet(address tokenAddress);
 
+    /**
+     * @dev SetGasTopUpLimit. Emitted when the Router admin changes the gas topup limit
+     *      with the setGasTopUpLimit function
+     * @param sender address of the admin
+     * @param oldLimit old limit
+     * @param newLimit new limit
+     */
     event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
 
+    /**
+     * @dev SetProviderPaysGas. Emitted when a provider changes their params
+     * @param dataProvider address of the provider
+     * @param providerPays true/false
+     */
     event SetProviderPaysGas(address indexed dataProvider, bool providerPays);
+
+    /**
+     * @dev SetProviderMinFee. Emitted when a provider changes their minimum token fee for providing data
+     * @param dataProvider address of the provider
+     * @param minFee new fee value
+     */
     event SetProviderMinFee(address indexed dataProvider, uint256 minFee);
 
+    /**
+     * @dev GasToppedUp. Emitted when a Consumer calls the topUpGas function to send ETH to top up gas
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the provider who can claim a gas refund
+     * @param amount amount of ETH (in wei) being sent
+     */
     event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+
+    /**
+     * @dev GasWithdrawnByConsumer. Emitted when a Consumer withdraws any ETH held by the Router for gas refunds
+     *      via the withDrawGasTopUpForProvider function
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the provider who can claim a gas refund
+     * @param amount amount of ETH (in wei) being sent
+     */
     event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+
+    /**
+     * @dev GasRefundedToProvider. Emitted when a provider fulfils a data request, if the Consumer is to pay
+     *      the gas costs for data fulfilment
+     * @param dataConsumer address of the Consumer's contract
+     * @param dataProvider address of the provider who can claim a gas refund
+     * @param amount amount of ETH (in wei) being refunded
+     */
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
     /**
@@ -141,7 +214,9 @@ contract Router is AccessControl {
 
     /**
      * @dev setGasTopUpLimit set the max amount of ETH that can be sent
-     * in a topUpGas Tx
+     * in a topUpGas Tx. Router admin calls this to set the maximum amount
+     * a Consumer can send in a single Tx, to prevent large amounts of ETH
+     * being sent.
      *
      * @param _gasTopUpLimit amount in wei
      * @return success
@@ -249,7 +324,9 @@ contract Router is AccessControl {
     }
 
     /**
-     * @dev initialiseRequest - called by Consumer contract to initialise a data request
+     * @dev initialiseRequest - called by Consumer contract to initialise a data request. Can only be called by
+     *      a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
+     *      for the provider. Only the provider specified in the reqyest may fulfil the request.
      * @param _dataProvider address of the data provider. Must be authorised for this consumer
      * @param _fee amount of Tokens to pay for data
      * @param _requestNonce incremented nonce for Consumer to help prevent request replay
@@ -314,7 +391,8 @@ contract Router is AccessControl {
     }
 
     /**
-     * @dev fulfillRequest - called by data provider to forward data to the Consumer
+     * @dev fulfillRequest - called by data provider to forward data to the Consumer. Only the specified provider
+     *      may fulfil the data request. Gas paid by the provider may also be refunded to the provider.
      * @param _requestId the request the provider is sending data for
      * @param _requestedData the data to send
      * @param _signature data provider's signature of the _requestId, _requestedData and Consumer's address
@@ -397,7 +475,8 @@ contract Router is AccessControl {
     }
 
     /**
-     * @dev cancelRequest - called by data Consumer to cancel a request
+     * @dev cancelRequest - called by data Consumer to cancel a request. Can only be called once the request's
+     *      expire time is exceeded. Cancelled requests cannot be fulfilled.
      * @param _requestId the request the consumer wishes to cancel
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
@@ -407,7 +486,6 @@ contract Router is AccessControl {
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
-        uint256 tokenRefund = dataRequests[_requestId].fee;
         uint256 expires = dataRequests[_requestId].expires;
 
         // msg.sender is the contract address of the consumer
@@ -417,8 +495,7 @@ contract Router is AccessControl {
         emit RequestCancelled(
             msg.sender,
             dataProvider,
-            _requestId,
-            tokenRefund
+            _requestId
         );
 
         delete dataRequests[_requestId];
@@ -575,6 +652,9 @@ contract Router is AccessControl {
      * MODIFIERS
      */
 
+    /**
+     * @dev onlyAdmin ensure only a Router admin can run the function
+     */
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
         _;

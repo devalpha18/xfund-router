@@ -7,6 +7,17 @@ import "../interfaces/IERC20_Ex.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
+/**
+ * @title ConsumerLib smart contract
+ * @dev Library smart contract containing the core functionality required for a data consumer
+ * to initialise data requests and interact with the Router smart contract. This contract
+ * will be deployed, and allow developers to link it to their own smart contract, via the
+ * Consumer.sol smart contract. There is no need to import this smart contract, since the
+ * Consumer.sol smart contract has the required proxy functions for data request and fulfilment
+ * interaction.
+ *
+ * Most of the functions in this contract are proxied by the Consumer smart contract
+ */
 library ConsumerLib {
     using SafeMath for uint256;
     using Address for address;
@@ -44,16 +55,86 @@ library ConsumerLib {
      * EVENTS
      */
 
+    /**
+     * @dev DataRequestSubmitted - emitted when a Consumer initiates a successful data request
+     * @param requestId request ID
+     */
     event DataRequestSubmitted(bytes32 indexed requestId);
+
+    /**
+     * @dev RouterSet - emitted when the owner updates the Router smart contract address
+     * @param sender address of the owner
+     * @param oldRouter old Router address
+     * @param newRouter new Router address
+     */
     event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
+
+    /**
+     * @dev OwnershipTransferred - emitted when the owner transfers ownership of the Consumer contract to
+     *      a new address
+     * @param sender address of the owner
+     * @param previousOwner old owner address
+     * @param newOwner new owner address
+     */
     event OwnershipTransferred(address indexed sender, address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev WithdrawTokensFromContract - emitted when the owner withdraws any Tokens held by the Consumer contract
+     * @param sender address of the owner
+     * @param from address tokens are being sent from
+     * @param to address tokens are being sent to
+     * @param amount amount being withdrawn
+     */
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
+
+    /**
+     * @dev IncreasedRouterAllowance - emitted when the owner increases the Router's token allowance
+     * @param sender address of the owner
+     * @param router address of the Router
+     * @param contractAddress address of the Consumer smart contract
+     * @param amount amount
+     */
     event IncreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
+
+    /**
+     * @dev DecreasedRouterAllowance - emitted when the owner decreases the Router's token allowance
+     * @param sender address of the owner
+     * @param router address of the Router
+     * @param contractAddress address of the Consumer smart contract
+     * @param amount amount
+     */
     event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
+
+    /**
+     * @dev AddedDataProvider - emitted when the owner adds a new data provider
+     * @param sender address of the owner
+     * @param provider address of the provider
+     * @param oldFee old fee to be paid per data request
+     * @param newFee new fee to be paid per data request
+     */
     event AddedDataProvider(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
+
+    /**
+     * @dev RemovedDataProvider - emitted when the owner removes a data provider
+     * @param sender address of the owner
+     * @param provider address of the provider
+     */
     event RemovedDataProvider(address indexed sender, address indexed provider);
+
+    /**
+     * @dev SetRequestVar - emitted when the owner changes a request variable
+     * @param sender address of the owner
+     * @param variable variable being changed
+     * @param oldValue old value
+     * @param newValue new value
+     */
     event SetRequestVar(address indexed sender, uint8 variable, uint256 oldValue, uint256 newValue);
 
+    /**
+    * @dev RequestCancellationSubmitted - emitted when the owner cancels a data request
+    * @param sender address of the owner
+    * @param requestId ID of request being cancelled
+    */
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
 
     event PaymentRecieved(address sender, uint256 amount);
@@ -62,6 +143,12 @@ library ConsumerLib {
      * WRITE FUNCTIONS
      */
 
+    /**
+     * @dev init - called once during the Consumer.sol's constructor function to initialise the
+     *      contract's data storage
+     * @param self the Contract's State object
+     * @param _router address of the Router smart contract
+     */
     function init(State storage self, address _router) public {
         require(_router != address(0), "ConsumerLib: router cannot be the zero address");
         require(_router.isContract(), "ConsumerLib: router address must be a contract");
@@ -84,7 +171,8 @@ library ConsumerLib {
     /**
      * @dev addDataProvider add a new authorised data provider to this contract, and
      * authorise it to provide data via the Router. Can also be used to modify
-     * a provider's fee
+     * a provider's fee for an existing authorised provider. If the provider is currently
+     * authorises, the Router's grantProviderPermission is not called to conserve gas.
      *
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
@@ -108,6 +196,7 @@ library ConsumerLib {
             dp.fee = _fee;
         }
 
+        // only call if provider is not currently authorised, to save gas
         if(!dp.isAuthorised) {
             dp.isAuthorised = true;
             require(self.router.grantProviderPermission(_dataProvider));

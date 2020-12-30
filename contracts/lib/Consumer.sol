@@ -8,14 +8,17 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
- * @dev Data Consumer smart contract
+ * @title Data Consumer smart contract
  *
- * This contract can be implemented by any smart contract wishing to include
+ * @dev This contract can be imported by any smart contract wishing to include
  * off-chain data or data from a different network within it.
  *
  * The consumer initiates a data request by forwarding the request to the Router
  * smart contract, from where the data provider(s) pick up and process the
  * data request, and forward it back to the specified callback function.
+ *
+ * Most of the functions in this contract are proxy functions to the ConsumerLib
+ * smart contract
  */
 contract Consumer {
     using SafeMath for uint256;
@@ -32,6 +35,11 @@ contract Consumer {
      * EVENTS
      */
 
+    /**
+     * @dev PaymentRecieved - only emitted if ETH is accidentally sent to this contract address
+     * @param sender address of sender
+     * @param amount amount sent (wei)
+     */
     event PaymentRecieved(address sender, uint256 amount);
 
     /*
@@ -51,6 +59,9 @@ contract Consumer {
         consumerState.init(_router);
     }
 
+    /**
+     * @dev fallback payable function, which emits an event if ETH is accidentally recieved
+     */
     receive() external payable {
         emit PaymentRecieved(msg.sender, msg.value);
     }
@@ -65,11 +76,13 @@ contract Consumer {
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
-     * and withdraws any tokens currentlry held by the contract.
+     * and withdraws any tokens currently held by the contract. Can only be run if the
+     * current owner has no ETH held by the Router.
      * Can only be called by the current owner.
+     * @param _newOwner address of the new contract owner
      */
-    function transferOwnership(address payable newOwner) public {
-        require(consumerState.transferOwnership(newOwner));
+    function transferOwnership(address payable _newOwner) public {
+        require(consumerState.transferOwnership(_newOwner));
     }
 
     /**
@@ -179,6 +192,16 @@ contract Consumer {
         require(consumerState.cancelRequest(_requestId));
     }
 
+    /**
+    * @dev deleteRequest delete a request from the contract. This function should be called
+    * by the Consumer's contract once a request has been fulfilled, in order to clean up
+    * any unused request IDs from storage. The _price and _signature params are used to validate
+    * the params prior to deleting the request, as protection.
+    *
+    * @param _price the data being sent in the fulfilment
+    * @param _requestId the id of the request being cancelled
+    * @param _signature the signature as sent by the provider
+    */
     function deleteRequest(uint256 _price,
         bytes32 _requestId,
         bytes memory _signature)
@@ -237,6 +260,16 @@ contract Consumer {
      * MODIFIERS
      */
 
+    /**
+     * @dev isValidFulfillment should be used in the Consumer's contract during data request fulfilment,
+     *      to ensure that the data being sent is valid, and from the provider specified in the data
+     *      request. The modifier will decode the signature sent by the provider, to ensure that it
+     *      is valid.
+     *
+     * @param _price the data being sent in the fulfilment
+     * @param _requestId the id of the request being cancelled
+     * @param _signature the signature as sent by the provider
+     */
     modifier isValidFulfillment(bytes32 _requestId, uint256 _price, bytes memory _signature) {
         require(msg.sender == address(consumerState.router), "Consumer: data did not originate from Router");
         require(consumerState.dataRequests[_requestId], "Consumer: _requestId does not exist");
@@ -245,7 +278,10 @@ contract Consumer {
         require(consumerState.dataProviders[provider].isAuthorised, "Consumer: provider is not authorised");
         _;
     }
-    
+
+    /**
+     * @dev onlyOwner used all write functions to ensure only the contract owner can run them.
+     */
     modifier onlyOwner() {
         require(msg.sender == consumerState.OWNER, "Consumer: only owner can do this");
         _;
