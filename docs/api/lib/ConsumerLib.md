@@ -35,7 +35,8 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 - [`PaymentRecieved(address sender, uint256 amount)`](#ConsumerLib-PaymentRecieved-address-uint256-)
 
 
-### Function `init(struct ConsumerLib.State self, address _router)` {#ConsumerLib-init-struct-ConsumerLib-State-address-}
+<a name="ConsumerLib-init-struct-ConsumerLib-State-address-"></a>
+### Function `init(struct ConsumerLib.State self, address _router)`
 init - called once during the Consumer.sol's constructor function to initialise the
      contract's data storage
 
@@ -43,7 +44,8 @@ init - called once during the Consumer.sol's constructor function to initialise 
 - `self`: the Contract's State object
 
 - `_router`: address of the Router smart contract
-### Function `addDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee) -> bool success` {#ConsumerLib-addDataProvider-struct-ConsumerLib-State-address-uint256-}
+<a name="ConsumerLib-addDataProvider-struct-ConsumerLib-State-address-uint256-"></a>
+### Function `addDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee) -> bool success`
 addDataProvider add a new authorised data provider to this contract, and
 authorise it to provide data via the Router. Can also be used to modify
 a provider's fee for an existing authorised provider. If the provider is currently
@@ -55,7 +57,8 @@ authorises, the Router's grantProviderPermission is not called to conserve gas.
 
 - `_fee`: the data provider's fee
 
-### Function `removeDataProvider(struct ConsumerLib.State self, address _dataProvider) -> bool success` {#ConsumerLib-removeDataProvider-struct-ConsumerLib-State-address-}
+<a name="ConsumerLib-removeDataProvider-struct-ConsumerLib-State-address-"></a>
+### Function `removeDataProvider(struct ConsumerLib.State self, address _dataProvider) -> bool success`
 removeDataProvider remove a data provider and its authorisation to provide data
 for this smart contract from the Router
 
@@ -63,7 +66,8 @@ for this smart contract from the Router
 #### Parameters:
 - `_dataProvider`: the address of the data provider
 
-### Function `transferOwnership(struct ConsumerLib.State self, address payable newOwner) -> bool success` {#ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-}
+<a name="ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-"></a>
+### Function `transferOwnership(struct ConsumerLib.State self, address payable newOwner) -> bool success`
 Transfers ownership of the contract to a new account (`newOwner`),
 and withdraws any tokens currentlry held by the contract.
 Can only be called by the current owner.
@@ -72,12 +76,14 @@ Can only be called by the current owner.
 #### Parameters:
 - `newOwner`: the address of the new owner
 
-### Function `withdrawAllTokens(struct ConsumerLib.State self) -> bool success` {#ConsumerLib-withdrawAllTokens-struct-ConsumerLib-State-}
+<a name="ConsumerLib-withdrawAllTokens-struct-ConsumerLib-State-"></a>
+### Function `withdrawAllTokens(struct ConsumerLib.State self) -> bool success`
 withdrawAllTokens allows the token holder (contract owner) to withdraw all
 Tokens held by this contract back to themselves.
 
 
-### Function `setRouterAllowance(struct ConsumerLib.State self, uint256 _routerAllowance, bool _increase) -> bool success` {#ConsumerLib-setRouterAllowance-struct-ConsumerLib-State-uint256-bool-}
+<a name="ConsumerLib-setRouterAllowance-struct-ConsumerLib-State-uint256-bool-"></a>
+### Function `setRouterAllowance(struct ConsumerLib.State self, uint256 _routerAllowance, bool _increase) -> bool success`
 setRouterAllowance allows the token holder (contract owner) to
 increase/decrease the token allowance for the Router, in order for the Router to
 pay fees for data requests
@@ -88,7 +94,8 @@ pay fees for data requests
 
 - `_increase`: bool true to increase, false to decrease
 
-### Function `setRequestVar(struct ConsumerLib.State self, uint8 _var, uint256 _value) -> bool success` {#ConsumerLib-setRequestVar-struct-ConsumerLib-State-uint8-uint256-}
+<a name="ConsumerLib-setRequestVar-struct-ConsumerLib-State-uint8-uint256-"></a>
+### Function `setRequestVar(struct ConsumerLib.State self, uint8 _var, uint256 _value) -> bool success`
 setRequestVar set the specified variable. Request variables are used
 when initialising a request, and are common settings for requests.
 
@@ -103,14 +110,16 @@ The variable to be set can be one of:
 
 - `_value`: uint256 the new value
 
-### Function `setRouter(struct ConsumerLib.State self, address _router) -> bool success` {#ConsumerLib-setRouter-struct-ConsumerLib-State-address-}
+<a name="ConsumerLib-setRouter-struct-ConsumerLib-State-address-"></a>
+### Function `setRouter(struct ConsumerLib.State self, address _router) -> bool success`
 setRouter set the address of the Router smart contract
 
 
 #### Parameters:
 - `_router`: on chain address of the router smart contract
 
-### Function `submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature) -> bytes32 requestId` {#ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint256-bytes4-}
+<a name="ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint256-bytes4-"></a>
+### Function `submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature) -> bytes32 requestId`
 submitDataRequest submit a new data request to the Router. The router will
 verify the data request, and route it to the data provider
 
@@ -128,7 +137,8 @@ verify the data request, and route it to the data provider
 
 #### Return Values:
 - requestId - the bytes32 request id
-### Function `cancelRequest(struct ConsumerLib.State self, bytes32 _requestId) -> bool success` {#ConsumerLib-cancelRequest-struct-ConsumerLib-State-bytes32-}
+<a name="ConsumerLib-cancelRequest-struct-ConsumerLib-State-bytes32-"></a>
+### Function `cancelRequest(struct ConsumerLib.State self, bytes32 _requestId) -> bool success`
 cancelRequest submit cancellation to the router for the specified request
 
 
@@ -138,12 +148,14 @@ cancelRequest submit cancellation to the router for the specified request
 #### Return Values:
 - success bool
 
-### Event `DataRequestSubmitted(bytes32 requestId)` {#ConsumerLib-DataRequestSubmitted-bytes32-}
+<a name="ConsumerLib-DataRequestSubmitted-bytes32-"></a>
+### Event `DataRequestSubmitted(bytes32 requestId)`
 DataRequestSubmitted - emitted when a Consumer initiates a successful data request
 
 #### Parameters:
 - `requestId`: request ID
-### Event `RouterSet(address sender, address oldRouter, address newRouter)` {#ConsumerLib-RouterSet-address-address-address-}
+<a name="ConsumerLib-RouterSet-address-address-address-"></a>
+### Event `RouterSet(address sender, address oldRouter, address newRouter)`
 RouterSet - emitted when the owner updates the Router smart contract address
 
 #### Parameters:
@@ -152,7 +164,8 @@ RouterSet - emitted when the owner updates the Router smart contract address
 - `oldRouter`: old Router address
 
 - `newRouter`: new Router address
-### Event `OwnershipTransferred(address sender, address previousOwner, address newOwner)` {#ConsumerLib-OwnershipTransferred-address-address-address-}
+<a name="ConsumerLib-OwnershipTransferred-address-address-address-"></a>
+### Event `OwnershipTransferred(address sender, address previousOwner, address newOwner)`
 OwnershipTransferred - emitted when the owner transfers ownership of the Consumer contract to
      a new address
 
@@ -162,7 +175,8 @@ OwnershipTransferred - emitted when the owner transfers ownership of the Consume
 - `previousOwner`: old owner address
 
 - `newOwner`: new owner address
-### Event `WithdrawTokensFromContract(address sender, address from, address to, uint256 amount)` {#ConsumerLib-WithdrawTokensFromContract-address-address-address-uint256-}
+<a name="ConsumerLib-WithdrawTokensFromContract-address-address-address-uint256-"></a>
+### Event `WithdrawTokensFromContract(address sender, address from, address to, uint256 amount)`
 WithdrawTokensFromContract - emitted when the owner withdraws any Tokens held by the Consumer contract
 
 #### Parameters:
@@ -173,7 +187,8 @@ WithdrawTokensFromContract - emitted when the owner withdraws any Tokens held by
 - `to`: address tokens are being sent to
 
 - `amount`: amount being withdrawn
-### Event `IncreasedRouterAllowance(address sender, address router, address contractAddress, uint256 amount)` {#ConsumerLib-IncreasedRouterAllowance-address-address-address-uint256-}
+<a name="ConsumerLib-IncreasedRouterAllowance-address-address-address-uint256-"></a>
+### Event `IncreasedRouterAllowance(address sender, address router, address contractAddress, uint256 amount)`
 IncreasedRouterAllowance - emitted when the owner increases the Router's token allowance
 
 #### Parameters:
@@ -184,7 +199,8 @@ IncreasedRouterAllowance - emitted when the owner increases the Router's token a
 - `contractAddress`: address of the Consumer smart contract
 
 - `amount`: amount
-### Event `DecreasedRouterAllowance(address sender, address router, address contractAddress, uint256 amount)` {#ConsumerLib-DecreasedRouterAllowance-address-address-address-uint256-}
+<a name="ConsumerLib-DecreasedRouterAllowance-address-address-address-uint256-"></a>
+### Event `DecreasedRouterAllowance(address sender, address router, address contractAddress, uint256 amount)`
 DecreasedRouterAllowance - emitted when the owner decreases the Router's token allowance
 
 #### Parameters:
@@ -195,7 +211,8 @@ DecreasedRouterAllowance - emitted when the owner decreases the Router's token a
 - `contractAddress`: address of the Consumer smart contract
 
 - `amount`: amount
-### Event `AddedDataProvider(address sender, address provider, uint256 oldFee, uint256 newFee)` {#ConsumerLib-AddedDataProvider-address-address-uint256-uint256-}
+<a name="ConsumerLib-AddedDataProvider-address-address-uint256-uint256-"></a>
+### Event `AddedDataProvider(address sender, address provider, uint256 oldFee, uint256 newFee)`
 AddedDataProvider - emitted when the owner adds a new data provider
 
 #### Parameters:
@@ -206,14 +223,16 @@ AddedDataProvider - emitted when the owner adds a new data provider
 - `oldFee`: old fee to be paid per data request
 
 - `newFee`: new fee to be paid per data request
-### Event `RemovedDataProvider(address sender, address provider)` {#ConsumerLib-RemovedDataProvider-address-address-}
+<a name="ConsumerLib-RemovedDataProvider-address-address-"></a>
+### Event `RemovedDataProvider(address sender, address provider)`
 RemovedDataProvider - emitted when the owner removes a data provider
 
 #### Parameters:
 - `sender`: address of the owner
 
 - `provider`: address of the provider
-### Event `SetRequestVar(address sender, uint8 variable, uint256 oldValue, uint256 newValue)` {#ConsumerLib-SetRequestVar-address-uint8-uint256-uint256-}
+<a name="ConsumerLib-SetRequestVar-address-uint8-uint256-uint256-"></a>
+### Event `SetRequestVar(address sender, uint8 variable, uint256 oldValue, uint256 newValue)`
 SetRequestVar - emitted when the owner changes a request variable
 
 #### Parameters:
@@ -224,13 +243,15 @@ SetRequestVar - emitted when the owner changes a request variable
 - `oldValue`: old value
 
 - `newValue`: new value
-### Event `RequestCancellationSubmitted(address sender, bytes32 requestId)` {#ConsumerLib-RequestCancellationSubmitted-address-bytes32-}
+<a name="ConsumerLib-RequestCancellationSubmitted-address-bytes32-"></a>
+### Event `RequestCancellationSubmitted(address sender, bytes32 requestId)`
 RequestCancellationSubmitted - emitted when the owner cancels a data request
 
 #### Parameters:
 - `sender`: address of the owner
 
 - `requestId`: ID of request being cancelled
-### Event `PaymentRecieved(address sender, uint256 amount)` {#ConsumerLib-PaymentRecieved-address-uint256-}
+<a name="ConsumerLib-PaymentRecieved-address-uint256-"></a>
+### Event `PaymentRecieved(address sender, uint256 amount)`
 No description
 

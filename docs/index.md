@@ -6,7 +6,7 @@ how to interact with the system in order to request and receive data in your sma
 
 ## Guides
 
-1. [Quickstart](./quickstart.md) - a quick introduction to getting set up
+1. [Quickstart](./guide/quickstart.md) - a quick introduction to getting set up
 2. [Implementation Guide](./guide/index.md) - a complete guide to integration and interaction
 
 ## Contract APIs
@@ -32,14 +32,14 @@ Addresses for the currently deployed contracts, required for interaction and int
 
 ### Testnet (Rinkeby)
 
-xFUND Mock Token: `0xF5eBB01E4A97DBc6f35FF5bC325A69c5eEd9D6b6`  
-Router: `0x17ebd1dd73Fe06dC9b7Aae9760f9ffc9b6dD0970`  
-ConsumerLib: `0xaEd88Fe9a21Ef675A928c3347dDaFA273EED3fD7`  
-Finchains Data Provider Oracle Address: `0x611661f4B5D82079E924AcE2A6D113fAbd214b14`
+xFUND Mock Token: [`0xF5eBB01E4A97DBc6f35FF5bC325A69c5eEd9D6b6`](https://rinkeby.etherscan.io/address/0xF5eBB01E4A97DBc6f35FF5bC325A69c5eEd9D6b6#code)  
+Router: [`0x17ebd1dd73Fe06dC9b7Aae9760f9ffc9b6dD0970`](https://rinkeby.etherscan.io/address/0x17ebd1dd73Fe06dC9b7Aae9760f9ffc9b6dD0970#code)  
+ConsumerLib: [`0xaEd88Fe9a21Ef675A928c3347dDaFA273EED3fD7`](https://rinkeby.etherscan.io/address/0xaEd88Fe9a21Ef675A928c3347dDaFA273EED3fD7#code)  
+Finchains Data Provider Oracle Address: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)
 
 ### Mainnet
 
-xFUND Token: `0x892A6f9dF0147e5f079b0993F486F9acA3c87881`  
+xFUND Token: [`0x892A6f9dF0147e5f079b0993F486F9acA3c87881`](https://etherscan.io/address/0x892A6f9dF0147e5f079b0993F486F9acA3c87881#code)  
 Router: TBD  
 ConsumerLib: TBD
 Finchains Data Provider Oracle Address: TBD

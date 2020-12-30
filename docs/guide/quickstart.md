@@ -1,4 +1,6 @@
-# Integration Quickstart
+# Quickstart
+
+## Integration
 
 In order to request data, and enable data provision in your smart contract, you will need to
 import the `Consumer.sol` smart contract and set up two simple functions within your smart contract.
@@ -83,7 +85,7 @@ module.exports = function(deployer) {
 }
 ```
 
-## Initialisation Quickstart
+## Initialisation
 
 Once integrated, compiled and deployed, you will need to send some transactions to the
 Ethereum blockchain in order to initialise the fee payment, data acquisition environment
