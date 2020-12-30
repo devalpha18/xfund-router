@@ -26,7 +26,8 @@
 
 {{#ownFunctions}}
 {{#if (or (eq visibility "public") (eq visibility "external"))}}
-### Function `{{name}}({{args}}){{#if outputs}} -> {{outputs}}{{/if}}` {#{{anchor~}} }
+<a name="{{anchor~}}"></a>
+### Function `{{name}}({{args}}){{#if outputs}} -> {{outputs}}{{/if}}`
 {{#if natspec.devdoc}}{{natspec.devdoc}}{{else}}No description{{/if}}
 {{#if natspec.params}}
 #### Parameters:
@@ -44,7 +45,8 @@
 {{/ownFunctions}}
 
 {{#ownEvents}}
-### Event `{{name}}({{args}})` {#{{anchor~}} }
+<a name="{{anchor~}}"></a>
+### Event `{{name}}({{args}})`
 {{#if natspec.devdoc}}{{natspec.devdoc}}{{else}}No description{{/if}}
 {{#if natspec.params}}
 #### Parameters:
@@ -55,7 +57,8 @@
 {{/ownEvents}}
 
 {{#ownModifiers}}
-### Modifier `{{name}}({{args}})` {#{{anchor~}} }
+<a name="{{anchor~}}"></a>
+### Modifier `{{name}}({{args}})`
 {{#if natspec.devdoc}}{{natspec.devdoc}}{{else}}No description{{/if}}
 {{#if natspec.params}}
 #### Parameters:
