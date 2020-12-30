@@ -1,6 +1,4 @@
-# Documentation
-
-## Integration Quickstart
+# Integration Quickstart
 
 In order to request data, and enable data provision in your smart contract, you will need to
 import the `Consumer.sol` smart contract and set up two simple functions within your smart contract.
