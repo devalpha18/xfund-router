@@ -175,10 +175,11 @@ library ConsumerLib {
 
     /**
      * @dev addDataProvider add a new authorised data provider to this contract, and
-     * authorise it to provide data via the Router. Can also be used to modify
-     * a provider's fee for an existing authorised provider. If the provider is currently
-     * authorises, the Router's grantProviderPermission is not called to conserve gas.
+     *      authorise it to provide data via the Router. Can also be used to modify
+     *      a provider's fee for an existing authorised provider. If the provider is currently
+     *      authorises, the Router's grantProviderPermission is not called to conserve gas.
      *
+     * @param self the Contract's State object
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
      * @return success
@@ -212,8 +213,9 @@ library ConsumerLib {
 
     /**
      * @dev removeDataProvider remove a data provider and its authorisation to provide data
-     * for this smart contract from the Router
+     *      for this smart contract from the Router
      *
+     * @param self the Contract's State object
      * @param _dataProvider the address of the data provider
      * @return success
      */
@@ -231,9 +233,10 @@ library ConsumerLib {
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
-     * and withdraws any tokens currentlry held by the contract.
-     * Can only be called by the current owner.
+     *      and withdraws any tokens currentlry held by the contract.
+     *      Can only be called by the current owner.
      *
+     * @param self the Contract's State object
      * @param newOwner the address of the new owner
      * @return success
      */
@@ -247,6 +250,16 @@ library ConsumerLib {
         return true;
     }
 
+    /**
+     * @dev withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
+     *      held by the Router for the specified data provider. All ETH held will be withdrawn
+     *      from the Router and forwarded to the Consumer contract owner's wallet.this
+     *
+     *      NOTE: This function is called by the Consumer's withdrawTopUpGas function
+     *
+     * @param self the Contract's State object
+     * @param _dataProvider address of associated data provider for whom ETH will be withdrawn
+     */
     function withdrawTopUpGas(State storage self, address _dataProvider)
     public
     returns (bool success){
@@ -256,6 +269,18 @@ library ConsumerLib {
         return true;
     }
 
+    /**
+     * @dev withdrawEth allows the Consumer contract's owner to withdraw any ETH
+     *      that has been sent to the Contract, either accidentally or via the
+     *      withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
+     *      is automatically called as part of that function. ETH is sent to the
+     *      Consumer contract's current owner's wallet.
+     *
+     *      NOTE: This function is called by the Consumer's withdrawEth function
+     *
+     * @param self the Contract's State object
+     * @param _amount amount (in wei) of ETH to be withdrawn
+     */
     function withdrawEth(State storage self, uint256 amount)
     public
     returns (bool success){
@@ -269,8 +294,9 @@ library ConsumerLib {
 
     /**
      * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
-     * Tokens held by this contract back to themselves.
+     *      Tokens held by this contract back to themselves.
      *
+     * @param self the Contract's State object
      * @return success
      */
     function withdrawAllTokens(State storage self) public returns (bool success) {
@@ -285,9 +311,10 @@ library ConsumerLib {
 
     /**
      * @dev setRouterAllowance allows the token holder (contract owner) to
-     * increase/decrease the token allowance for the Router, in order for the Router to
-     * pay fees for data requests
+     *      increase/decrease the token allowance for the Router, in order for the Router to
+     *      pay fees for data requests
      *
+     * @param self the Contract's State object
      * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
      * @param _increase bool true to increase, false to decrease
      * @return success
@@ -305,18 +332,19 @@ library ConsumerLib {
     }
 
     /**
-    * @dev setRequestVar set the specified variable. Request variables are used
-    * when initialising a request, and are common settings for requests.
-    *
-    * The variable to be set can be one of:
-    * 1 - gas price limit in gwei the consumer is willing to pay for data processing
-    * 2 - max ETH that can be sent in a gas top up Tx
-    * 3 - request timeout in seconds
-    *
-    * @param _var uint8 the variable being set.
-    * @param _value uint256 the new value
-    * @return success
-    */
+     * @dev setRequestVar set the specified variable. Request variables are used
+     *      when initialising a request, and are common settings for requests.
+     *
+     *      The variable to be set can be one of:
+     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
+     *      2 - max ETH that can be sent in a gas top up Tx
+     *      3 - request timeout in seconds
+     *
+     * @param self the Contract's State object
+     * @param _var uint8 the variable being set.
+     * @param _value uint256 the new value
+     * @return success
+     */
     function setRequestVar(State storage self, uint8 _var, uint256 _value) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_value > 0, "ConsumerLib: _value must be > 0");
@@ -332,6 +360,7 @@ library ConsumerLib {
     /**
      * @dev setRouter set the address of the Router smart contract
      *
+     * @param self the Contract's State object
      * @param _router on chain address of the router smart contract
      * @return success
      */
@@ -347,7 +376,7 @@ library ConsumerLib {
 
     /**
      * @dev submitDataRequest submit a new data request to the Router. The router will
-     * verify the data request, and route it to the data provider
+     *      verify the data request, and route it to the data provider
      *
      * @param self State object
      * @param _dataProvider the address of the data provider to send the request to
@@ -408,11 +437,12 @@ library ConsumerLib {
     }
 
     /**
-    * @dev cancelRequest submit cancellation to the router for the specified request
-    *
-    * @param _requestId the id of the request being cancelled
-    * @return success bool
-    */
+     * @dev cancelRequest submit cancellation to the router for the specified request
+     *
+     * @param self the Contract's State object
+     * @param _requestId the id of the request being cancelled
+     * @return success bool
+     */
     function cancelRequest(State storage self, bytes32 _requestId)
     external
     returns (bool success) {
