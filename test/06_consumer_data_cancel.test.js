@@ -143,8 +143,7 @@ describe('Consumer - request cancellation tests', function () {
       expectEvent( reciept, 'RequestCancelled', {
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider1,
-        requestId: reqId,
-        refund: new BN(fee)
+        requestId: reqId
       } )
     } )
 
