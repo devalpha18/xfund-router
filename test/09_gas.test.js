@@ -597,6 +597,19 @@ describe('Consumer - Gas top up and withdraw', function () {
         })
       } )
 
+      it( 'owner can withdraw - ConsumerLib emits EthWithdrawn event', async function () {
+        const topupValue = web3.utils.toWei("0.1", "ether")
+
+        await this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue })
+
+        const receipt = await this.MockConsumerContract1.withdrawTopUpGas(dataProvider1, { from: dataConsumerOwner1 })
+
+        expectEvent(receipt, 'EthWithdrawn', {
+          receiver: dataConsumerOwner1,
+          amount: topupValue
+        })
+      } )
+
       it( 'owner can withdraw - Router emits GasWithdrawnByConsumer event', async function () {
         const topupValue = web3.utils.toWei("0.1", "ether")
 
@@ -751,6 +764,27 @@ describe('Consumer - Gas top up and withdraw', function () {
 
       } )
 
+      it( 'owner can withdraw arbitrary Eth - ConsumerLib emits EthWithdrawn event', async function () {
+        const topupValue = web3.utils.toWei("0.1", "ether")
+
+        // rando accidentally sends 0.1 ETH
+        await web3.eth.sendTransaction({
+          from: rando,
+          to: this.MockConsumerContract1.address,
+          value: topupValue
+        });
+
+        const newBalance = await web3.eth.getBalance( this.MockConsumerContract1.address )
+        expect( newBalance.toString() ).to.equal( topupValue.toString() )
+
+        const receipt = await this.MockConsumerContract1.withdrawEth(topupValue, { from: dataConsumerOwner1 })
+
+        expectEvent(receipt, 'EthWithdrawn', {
+          receiver: dataConsumerOwner1,
+          amount: topupValue
+        })
+      } )
+
     } )
 
     describe( 'should succeed - single consumer, multiple providers', function () {
@@ -778,6 +812,28 @@ describe('Consumer - Gas top up and withdraw', function () {
 
         expectEvent(receipt2, 'PaymentRecieved', {
           sender: this.RouterContract.address,
+          amount: topupValue2
+        })
+      } )
+
+      it( 'owner can withdraw - ConsumerLib emits EthWithdrawn event', async function () {
+        const topupValue1 = web3.utils.toWei("0.1", "ether")
+        const topupValue2 = web3.utils.toWei("0.2", "ether")
+
+        await this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue1 })
+        await this.MockConsumerContract1.topUpGas(dataProvider2, { from: dataConsumerOwner1, value: topupValue2 })
+
+        const receipt1 = await this.MockConsumerContract1.withdrawTopUpGas(dataProvider1, { from: dataConsumerOwner1 })
+
+        expectEvent(receipt1, 'EthWithdrawn', {
+          receiver: dataConsumerOwner1,
+          amount: topupValue1
+        })
+
+        const receipt2 = await this.MockConsumerContract1.withdrawTopUpGas(dataProvider2, { from: dataConsumerOwner1 })
+
+        expectEvent(receipt2, 'EthWithdrawn', {
+          receiver: dataConsumerOwner1,
           amount: topupValue2
         })
       } )
@@ -965,14 +1021,47 @@ describe('Consumer - Gas top up and withdraw', function () {
 
         await expectRevert(
           this.MockConsumerContract1.withdrawTopUpGas(dataProvider1, { from: rando }),
-          "Consumer: only owner can do this"
+          "ConsumerLib: only owner"
         )
       } )
 
-      it( 'must have something to withdraw - revert with error', async function () {
+      it( 'only owner can withdraw arbitrary Eth - should revert with error', async function () {
+        const topupValue = web3.utils.toWei("0.1", "ether")
+
+        // rando accidentally sends 0.1 ETH
+        await web3.eth.sendTransaction({
+          from: rando,
+          to: this.MockConsumerContract1.address,
+          value: topupValue
+        });
+
+        const newBalance = await web3.eth.getBalance( this.MockConsumerContract1.address )
+        expect( newBalance.toString() ).to.equal( topupValue.toString() )
+
+        await expectRevert(
+          this.MockConsumerContract1.withdrawEth(topupValue, { from: rando }),
+          "ConsumerLib: only owner"
+        )
+      } )
+
+      it( 'withdrawTopUpGas must have something to withdraw - revert with error', async function () {
         await expectRevert(
           this.MockConsumerContract1.withdrawTopUpGas(dataProvider1, { from: dataConsumerOwner1 }),
-          "Consumer: nothing to withdraw"
+          "ConsumerLib: nothing to withdraw"
+        )
+      } )
+
+      it( 'withdrawEth must specify something to withdraw - revert with error', async function () {
+        await expectRevert(
+          this.MockConsumerContract1.withdrawEth(0, { from: dataConsumerOwner1 }),
+          "ConsumerLib: nothing to withdraw"
+        )
+      } )
+
+      it( 'withdrawEth cannot withdraw more than contract balance - revert with error', async function () {
+        await expectRevert(
+          this.MockConsumerContract1.withdrawEth(1, { from: dataConsumerOwner1 }),
+          "ConsumerLib: not enough balance"
         )
       } )
 

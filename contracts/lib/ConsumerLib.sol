@@ -40,6 +40,7 @@ library ConsumerLib {
         IERC20_Ex token; // deployed address of the Token smart contract
         address payable OWNER; // wallet address of the Token holder who will pay fees
         uint256 requestNonce; // incremented nonce to help prevent request replays
+        uint8 isInitialised; // set once during init() to ensure it can only be called once
 
         // common request variables
         mapping(uint8 => uint256) requestVars;
@@ -139,6 +140,8 @@ library ConsumerLib {
 
     event PaymentRecieved(address sender, uint256 amount);
 
+    event EthWithdrawn(address receiver, uint256 amount);
+
     /*
      * WRITE FUNCTIONS
      */
@@ -149,9 +152,10 @@ library ConsumerLib {
      * @param self the Contract's State object
      * @param _router address of the Router smart contract
      */
-    function init(State storage self, address _router) public {
+    function init(State storage self, address _router) external {
         require(_router != address(0), "ConsumerLib: router cannot be the zero address");
         require(_router.isContract(), "ConsumerLib: router address must be a contract");
+        require(self.isInitialised == 0, "ConsumerLib: already initialised");
 
         // set up router and token
         self.router = IRouter(_router);
@@ -163,6 +167,7 @@ library ConsumerLib {
         self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT] = 200;
         self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT] = 300;
         self.requestVars[REQUEST_VAR_TOP_UP_LIMIT] = 0.5 ether;
+        self.isInitialised = 1;
 
         emit RouterSet(msg.sender, address(0), _router);
         emit OwnershipTransferred( msg.sender, address(0), msg.sender);
@@ -170,15 +175,16 @@ library ConsumerLib {
 
     /**
      * @dev addDataProvider add a new authorised data provider to this contract, and
-     * authorise it to provide data via the Router. Can also be used to modify
-     * a provider's fee for an existing authorised provider. If the provider is currently
-     * authorises, the Router's grantProviderPermission is not called to conserve gas.
+     *      authorise it to provide data via the Router. Can also be used to modify
+     *      a provider's fee for an existing authorised provider. If the provider is currently
+     *      authorises, the Router's grantProviderPermission is not called to conserve gas.
      *
+     * @param self the Contract's State object
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
      * @return success
      */
-    function addDataProvider(State storage self, address _dataProvider, uint256 _fee) public returns (bool success) {
+    function addDataProvider(State storage self, address _dataProvider, uint256 _fee) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
 
@@ -207,13 +213,14 @@ library ConsumerLib {
 
     /**
      * @dev removeDataProvider remove a data provider and its authorisation to provide data
-     * for this smart contract from the Router
+     *      for this smart contract from the Router
      *
+     * @param self the Contract's State object
      * @param _dataProvider the address of the data provider
      * @return success
      */
     function removeDataProvider(State storage self, address _dataProvider)
-    public
+    external
     returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
@@ -226,26 +233,70 @@ library ConsumerLib {
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
-     * and withdraws any tokens currentlry held by the contract.
-     * Can only be called by the current owner.
+     *      and withdraws any tokens currentlry held by the contract.
+     *      Can only be called by the current owner.
      *
+     * @param self the Contract's State object
      * @param newOwner the address of the new owner
      * @return success
      */
-    function transferOwnership(State storage self, address payable newOwner) public returns (bool success) {
+    function transferOwnership(State storage self, address payable newOwner) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(newOwner != address(0), "ConsumerLib: new owner cannot be the zero address");
         require(self.router.getGasDepositsForConsumer(address(this)) == 0, "ConsumerLib: owner must withdraw all gas from router first");
-        require(withdrawAllTokens(self), "ConsumerLib: failed to withdraw tokens from Router");
+        require(withdrawAllTokens(self));
         emit OwnershipTransferred(msg.sender, self.OWNER, newOwner);
         self.OWNER = newOwner;
         return true;
     }
 
     /**
-     * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
-     * Tokens held by this contract back to themselves.
+     * @dev withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
+     *      held by the Router for the specified data provider. All ETH held will be withdrawn
+     *      from the Router and forwarded to the Consumer contract owner's wallet.this
      *
+     *      NOTE: This function is called by the Consumer's withdrawTopUpGas function
+     *
+     * @param self the Contract's State object
+     * @param _dataProvider address of associated data provider for whom ETH will be withdrawn
+     */
+    function withdrawTopUpGas(State storage self, address _dataProvider)
+    public
+    returns (bool success){
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
+        uint256 amount = self.router.withDrawGasTopUpForProvider(_dataProvider);
+        require(withdrawEth(self, amount));
+        return true;
+    }
+
+    /**
+     * @dev withdrawEth allows the Consumer contract's owner to withdraw any ETH
+     *      that has been sent to the Contract, either accidentally or via the
+     *      withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
+     *      is automatically called as part of that function. ETH is sent to the
+     *      Consumer contract's current owner's wallet.
+     *
+     *      NOTE: This function is called by the Consumer's withdrawEth function
+     *
+     * @param self the Contract's State object
+     * @param amount amount (in wei) of ETH to be withdrawn
+     */
+    function withdrawEth(State storage self, uint256 amount)
+    public
+    returns (bool success){
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
+        require(amount > 0, "ConsumerLib: nothing to withdraw");
+        require(address(this).balance >= amount, "ConsumerLib: not enough balance");
+        Address.sendValue(self.OWNER, amount);
+        emit EthWithdrawn(self.OWNER, amount);
+        return true;
+    }
+
+    /**
+     * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
+     *      Tokens held by this contract back to themselves.
+     *
+     * @param self the Contract's State object
      * @return success
      */
     function withdrawAllTokens(State storage self) public returns (bool success) {
@@ -260,14 +311,15 @@ library ConsumerLib {
 
     /**
      * @dev setRouterAllowance allows the token holder (contract owner) to
-     * increase/decrease the token allowance for the Router, in order for the Router to
-     * pay fees for data requests
+     *      increase/decrease the token allowance for the Router, in order for the Router to
+     *      pay fees for data requests
      *
+     * @param self the Contract's State object
      * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
      * @param _increase bool true to increase, false to decrease
      * @return success
      */
-    function setRouterAllowance(State storage self, uint256 _routerAllowance, bool _increase) public returns (bool success) {
+    function setRouterAllowance(State storage self, uint256 _routerAllowance, bool _increase) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         if(_increase) {
             require(self.token.increaseAllowance(address(self.router), _routerAllowance));
@@ -280,19 +332,20 @@ library ConsumerLib {
     }
 
     /**
-    * @dev setRequestVar set the specified variable. Request variables are used
-    * when initialising a request, and are common settings for requests.
-    *
-    * The variable to be set can be one of:
-    * 1 - gas price limit in gwei the consumer is willing to pay for data processing
-    * 2 - max ETH that can be sent in a gas top up Tx
-    * 3 - request timeout in seconds
-    *
-    * @param _var uint8 the variable being set.
-    * @param _value uint256 the new value
-    * @return success
-    */
-    function setRequestVar(State storage self, uint8 _var, uint256 _value) public returns (bool success) {
+     * @dev setRequestVar set the specified variable. Request variables are used
+     *      when initialising a request, and are common settings for requests.
+     *
+     *      The variable to be set can be one of:
+     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
+     *      2 - max ETH that can be sent in a gas top up Tx
+     *      3 - request timeout in seconds
+     *
+     * @param self the Contract's State object
+     * @param _var uint8 the variable being set.
+     * @param _value uint256 the new value
+     * @return success
+     */
+    function setRequestVar(State storage self, uint8 _var, uint256 _value) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_value > 0, "ConsumerLib: _value must be > 0");
         if(_var == REQUEST_VAR_TOP_UP_LIMIT) {
@@ -307,10 +360,11 @@ library ConsumerLib {
     /**
      * @dev setRouter set the address of the Router smart contract
      *
+     * @param self the Contract's State object
      * @param _router on chain address of the router smart contract
      * @return success
      */
-    function setRouter(State storage self, address _router) public returns (bool success) {
+    function setRouter(State storage self, address _router) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_router != address(0), "ConsumerLib: router cannot be the zero address");
         require(_router.isContract(), "ConsumerLib: router address must be a contract");
@@ -322,7 +376,7 @@ library ConsumerLib {
 
     /**
      * @dev submitDataRequest submit a new data request to the Router. The router will
-     * verify the data request, and route it to the data provider
+     *      verify the data request, and route it to the data provider
      *
      * @param self State object
      * @param _dataProvider the address of the data provider to send the request to
@@ -337,7 +391,7 @@ library ConsumerLib {
         bytes32 _data,
         uint256 _gasPrice,
         bytes4 _callbackFunctionSignature
-    ) public
+    ) external
     returns (bytes32 requestId) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
@@ -383,13 +437,14 @@ library ConsumerLib {
     }
 
     /**
-    * @dev cancelRequest submit cancellation to the router for the specified request
-    *
-    * @param _requestId the id of the request being cancelled
-    * @return success bool
-    */
+     * @dev cancelRequest submit cancellation to the router for the specified request
+     *
+     * @param self the Contract's State object
+     * @param _requestId the id of the request being cancelled
+     * @return success bool
+     */
     function cancelRequest(State storage self, bytes32 _requestId)
-    public
+    external
     returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataRequests[_requestId], "ConsumerLib: request id does not exist");

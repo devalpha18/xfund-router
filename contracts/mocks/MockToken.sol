@@ -22,7 +22,7 @@ contract MockToken is ERC20 {
         }
     }
 
-    function gimme() public {
+    function gimme() external {
         uint256 lastGimme = gimmes[msg.sender];
         require(now - lastGimme >= 1 hours, "please wait 1 hour");
         uint256 amount = uint256(10).mul(uint256(10) ** decimals());

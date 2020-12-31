@@ -214,14 +214,14 @@ contract Router is AccessControl {
 
     /**
      * @dev setGasTopUpLimit set the max amount of ETH that can be sent
-     * in a topUpGas Tx. Router admin calls this to set the maximum amount
-     * a Consumer can send in a single Tx, to prevent large amounts of ETH
-     * being sent.
+     *      in a topUpGas Tx. Router admin calls this to set the maximum amount
+     *      a Consumer can send in a single Tx, to prevent large amounts of ETH
+     *      being sent.
      *
      * @param _gasTopUpLimit amount in wei
      * @return success
      */
-    function setGasTopUpLimit(uint256 _gasTopUpLimit) public onlyAdmin() returns (bool success) {
+    function setGasTopUpLimit(uint256 _gasTopUpLimit) external onlyAdmin() returns (bool success) {
         require(_gasTopUpLimit > 0, "Router: _gasTopUpLimit must be > 0");
         uint256 oldGasTopUpLimit = gasTopUpLimit;
         gasTopUpLimit = _gasTopUpLimit;
@@ -231,11 +231,11 @@ contract Router is AccessControl {
 
     /**
      * @dev setProviderPaysGas - provider calls for setting who pays gas
-     * for sending the fulfillRequest Tx
+     *      for sending the fulfillRequest Tx
      * @param _providerPays bool - true if provider will pay gas
      * @return success
      */
-    function setProviderPaysGas(bool _providerPays) public returns (bool success) {
+    function setProviderPaysGas(bool _providerPays) external returns (bool success) {
         dataProviders[msg.sender].providerPaysGas = _providerPays;
         emit SetProviderPaysGas(msg.sender, _providerPays);
         return true;
@@ -246,7 +246,7 @@ contract Router is AccessControl {
      * @param _minFee uint256 - minimum fee provider will accept to fulfill request
      * @return success
      */
-    function setProviderMinFee(uint256 _minFee) public returns (bool success) {
+    function setProviderMinFee(uint256 _minFee) external returns (bool success) {
         dataProviders[msg.sender].minFee = _minFee;
         emit SetProviderMinFee(msg.sender, _minFee);
         return true;
@@ -254,15 +254,15 @@ contract Router is AccessControl {
 
     /**
      * @dev topUpGas data consumer contract calls this function to top up gas
-     * Gas is the ETH held by this contract which is used to refund Tx costs
-     * to the data provider for fulfilling a request.
-     * To prevent silly amounts of ETH being sent, a sensible limit is imposed.
-     * Can only top up for authorised providers
+     *      Gas is the ETH held by this contract which is used to refund Tx costs
+     *      to the data provider for fulfilling a request.
+     *      To prevent silly amounts of ETH being sent, a sensible limit is imposed.
+     *      Can only top up for authorised providers
      *
      * @param _dataProvider address of data provider
      * @return success
      */
-    function topUpGas(address _dataProvider) public payable returns (bool success) {
+    function topUpGas(address _dataProvider) external payable returns (bool success) {
         uint256 amount = msg.value;
         // msg.sender is the address of the Consumer's smart contract
         address dataConsumer = msg.sender;
@@ -286,18 +286,18 @@ contract Router is AccessControl {
 
     /**
      * @dev withDrawGasTopUpForProvider data consumer contract calls this function to
-     * withdraw any remaining ETH stored in the Router for gas refunds for a specified
-     * data provider.
-     * Consumer contract will then transfer through to the consumer contract's
-     * owner.
+     *      withdraw any remaining ETH stored in the Router for gas refunds for a specified
+     *      data provider.
+     *      Consumer contract will then transfer through to the consumer contract's
+     *      owner.
      *
-     * NOTE - data provider authorisation is not checked, since a consumer needs to
-     * be able to withdraw for a data provide that has been revoked.
+     *      NOTE - data provider authorisation is not checked, since a consumer needs to
+     *      be able to withdraw for a data provide that has been revoked.
      *
      * @param _dataProvider address of data provider
      * @return amountWithdrawn
      */
-    function withDrawGasTopUpForProvider(address _dataProvider) public returns (uint256 amountWithdrawn) {
+    function withDrawGasTopUpForProvider(address _dataProvider) external returns (uint256 amountWithdrawn) {
         // msg.sender is the consumer's contract
         address payable dataConsumer = msg.sender;
         require(address(dataConsumer).isContract(), "Router: only a contract can withdraw gas");
@@ -346,7 +346,7 @@ contract Router is AccessControl {
         bytes32 _requestId,
         bytes32 _data,
         bytes4 _callbackFunctionSignature
-    ) public returns (bool success) {
+    ) external returns (bool success) {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
@@ -480,7 +480,7 @@ contract Router is AccessControl {
      * @param _requestId the request the consumer wishes to cancel
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
-    function cancelRequest(bytes32 _requestId) public returns (bool) {
+    function cancelRequest(bytes32 _requestId) external returns (bool) {
         require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
         require(dataRequests[_requestId].isSet, "Router: request id does not exist");
 
@@ -508,7 +508,7 @@ contract Router is AccessControl {
      * @param _dataProvider address of the data provider to grant access
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
-    function grantProviderPermission(address _dataProvider) public returns (bool) {
+    function grantProviderPermission(address _dataProvider) external returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can grant a provider permission");
         consumerAuthorisedProviders[msg.sender][_dataProvider] = true;
@@ -521,7 +521,7 @@ contract Router is AccessControl {
      * @param _dataProvider address of the data provider to revoke access
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
-    function revokeProviderPermission(address _dataProvider) public returns (bool) {
+    function revokeProviderPermission(address _dataProvider) external returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can revoke a provider permission");
         consumerAuthorisedProviders[msg.sender][_dataProvider] = false;
@@ -610,7 +610,7 @@ contract Router is AccessControl {
 
     /**
      * @dev getGasDepositsForConsumer - get total gas deposited in Router
-     * by a data consumer
+     *      by a data consumer
      * @param _dataConsumer address of data consumer
      * @return uint256
      */
@@ -620,7 +620,7 @@ contract Router is AccessControl {
 
     /**
      * @dev getGasDepositsForConsumerProviders - get total gas deposited in Router
-     * by a data consumer for a given data provider
+     *      by a data consumer for a given data provider
      * @param _dataConsumer address of data consumer
      * @param _dataProvider address of data provider
      * @return uint256
@@ -631,7 +631,7 @@ contract Router is AccessControl {
 
     /**
      * @dev getProviderPaysGas - returns whether or not the given provider pays gas
-     * for sending the fulfillRequest Tx
+     *      for sending the fulfillRequest Tx
      * @param _dataProvider address of data provider
      * @return bool
      */

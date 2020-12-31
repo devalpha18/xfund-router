@@ -34,6 +34,7 @@ contract MockConsumer is Consumer {
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
 
     event PaymentRecieved(address sender, uint256 amount);
+    event EthWithdrawn(address receiver, uint256 amount);
 
 
     // Mirrored Router events for web3 client decoding & testing
@@ -67,8 +68,7 @@ contract MockConsumer is Consumer {
     event RequestCancelled(
         address indexed dataConsumer,
         address indexed dataProvider,
-        bytes32 indexed requestId,
-        uint256 refund
+        bytes32 indexed requestId
     );
 
     event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
@@ -85,7 +85,7 @@ contract MockConsumer is Consumer {
      *
      * @param _price uint256 value to be set
      */
-    function setPrice(uint256 _price) public {
+    function setPrice(uint256 _price) external {
         price = _price;
     }
 
@@ -108,7 +108,7 @@ contract MockConsumer is Consumer {
         address payable _dataProvider,
         bytes32 _data,
         uint256 _gasPrice)
-    public returns (bytes32 requestId) {
+    external returns (bytes32 requestId) {
         // call the underlying Consumer.sol lib's submitDataRequest function
         return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveData.selector);
     }

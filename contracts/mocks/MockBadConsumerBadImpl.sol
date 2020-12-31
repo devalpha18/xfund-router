@@ -34,7 +34,7 @@ contract MockBadConsumerBadImpl is Consumer {
         arbitraryCounter = 0;
     }
 
-    function setPrice(uint256 _price) public {
+    function setPrice(uint256 _price) external {
         price = _price;
     }
 
@@ -43,7 +43,7 @@ contract MockBadConsumerBadImpl is Consumer {
         address payable _dataProvider,
         bytes32 _data,
         uint256 _gasPrice)
-    public returns (bytes32 requestId) {
+    external returns (bytes32 requestId) {
         // call the underlying Consumer.sol lib's submitDataRequest function
         return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveDataNoCheck.selector);
     }
@@ -64,7 +64,7 @@ contract MockBadConsumerBadImpl is Consumer {
         address payable _dataProvider,
         bytes32 _data,
         uint256 _gasPrice)
-    public returns (bytes32 requestId) {
+    external returns (bytes32 requestId) {
         // call the underlying Consumer.sol lib's submitDataRequest function
         return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveDataBigFunc.selector);
     }
