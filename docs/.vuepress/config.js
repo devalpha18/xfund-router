@@ -17,7 +17,13 @@ module.exports = {
                 title: "Guides",
                 children: [
                     "/guide/quickstart",
-                    "/guide/",
+                    {
+                        title: "Complete Deployment Guide",
+                        children: [
+                            "/guide/implementation",
+                            "/guide/interaction"
+                        ]
+                    }
                 ]
             },
             {
