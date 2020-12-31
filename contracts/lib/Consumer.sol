@@ -70,7 +70,7 @@ contract Consumer {
      * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
      * Tokens held by this contract back to themselves.
      */
-    function withdrawAllTokens() public {
+    function withdrawAllTokens() external {
         require(consumerState.withdrawAllTokens());
     }
 
@@ -81,7 +81,7 @@ contract Consumer {
      * Can only be called by the current owner.
      * @param _newOwner address of the new contract owner
      */
-    function transferOwnership(address payable _newOwner) public {
+    function transferOwnership(address payable _newOwner) external {
         require(consumerState.transferOwnership(_newOwner));
     }
 
@@ -93,7 +93,7 @@ contract Consumer {
      * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
      * @param _increase bool true to increase, false to decrease
      */
-    function setRouterAllowance(uint256 _routerAllowance, bool _increase) public {
+    function setRouterAllowance(uint256 _routerAllowance, bool _increase) external {
         require(consumerState.setRouterAllowance(_routerAllowance, _increase));
     }
 
@@ -104,7 +104,7 @@ contract Consumer {
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
      */
-    function addDataProvider(address _dataProvider, uint256 _fee) public {
+    function addDataProvider(address _dataProvider, uint256 _fee) external {
         require(consumerState.addDataProvider(_dataProvider, _fee));
     }
 
@@ -114,7 +114,7 @@ contract Consumer {
      *
      * @param _dataProvider the address of the data provider
      */
-    function removeDataProvider(address _dataProvider) public {
+    function removeDataProvider(address _dataProvider) external {
         require(consumerState.removeDataProvider(_dataProvider));
     }
 
@@ -130,7 +130,7 @@ contract Consumer {
     * @param _var bytes32 the variable being set.
     * @param _value uint256 the new value
     */
-    function setRequestVar(uint8 _var, uint256 _value) public {
+    function setRequestVar(uint8 _var, uint256 _value) external {
         require(consumerState.setRequestVar(_var, _value));
     }
 
@@ -139,12 +139,12 @@ contract Consumer {
      *
      * @param _router on chain address of the router smart contract
      */
-    function setRouter(address _router) public {
+    function setRouter(address _router) external {
         require(consumerState.setRouter(_router));
     }
 
     function topUpGas(address _dataProvider)
-    public
+    external
     payable
     onlyOwner() {
         uint256 amount = msg.value;
@@ -156,7 +156,7 @@ contract Consumer {
     }
 
     function withdrawTopUpGas(address _dataProvider)
-    public
+    external
     onlyOwner() {
         uint256 amount = consumerState.router.withDrawGasTopUpForProvider(_dataProvider);
         require(amount > 0, "Consumer: nothing to withdraw");
@@ -188,7 +188,7 @@ contract Consumer {
     *
     * @param _requestId the id of the request being cancelled
     */
-    function cancelRequest(bytes32 _requestId) public {
+    function cancelRequest(bytes32 _requestId) external {
         require(consumerState.cancelRequest(_requestId));
     }
 
