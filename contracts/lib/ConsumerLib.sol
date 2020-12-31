@@ -40,6 +40,7 @@ library ConsumerLib {
         IERC20_Ex token; // deployed address of the Token smart contract
         address payable OWNER; // wallet address of the Token holder who will pay fees
         uint256 requestNonce; // incremented nonce to help prevent request replays
+        uint8 isInitialised; // set once during init() to ensure it can only be called once
 
         // common request variables
         mapping(uint8 => uint256) requestVars;
@@ -152,6 +153,7 @@ library ConsumerLib {
     function init(State storage self, address _router) external {
         require(_router != address(0), "ConsumerLib: router cannot be the zero address");
         require(_router.isContract(), "ConsumerLib: router address must be a contract");
+        require(self.isInitialised == 0, "ConsumerLib: already initialised");
 
         // set up router and token
         self.router = IRouter(_router);
@@ -163,6 +165,7 @@ library ConsumerLib {
         self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT] = 200;
         self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT] = 300;
         self.requestVars[REQUEST_VAR_TOP_UP_LIMIT] = 0.5 ether;
+        self.isInitialised = 1;
 
         emit RouterSet(msg.sender, address(0), _router);
         emit OwnershipTransferred( msg.sender, address(0), msg.sender);
