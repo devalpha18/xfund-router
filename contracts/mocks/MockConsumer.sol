@@ -34,6 +34,7 @@ contract MockConsumer is Consumer {
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
 
     event PaymentRecieved(address sender, uint256 amount);
+    event EthWithdrawn(address receiver, uint256 amount);
 
 
     // Mirrored Router events for web3 client decoding & testing
