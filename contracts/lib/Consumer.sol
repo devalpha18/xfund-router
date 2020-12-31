@@ -36,7 +36,8 @@ contract Consumer {
      */
 
     /**
-     * @dev PaymentRecieved - only emitted if ETH is accidentally sent to this contract address
+     * @dev PaymentRecieved - emitted when ETH is sent to this contract address, either via the
+     *      withdrawTopUpGas function (the Router sends ETH stored for gas refunds), or accidentally
      * @param sender address of sender
      * @param amount amount sent (wei)
      */
@@ -60,7 +61,8 @@ contract Consumer {
     }
 
     /**
-     * @dev fallback payable function, which emits an event if ETH is accidentally recieved
+     * @dev fallback payable function, which emits an event if ETH is received either via
+     *      the withdrawTopUpGas function, or accidentally.
      */
     receive() external payable {
         emit PaymentRecieved(msg.sender, msg.value);
@@ -156,10 +158,17 @@ contract Consumer {
     }
 
     function withdrawTopUpGas(address _dataProvider)
-    external
+    public
     onlyOwner() {
         uint256 amount = consumerState.router.withDrawGasTopUpForProvider(_dataProvider);
+        withdrawEth(amount);
+    }
+
+    function withdrawEth(uint256 amount)
+    public
+    onlyOwner() {
         require(amount > 0, "Consumer: nothing to withdraw");
+        require(address(this).balance >= amount, "Consumer: not enough balance");
         Address.sendValue(consumerState.OWNER, amount);
     }
 
