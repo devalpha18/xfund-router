@@ -140,6 +140,8 @@ library ConsumerLib {
 
     event PaymentRecieved(address sender, uint256 amount);
 
+    event EthWithdrawn(address receiver, uint256 amount);
+
     /*
      * WRITE FUNCTIONS
      */
@@ -239,9 +241,29 @@ library ConsumerLib {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(newOwner != address(0), "ConsumerLib: new owner cannot be the zero address");
         require(self.router.getGasDepositsForConsumer(address(this)) == 0, "ConsumerLib: owner must withdraw all gas from router first");
-        require(withdrawAllTokens(self), "ConsumerLib: failed to withdraw tokens from Router");
+        require(withdrawAllTokens(self));
         emit OwnershipTransferred(msg.sender, self.OWNER, newOwner);
         self.OWNER = newOwner;
+        return true;
+    }
+
+    function withdrawTopUpGas(State storage self, address _dataProvider)
+    public
+    returns (bool success){
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
+        uint256 amount = self.router.withDrawGasTopUpForProvider(_dataProvider);
+        require(withdrawEth(self, amount));
+        return true;
+    }
+
+    function withdrawEth(State storage self, uint256 amount)
+    public
+    returns (bool success){
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
+        require(amount > 0, "ConsumerLib: nothing to withdraw");
+        require(address(this).balance >= amount, "ConsumerLib: not enough balance");
+        Address.sendValue(self.OWNER, amount);
+        emit EthWithdrawn(self.OWNER, amount);
         return true;
     }
 

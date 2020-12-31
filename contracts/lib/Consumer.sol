@@ -158,18 +158,13 @@ contract Consumer {
     }
 
     function withdrawTopUpGas(address _dataProvider)
-    public
-    onlyOwner() {
-        uint256 amount = consumerState.router.withDrawGasTopUpForProvider(_dataProvider);
-        withdrawEth(amount);
+    public {
+        require(consumerState.withdrawTopUpGas(_dataProvider));
     }
 
     function withdrawEth(uint256 amount)
-    public
-    onlyOwner() {
-        require(amount > 0, "Consumer: nothing to withdraw");
-        require(address(this).balance >= amount, "Consumer: not enough balance");
-        Address.sendValue(consumerState.OWNER, amount);
+    public {
+        require(consumerState.withdrawEth(amount));
     }
 
     /**
