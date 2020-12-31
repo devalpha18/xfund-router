@@ -123,7 +123,7 @@ contract DemoConsumer is Consumer {
 }
 ```
 
-## 3. Define the require smart contract functions
+## 3. Define the required smart contract functions
 
 Next, we need to add a couple of functions which we will use to request data, and which
 a Data Provider will use to fulfil the request and send data to our smart contract.
@@ -209,7 +209,7 @@ You can optionally also add an event to the function, for example:
 Define a new event in the contract:
 
 ```solidity
-event GotSomeData(address router, bytes32 requestId, uint256 price);
+event GotSomeData(bytes32 requestId, uint256 price);
 ```
 
 and emit within the `recieveData` function:
@@ -217,7 +217,7 @@ and emit within the `recieveData` function:
 ```solidity
     function recieveData( ...
         ...
-        emit GotSomeData(msg.sender, _requestId, _price);
+        emit GotSomeData(_requestId, _price);
 ```
 
 The final `DemoConsumer.sol` code should now look something like this:
@@ -233,7 +233,7 @@ contract DemoConsumer is Consumer {
 
     uint256 public price;
 
-    event GotSomeData(address router, bytes32 requestId, uint256 price);
+    event GotSomeData(bytes32 requestId, uint256 price);
 
     constructor(address _router)
     public Consumer(_router) {
@@ -262,7 +262,7 @@ contract DemoConsumer is Consumer {
         price = _price;
 
         // optionally emit an event to the logs
-        emit GotSomeData(msg.sender, _requestId, _price);
+        emit GotSomeData(_requestId, _price);
 
         // clean up the request ID - it's no longer required to be stored.
         deleteRequest(_price, _requestId, _signature);
@@ -312,13 +312,6 @@ const {
 
 module.exports = {
   networks: {
-    // ganache-cli
-    development: {
-      host: "127.0.0.1",     // Localhost (default: none)
-      port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "*",       // Any network (default: none)
-    },
-    // truffle develop console
     develop: {
       host: "127.0.0.1",
       port: 8545,
@@ -336,7 +329,6 @@ module.exports = {
       skipDryRun: true,
     }
   },
-  // Configure your compilers
   compilers: {
     solc: {
       version: "0.6.12",
@@ -365,7 +357,6 @@ const {
 } = process.env
 
 module.exports = function(deployer) {
-  // deployment steps
   DemoConsumer.link("ConsumerLib", CONSUMER_LIB_ADDRESS)
   deployer.deploy(DemoConsumer, ROUTER_ADDRESS)
 }
