@@ -180,8 +180,7 @@ contract Consumer {
      */
     function topUpGas(address _dataProvider)
     external
-    payable
-    onlyOwner() {
+    payable {
         require(msg.sender == consumerState.OWNER, "Consumer: only owner can do this");
         uint256 amount = msg.value;
         require(consumerState.dataProviders[_dataProvider].isAuthorised, "Consumer: _dataProvider is not authorised");

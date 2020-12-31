@@ -65,9 +65,9 @@ Contract constructor. Accepts the address for a Token smart contract.
 <a name="Router-setGasTopUpLimit-uint256-"></a>
 ### Function `setGasTopUpLimit(uint256 _gasTopUpLimit) -> bool success`
 setGasTopUpLimit set the max amount of ETH that can be sent
-in a topUpGas Tx. Router admin calls this to set the maximum amount
-a Consumer can send in a single Tx, to prevent large amounts of ETH
-being sent.
+     in a topUpGas Tx. Router admin calls this to set the maximum amount
+     a Consumer can send in a single Tx, to prevent large amounts of ETH
+     being sent.
 
 
 #### Parameters:
@@ -76,7 +76,7 @@ being sent.
 <a name="Router-setProviderPaysGas-bool-"></a>
 ### Function `setProviderPaysGas(bool _providerPays) -> bool success`
 setProviderPaysGas - provider calls for setting who pays gas
-for sending the fulfillRequest Tx
+     for sending the fulfillRequest Tx
 
 #### Parameters:
 - `_providerPays`: bool - true if provider will pay gas
@@ -91,10 +91,10 @@ setProviderMinFee - provider calls for setting its minimum fee
 <a name="Router-topUpGas-address-"></a>
 ### Function `topUpGas(address _dataProvider) -> bool success`
 topUpGas data consumer contract calls this function to top up gas
-Gas is the ETH held by this contract which is used to refund Tx costs
-to the data provider for fulfilling a request.
-To prevent silly amounts of ETH being sent, a sensible limit is imposed.
-Can only top up for authorised providers
+     Gas is the ETH held by this contract which is used to refund Tx costs
+     to the data provider for fulfilling a request.
+     To prevent silly amounts of ETH being sent, a sensible limit is imposed.
+     Can only top up for authorised providers
 
 
 #### Parameters:
@@ -103,13 +103,13 @@ Can only top up for authorised providers
 <a name="Router-withDrawGasTopUpForProvider-address-"></a>
 ### Function `withDrawGasTopUpForProvider(address _dataProvider) -> uint256 amountWithdrawn`
 withDrawGasTopUpForProvider data consumer contract calls this function to
-withdraw any remaining ETH stored in the Router for gas refunds for a specified
-data provider.
-Consumer contract will then transfer through to the consumer contract's
-owner.
+     withdraw any remaining ETH stored in the Router for gas refunds for a specified
+     data provider.
+     Consumer contract will then transfer through to the consumer contract's
+     owner.
 
-NOTE - data provider authorisation is not checked, since a consumer needs to
-be able to withdraw for a data provide that has been revoked.
+     NOTE - data provider authorisation is not checked, since a consumer needs to
+     be able to withdraw for a data provide that has been revoked.
 
 
 #### Parameters:
@@ -256,7 +256,7 @@ getTotalGasDeposits - get total gas deposited in Router
 <a name="Router-getGasDepositsForConsumer-address-"></a>
 ### Function `getGasDepositsForConsumer(address _dataConsumer) -> uint256`
 getGasDepositsForConsumer - get total gas deposited in Router
-by a data consumer
+     by a data consumer
 
 #### Parameters:
 - `_dataConsumer`: address of data consumer
@@ -264,7 +264,7 @@ by a data consumer
 <a name="Router-getGasDepositsForConsumerProviders-address-address-"></a>
 ### Function `getGasDepositsForConsumerProviders(address _dataConsumer, address _dataProvider) -> uint256`
 getGasDepositsForConsumerProviders - get total gas deposited in Router
-by a data consumer for a given data provider
+     by a data consumer for a given data provider
 
 #### Parameters:
 - `_dataConsumer`: address of data consumer
@@ -274,7 +274,7 @@ by a data consumer for a given data provider
 <a name="Router-getProviderPaysGas-address-"></a>
 ### Function `getProviderPaysGas(address _dataProvider) -> bool`
 getProviderPaysGas - returns whether or not the given provider pays gas
-for sending the fulfillRequest Tx
+     for sending the fulfillRequest Tx
 
 #### Parameters:
 - `_dataProvider`: address of data provider

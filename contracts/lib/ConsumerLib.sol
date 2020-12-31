@@ -279,7 +279,7 @@ library ConsumerLib {
      *      NOTE: This function is called by the Consumer's withdrawEth function
      *
      * @param self the Contract's State object
-     * @param _amount amount (in wei) of ETH to be withdrawn
+     * @param amount amount (in wei) of ETH to be withdrawn
      */
     function withdrawEth(State storage self, uint256 amount)
     public
