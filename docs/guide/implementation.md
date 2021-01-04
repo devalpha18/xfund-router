@@ -23,7 +23,7 @@ with the `Router` smart contracts.
 ::: tip Note
 if you are integrating into an existing project, or are already familiar with 
 initialising `NodeJS` and `Truffle` projects, you can skip this section and move on
-to [2.1 Import the xfund-router Library contracts](#_2-1-import-the-xfund-router-library-contracts).
+to [1.2. Install the required dependencies](#_1-2-install-the-required-dependencies).
 :::
 
 ### 1.1. Initialise your project
@@ -55,11 +55,18 @@ truffle-config.js
 
 ### 1.2. Install the required dependencies
 
-We need to install some dependencies for the project - `dotenv`, `@unification-com/xfund-router`
-and `@truffle/hdwallet-provider`:
+We need to install some dependencies for the project - `@unification-com/xfund-router`:
 
 ```bash 
-npm install @unification-com/xfund-router dotenv
+npm install @unification-com/xfund-router
+```
+
+If you don't have them installed already, we also need `dotenv` and
+`@truffle/hdwallet-provider`, both of which will be used to aid deployment and
+interaction later:
+
+```bash 
+npm install dotenv
 npm install @truffle/hdwallet-provider --save-dev
 ```
 
