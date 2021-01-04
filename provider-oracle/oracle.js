@@ -77,7 +77,7 @@ const processRequest = async (dataToGet, supportedPairs) => {
           if(pow < 2) {
             pow = 2
           }
-          new BN( data.priceRaw * ( 10 ** pow ) )
+          resolve(new BN( data.priceRaw * ( 10 ** pow ) ))
         } else {
           // Finchains API returns price as * (10 ** 18) by default.
           resolve( new BN( data.price ) )

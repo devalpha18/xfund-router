@@ -14,14 +14,20 @@ module.exports = {
         logo: '/assets/img/unification_logoblack.png',
         sidebar: [
             {
+                title: "Home",
+                children: ["/"],
+            },
+            {
                 title: "Guides",
+                path: "/guide",
                 children: [
                     "/guide/quickstart",
                     {
                         title: "Complete Deployment Guide",
                         children: [
                             "/guide/implementation",
-                            "/guide/interaction"
+                            "/guide/interaction",
+                            "/guide/ooo_api"
                         ]
                     }
                 ]

@@ -9,6 +9,7 @@ const args = arg({
   // Types
   "--run": String,
   "--event": String,
+  "--test": String,
 
   // Aliases
   "-r": "--run",
@@ -23,12 +24,13 @@ const run = async () => {
 
   const fromBlock = WATCH_FROM_BLOCK || 0
 
+  const supportedPairsRes = await fetch(`${FINCHAINS_API_URL}/pairs`)
+  const supportedPairs = await supportedPairsRes.json()
+
   switch (runWhat) {
     case "run-oracle":
       console.log(new Date(), "watching", eventToGet, "from block", fromBlock)
       console.log(new Date(), "get supported pairs")
-      const supportedPairsRes = await fetch(`${FINCHAINS_API_URL}/pairs`)
-      const supportedPairs = await supportedPairsRes.json()
       watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
         if (err) {
           console.error(new Date(), "ERROR:")
@@ -71,8 +73,10 @@ const run = async () => {
       })
       break
     case "test-oracle":
+      const testString = args["--test"] || "BTC.USD.PRC.AVG"
       console.log("test-oracle")
-      processRequest( "PRICE.BTC.USD.AVG.IDQ" )
+      console.log("Data requested", testString)
+      processRequest( testString, supportedPairs )
         .then(async (priceToSend) => {
           console.log(new Date(), "priceToSend", priceToSend.toString())
         })
