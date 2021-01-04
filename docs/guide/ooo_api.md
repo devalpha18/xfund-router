@@ -3,17 +3,32 @@
 This guide covers the supported data offered by the Finchains OoO API, which is available
 as a data request via the xFUND Router network.
 
+## Providers
+
+The following addresses supply data from the Finchains OoO API:
+
+### Rinkeby TestNet
+
+**Provider Address**: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)  
+**Fee**: 0.1 xFUNDMOCK
+
+### Mainnet
+
+**Provider Address**: TBD  
+**Fee**: TBD xFUND
+
 ## Introduction
 
 Data is acquired via the OoO API using dot-separated strings to define the desired data - for example
 "Average BTC/USD Price over 24 hours, with outliers removed" would be requested using
-`BTC.USD.PRC.AVG.IDQ`.
+`BTC.USD.PRC.AVG.IDQ`. 
 
-Data requests are initialised via your smart contract, using the 
-[request](implementation.md#_3-1-requestdata) function you defined.
+The hex-encoded string is supplied along with the Provider address (as defined above,
+depending on Ethereum network) and the `xFUND` fee as parameters to your smart contract, 
+using the [requestdata](implementation.md#_3-1-requestdata) function you defined.
 
-The Finchains OoO Data Provider picks up this requests, and supplies the data via the 
-[receive](implementation.md#_3-2-recievedata) function you defined.
+The Finchains OoO Data Provider picks up this request, and supplies the data via the 
+[recievedata](implementation.md#_3-2-recievedata) function you defined.
 
 ::: danger IMPORTANT
 Currently, the data available via Finchains' OoO is the mean `AVG` price `PRC` for all
