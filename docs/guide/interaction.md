@@ -4,8 +4,10 @@ This guide will walk you through the steps required to initialise your contract 
 Tokens, gas top ups, and authorise data providers to fulfil requests), and also 
 make a data request.
 
-**Note**: ensure you have gone though the [implementation](implementation.md) guide
+::: warning Note
+ensure you have gone though the [implementation](implementation.md) guide
 and deployed your smart contract before continuing with this guide.
+:::
 
 Run the `truffle` development console, and connect to the Rinkeby testnet:
 
@@ -128,5 +130,10 @@ truffle(rinkeby)> priceAfter.toString()
 
 The price should now be a non-zero value.
 
-**Note**: the Oracle sends all price data converted to `actualPrice * (10 ** 18)` in
-order to remove any decimals.
+:::tip Note
+By default, the OoO sends all price data converted to `actualPrice * (10 ** 18)` in
+order to remove any decimals. The Power multiplier can be defined in the data
+request string (see [Finchains OoO API](ooo_api.md))
+:::
+
+Next - see what data can be requested via the [Finchains OoO API](ooo_api.md).

@@ -8,9 +8,23 @@ This guide will result in something similar to the [Data Consumer Demo](https://
 The instructions will outline the steps required to deploy on the Rinkeby testnet, but
 will also work with mainnet.
 
+::: danger IMPORTANT
+You **do not** need to implement or deploy either the `Router.sol` or `ConsumerLib.sol` 
+smart contracts.
+
+These are smart contracts deployed and maintained by the Unification Foundation and are
+the core of the xFUND Router network. Your smart contract will only import and build on
+the `Consumer.sol` base smart contract, which in turn links to the `ConsumerLib` and interacts
+with the `Router` smart contracts.
+:::
+
 ## 1. Initialise your project & install dependencies
 
-**Note:** if you are integrating into an existing project, you can skip this step.
+::: tip Note
+if you are integrating into an existing project, or are already familiar with 
+initialising `NodeJS` and `Truffle` projects, you can skip this section and move on
+to [2.1 Import the xfund-router Library contracts](#_2-1-import-the-xfund-router-library-contracts).
+:::
 
 ### 1.1. Initialise your project
 Create the directory, and initialise NPM - accept the defaults for the `npm init` command:
@@ -51,7 +65,7 @@ npm install @truffle/hdwallet-provider --save-dev
 
 ## 2. Create the initial Contract
 
-We'll start with a simple contract structure. With a text editor, create `contracts/DemoConsumer.sol`
+We'll start with a simple contract structure. With a text editor, create `contracts/MyDataConsumer.sol`
 with the following contents:
 
 ```solidity
@@ -59,7 +73,7 @@ with the following contents:
 
 pragma solidity ^0.6.0;
 
-contract DemoConsumer {
+contract MyDataConsumer {
 
     uint256 public price;
 
@@ -82,6 +96,12 @@ smart contract contains all the required functions for interacting with the syst
 you only need to define a couple of simple functions in your own smart contract in order to
 use the OoO system.
 
+::: tip Note
+You can view the functions implemented by `Consumer.sol` in the [Data Consumer smaert contract
+API documentation](../api/lib/Consumer.md). These functions are also callable from your
+smart contract.
+:::
+
 First, import the `Consumer.sol` smart contract. After the `pragma` definition, add:
 
 ```solidity
@@ -91,7 +111,7 @@ import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
 Then, edit the contract definition, so that it extends `Consumer.sol`:
 
 ```solidity
-contract DemoConsumer is Consumer {
+contract MyDataConsumer is Consumer {
 ```
 
 Finally, modify the `constructor` function to call the `Consumer.sol`'s constructor:
@@ -103,7 +123,7 @@ Finally, modify the `constructor` function to call the `Consumer.sol`'s construc
     }
 ```
 
-The full `DemoConsumer.sol` contract code should now look like this:
+The full `MyDataConsumer.sol` contract code should now look like this:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -112,7 +132,7 @@ pragma solidity ^0.6.0;
 
 import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
 
-contract DemoConsumer is Consumer {
+contract MyDataConsumer is Consumer {
 
     uint256 public price;
 
@@ -138,14 +158,14 @@ the data request on to the Router, which Data Providers watch for events being e
 sees a data request for them, they can act on it and supply the data. This function must have
 the following parameters - although the names do not matter:
 
-`address payable _dataProvider` - the wallet address provider we are requesting data from
-`bytes32 _data`, - the data we are requesting
+`address payable _dataProvider` - the wallet address provider we are requesting data from  
+`bytes32 _data`, - the data we are requesting  
 `uint256 _gasPrice` - the maximum price we are willing to pay for the provider to fulfil the request
 
 The `requestData` function must also, at the very least, call `Consumer.sol`'s `submitDataRequest`
 function, which validates the request and forwards it to the Router smart contract.
 
-Add the following function definition to your `DemoConsumer.sol` contract:
+Add the following function definition to your `MyDataConsumer.sol` contract:
 
 ```solidity
     function requestData(
@@ -160,27 +180,49 @@ Add the following function definition to your `DemoConsumer.sol` contract:
 
 The return value is optional.
 
-Note: `this.recieveData.selector` is an encoded value automatically calculated. This is ultimately
+::: tip Note
+`this.recieveData.selector` is an encoded value automatically calculated. This is ultimately
 passed to the Router, and is what the data provider will call when fulfilling a request. If
 you are naming the Receiver function something other than `recieveData`, then this will need
 modifying to reflect that, e.g. `this.myOwnFunction.selector`
+:::
 
-### 3.1 recieveData
+::: danger IMPORTANT
+`_data` is passed to the `ConsumerLib.sol`'s `submitDataRequest` function which 
+accepts a `bytes32` value. This in turn forwards it to the Router, and ultimately
+the Data Provider, which decodes the Hex input back to the string.
+
+As such the data request string should be converted to a `hex` value before 
+calling your smart contract's `requestData` function and passing the value. 
+
+For example, when requesting `BTC.USD.PRC.AVG.IDG`, this can be done with:
+
+```javascript
+const endpoint = web3.utils.asciiToHex("BTC.USD.PRC.AVG.IDQ")
+```
+
+will resulting value for `endpoint` is `0x4254432e5553442e5052432e4156472e494451` - the 
+actual `_data` value that should be sent to the `requestData` function when calling it.
+:::
+
+### 3.2 recieveData
 
 `recieveData` will be called by the Data Provider (indirectly - it is actually proxied 
 via the Router smart contract) in order to fulfil a data request and send data to our smart contract.
 It must have the following parameters - although the names do not matter:
 
-`uint256 _price` - the price data the provider is sending
-`bytes32 _requestId` - the ID of the request being fulfilled
+`uint256 _price` - the price data the provider is sending  
+`bytes32 _requestId` - the ID of the request being fulfilled  
 `bytes memory _signature` - the provider's signature containing the data, request ID etc.used
 to validate the data being sent is actually from the requested provider etc.
 
-**Important**: It must also have the `Consumer.sol`'s `isValidFulfillment` modifier, so that the origin
+::: danger Important
+It must also have the `Consumer.sol`'s `isValidFulfillment` modifier, so that the origin
 of the data fulfilment can be verified such that only genuine data fulfilments are executed
 from authorised providers!
+:::
 
-Add the following function definition to your `DemoConsumer.sol` contract:
+Add the following function definition to your `MyDataConsumer.sol` contract:
 
 ```solidity
     function recieveData(
@@ -200,9 +242,11 @@ Add the following function definition to your `DemoConsumer.sol` contract:
     }
 ```
 
-**Note**: the `deleteRequest` function call is optional but highly recommended. It is a built
+::: warning Note
+the `deleteRequest` function call is optional but highly recommended. It is a built
 in function in the `Consumer.sol` smart contract, and will clean up the now unused request ID
 from your contract's storage.
+:::
 
 You can optionally also add an event to the function, for example:
 
@@ -220,7 +264,7 @@ and emit within the `recieveData` function:
         emit GotSomeData(_requestId, _price);
 ```
 
-The final `DemoConsumer.sol` code should now look something like this:
+The final `MyDataConsumer.sol` code should now look something like this:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -229,7 +273,7 @@ pragma solidity ^0.6.0;
 
 import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
 
-contract DemoConsumer is Consumer {
+contract MyDataConsumer is Consumer {
 
     uint256 public price;
 
@@ -349,7 +393,7 @@ create the following Truffle migration script in `migrations/2_deploy.js`:
 
 ```javascript
 require("dotenv").config()
-const DemoConsumer = artifacts.require("DemoConsumer")
+const MyDataConsumer = artifacts.require("MyDataConsumer")
 
 const {
   CONSUMER_LIB_ADDRESS,
@@ -357,17 +401,19 @@ const {
 } = process.env
 
 module.exports = function(deployer) {
-  DemoConsumer.link("ConsumerLib", CONSUMER_LIB_ADDRESS)
-  deployer.deploy(DemoConsumer, ROUTER_ADDRESS)
+  MyDataConsumer.link("ConsumerLib", CONSUMER_LIB_ADDRESS)
+  deployer.deploy(MyDataConsumer, ROUTER_ADDRESS)
 }
 ```
 
 This will deploy your contract with the required parameters, and also link your contract
 to the already deployed `ConsumerLib.sol` smart contract.
 
-**Important**: your contract must be linked to the deployed `ConsumerLib.sol` smart contract - either
+::: danger IMPORTANT
+your contract must be linked to the deployed `ConsumerLib.sol` smart contract - either
 the version already deployed at the above address by the Unification Foundation, or via your
 own deployment. Without the link, the OoO functionality will not work.
+:::
 
 ## 6. Deploy your contract
 
@@ -377,6 +423,6 @@ Finally, deploy your contract with the following command:
 npx truffle migrate --network=rinkeby
 ```
 
-That's it! You're now ready to initialise and interact with your OoO enable smart contract.
+That's it! You're now ready to initialise and interact with your OoO enabled smart contract.
 
 On to [interaction](interaction.md).
