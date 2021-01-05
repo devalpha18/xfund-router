@@ -21,7 +21,7 @@ The following addresses supply data from the Finchains OoO API:
 
 Data is acquired via the OoO API using dot-separated strings to define the desired data - for example
 "Average BTC/USD Price over 24 hours, with outliers removed" would be requested using
-`BTC.USD.PRC.AVG.IDQ`. 
+`BTC.USD.PR.AVI`. 
 
 The hex-encoded string is supplied along with the Provider address (as defined above,
 depending on Ethereum network) and the `xFUND` fee as parameters to your smart contract, 
@@ -30,16 +30,9 @@ using the [requestdata](implementation.md#_3-1-requestdata) function you defined
 The Finchains OoO Data Provider picks up this request, and supplies the data via the 
 [recievedata](implementation.md#_3-2-recievedata) function you defined.
 
-::: danger IMPORTANT
-Currently, the data available via Finchains' OoO is the mean `AVG` price `PRC` for all
-supported `BASE`s and `TARGET`s for the last hour, with optional `IDQ` calculation:
-
-`[BASE].[TARGET].PRC.AVG[.IDQ]`
-:::
-
 ## Request String Format
 
-The request format follows `BASE.TARGET.TYPE.SUBTYPE[.SUPP1][.SUPP2][.SUPP3][.POWER]`
+The request format follows `BASE.TARGET.TYPE.SUBTYPE[.SUPP1][.SUPP2][.SUPP3]`
 
 `BASE`, `TARGET`, `TYPE`, and `SUBTYPE` are all required parameters.
 
@@ -48,9 +41,14 @@ The data request string should be converted to a `Bytes32` (Hex) value before su
 your smart contract's request function, for example:
 
 ```javascript
-const endpoint = web3.utils.asciiToHex("BTC.USD.PRC.AVG.IDQ")
+const endpoint = web3.utils.asciiToHex("BTC.USD.PR.AVI")
 ```
 :::
+
+## Return data
+
+All price data is supplied as `actualPrice * (10 ** 18)` to standardise decimal removal, and
+allow integer calculations in smart contracts.
 
 ### BASE
 
@@ -67,64 +65,139 @@ the [Finchains API](https://crypto.finchains.io/api/pairs)
 
 ### TYPE
 
-The code for the data point being requested, for example `PRC`, `HI`, `LOW` etc.
+The code for the data point being requested, for example `PR`, `EX`, `DS` etc.
 The currently implemented types are as follows:
 
-- `PRC`: Price
+- `PR`: Price, calculated using all available exchange data for the selected pair
+- `EX`: Exchange data - returns data from the selected exchange, if available
+
+For Type `EX`, the exchange abbreviation is required in `SUPP1`:
+
+- `BNC`: Binance
+- `BFI`: Bitfinex
+- `BFO`: Bitforex
+- `BMR`: Bitmart
+- `BTS`: Bitstamp
+- `BTX`: Bittrex
+- `CBT`: Coinsbit
+- `CRY`: crypto.com
+- `DFX`: Digifinex
+- `GAT`: Gate
+- `GDX`: Coionbase
+- `GMN`: Gemini
+- `HUO`: Huobi
+- `KRK`: Kraken
+- `PRB`: Probit
 
 ### SUBTYPE
 
-The data sub-type, for example `AVG` (average), `LAT` (latest), `DSC` (discrepancies), 
-`EXC` (specific exchange data). Some `SUBTYPE`s, for example `EXC` _require_ additional 
+The data sub-type, for example `AVG` (mean), `LAT` (latest), `AVI` (mean with outliers
+removed). Some `TYPE`s, for example `EX` _require_ additional 
 `SUPPN` data defining Exchanges to query. Some may have _optional_ data defined in `SUPPN`.
 
 The currently implemented types are as follows:
 
+- `AVG`: Mean price calculated from all available exchange Oracles
+- `AVI`: Mean price using Median and Interquartile Deviation Method to remove outliers
+- `LAT`: Latest price received
+
 #### SUBTYPE: `AVG`
+
+**Supported `TYPE`s**: `PR`
 
 Average (Mean) price, calculated from all available exchange data for a given time
 period. 
 
-May have the following _optional_ parameters in `SUPP1`:
+The default timespan is 1 Hour. The following supported timespans can be supplied
+in `SUPP1`:
 
-  - `IDG`: Median and Interquartile Deviation Method - removes outliers (extremely high, or low values) 
-    from `AVG` calculations.
+- `5M`: 5 Minutes
+- `10M`: 10 Minutes
+- `30M`: 30 Minutes
+- `1H`: 1 Hour
+- `2H`: 2 Hours
+- `6H`: 6 Hours
+- `12H`: 12 Hours
+- `24H`: 24 Hours
+- `48H`: 48 Hours
 
+#### SUBTYPE: `AVI`
+
+**Supported `TYPE`s**: `PR`
+
+Average (Mean) price, calculated from all available exchange data for a given time
+period, with outliers (very high or very low values) removed form the calculation
+
+The default timespan is 1 Hour. The following supported timespans can be supplied 
+in `SUPP1`:
+
+- `5M`: 5 Minutes
+- `10M`: 10 Minutes
+- `30M`: 30 Minutes
+- `1H`: 1 Hour
+- `2H`: 2 Hours
+- `6H`: 6 Hours
+- `12H`: 12 Hours
+- `24H`: 24 Hours
+- `48H`: 48 Hours
+
+#### SUBTYPE: `LAT`
+
+**Supported `TYPE`s**: `PR`, `EX`
+
+The latest price submitted by the Oracles. In the case of `EX`, the latest price
+received from the selected exchange oracle. In the case of `PR`, the latest price received
+from _any_ exchange oracle.
+
+For Type `EX`, the exchange abbreviation is required in `SUPP1`:
+
+- `BNC`: Binance
+- `BFI`: Bitfinex
+- `BFO`: Bitforex
+- `BMR`: Bitmart
+- `BTS`: Bitstamp
+- `BTX`: Bittrex
+- `CBT`: Coinsbit
+- `CRY`: crypto.com
+- `DFX`: Digifinex
+- `GAT`: Gate
+- `GDX`: Coionbase
+- `GMN`: Gemini
+- `HUO`: Huobi
+- `KRK`: Kraken
+- `PRB`: Probit
 
 ### SUPP1
 
-Any supplementary request data, e.g. GDX (coinbase) etc. required for `SUBTYPE` queries such as EXC,
-or `IDQ` (Median and Interquartile Deviation Method) for removing outliers from `AVG` calculations etc.
-These are outlined in the `SUBTYPE` definitions above.
+Any supplementary request data, e.g. GDX (coinbase) etc. required for `TYPE.SUBTYPE` queries such as `EX.LAT`,
+or timespan values for `AVG` and `AVI` calculations etc.
 
+These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where appropriate.
 
 ### SUPP2
 
 Any supplementary request data _in addition_ to `SUPP1`, e.g. `GDX` (coinbase) etc. required
-for comparisons on TYPEs such as `DSC`.
+for comparisons on `TYPE`s such as `DS`.
 
-These are outlined in the `SUBTYPE` definitions above.
+These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where appropriate.
 
 ### SUPP3
 
 Any supplementary request data _in addition_ to `SUPP1` and `SUPP2`.
 
-These are outlined in the `SUBTYPE` definitions above.
-
-### POWER
-
-The _optional_ multiplier used to remove decimals, i.e. `price * (10 ** POWER)`.
-The default is 18, and the default data returned is `price * (10 ** 18)`. 
-
-Must be between 2 - 18 and **must always be the last part** of the request string.
+These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where appropriate.
 
 ## Examples
 
 Based on the currently implemented API functionality, some examples are as follows:
 
-- `BTC.GBP.PRC.AVG`: average BTC/GBP price, calculated from all supported exchanges over 
+- `BTC.GBP.PR.AVG`: average BTC/GBP price, calculated from all supported exchanges over 
   the last hour.
-- `ETH.USD.PRC.AVG.IDQ`: average ETH/USD price, calculated from all supported exchanges 
+- `ETH.USD.PR.AVI`: average ETH/USD price, calculated from all supported exchanges 
   over the last hour, removing outliers (extremely high/low values) from the calculation.
-- `ETH.USD.PRC.AVG.IDQ.9`: as above, with `price * (10 ** 9)`. E.g. 983.905515537 will be returned
-  as 983905515537.
+- `ETH.USD.PR.AVI.24H`: average ETH/USD price, calculated from all supported exchanges
+  over the last 24 hours, removing outliers (extremely high/low values) from the calculation.
+- `BTC.GBP.PR.LAT`: latest BTC/GBP received. Exchange agnostic - returns whatever the latest
+  value is available
+- `BTC.GBP.EX.LAT.GDX`: latest BTC/GBP price from Coinbase
+  

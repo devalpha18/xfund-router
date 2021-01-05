@@ -12,76 +12,197 @@ const pairIsSupported = (supportedPairs, base, target) => {
   return false
 }
 
-const apiBuilder = (dataToGet) => {
+const exchangePairIsSupported = async (exchange, base, target) => {
+  console.log(new Date(), "check pair", base, "/", target, "on", exchange)
+  return new Promise(async (resolve, reject) => {
+    const url = `${process.env.FINCHAINS_API_URL}/exchange/${exchange}/pairs`
+    console.log(new Date(), "url", url)
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        resolve(pairIsSupported(data, base, target))
+      })
+      .catch((err) => {
+        console.log(err.toString())
+        reject(err)
+      })
+  })
+}
+
+const getExchange = (ex) => {
+  let exchangeApi
+  switch(ex) {
+    case "BNC":
+      exchangeApi = "binance"
+      break
+    case "BFI":
+      exchangeApi = "bitfinex"
+      break
+    case "BFO":
+      exchangeApi = "bitforex"
+      break
+    case "BMR":
+      exchangeApi = "bitmart"
+      break
+    case "BTS":
+      exchangeApi = "bitstamp"
+      break
+    case "BTX":
+      exchangeApi = "bittrex"
+      break
+    case "CBT":
+      exchangeApi = "coinsbit"
+      break
+    case "CRY":
+      exchangeApi = "crypto_com"
+      break
+    case "DFX":
+      exchangeApi = "digifinex"
+      break
+    case "GAT":
+      exchangeApi = "gate"
+      break
+    case "GDX":
+      exchangeApi = "gdax"
+      break
+    case "GMN":
+      exchangeApi = "gemini"
+      break
+    case "HUO":
+      exchangeApi = "huobi"
+      break
+    case "KRK":
+      exchangeApi = "kraken"
+      break
+    case "PRB":
+      exchangeApi = "probit"
+      break
+    default:
+      exchangeApi = null
+      break
+  }
+  return exchangeApi
+}
+
+const cleanseTime = (tm) => {
+  switch (tm) {
+    case "5M":
+    case "10M":
+    case "30M":
+    case "1H":
+    case "2H":
+    case "6H":
+    case "12H":
+    case "24H":
+    case "48H":
+      return tm
+    default:
+      return "1H"
+  }
+}
+
+const getPriceSubType = (subtype, supp1) => {
+  let st
+  let t = cleanseTime(supp1)
+  switch(subtype) {
+    case "AVG":
+    default:
+      st = `avg/${t}`
+      break
+    case "AVI":
+      st = `avg/outlier/${t}`
+      break
+    case "LAT":
+      st = "latest_one"
+      break
+  }
+  return st
+}
+
+const apiBuilder = async (dataToGet, supportedPairs) => {
   const dataToGetArray = dataToGet.split(".");
   const base = dataToGetArray[0] // BTC etc
   const target = dataToGetArray[1] // GBP etc
-  const type = dataToGetArray[2] // PRC, HI, LOW,
+  const type = dataToGetArray[2] // PRC, EXC, DCS,
   const subtype = dataToGetArray[3] // AVG, LAT etc.
   const supp1 = dataToGetArray[4]
   const supp2 = dataToGetArray[5]
   const supp3 = dataToGetArray[6]
-  const power = parseInt(dataToGetArray[dataToGetArray.length - 1]) || 18
+
+  if(!pairIsSupported(supportedPairs, base, target)) {
+    throw new Error(`pair ${base}/${target} not currently supported`)
+  }
 
   const pair = `${base}/${target}`
+  let apiEndpoint = "currency"
+  let dataType = "avg"
 
-  // todo - switches on type & subtype.
+  switch(type) {
+    case "PR":
+    default:
+      apiEndpoint = "currency"
+      dataType = getPriceSubType(subtype, supp1)
+      break
+    case "EX":
+      const exchange = getExchange(supp1)
+      if(!exchange) {
+        throw new Error(`exchange ${supp1} in SUPP1 not currently supported`)
+      }
 
-  const url = `${process.env.FINCHAINS_API_URL}/currency/${pair}/avg/outlier`
+      let exchangeSupportsPair = false
+      try {
+        exchangeSupportsPair = await exchangePairIsSupported(exchange, base, target)
+      } catch (err) {
+        throw err
+      }
+      if(!exchangeSupportsPair) {
+        throw new Error(`pair ${pair} not currently supported by exchange ${exchange} (${supp1})`)
+      }
+      apiEndpoint = `exchange/${exchange}`
+      // latest is currently only supported SUBTYPE
+      dataType = "latest"
+      break
+  }
 
-  return { url, pair, base, target, type, subtype, supp1, supp2, supp3, power }
+  const url = `${process.env.FINCHAINS_API_URL}/${apiEndpoint}/${pair}/${dataType}`
+
+  console.log(new Date(), "get", url)
+
+  return { url, pair, base, target, type, subtype, supp1, supp2, supp3 }
 }
 
-// Request Format BASE.TARGET.TYPE.SUBTYPE[.SUPP1][.SUPP2][.SUPP3][.POWER]
+// Request Format BASE.TARGET.TYPE.SUBTYPE[[.SUPP1][.SUPP2][.SUPP3]]
 // BASE: base currency, e.g. BTC, ETH etc.
 // TARGET: target currency, e.g. GBP, USD
-// TYPE: data point being requested, e.g. PRC (price), HI, LOW (volumes)
-// SUBTYPE: data sub type, e.g. AVG (average), LAT (latest),  DSC (discrepancies), EXC (specific exchange data)
-//          some sub types, e.g. EXC and DSC require additional data defining Exchanges to query, as defined below
-// SUPP1: any supplimentary request data, e.g. GDX (coinbase) etc. required for TYPE queries such as EXC,
-//        or IDQ (Median and Interquartile Deviation Method) for removing outliers from AVG calculations etc.
-// SUPP2: any supplimentary request data, e.g. GDX (coinbase) etc. required for comparisions on TYPEs such as DSC
-// SUPP3: any supplimentary request data
-// POWER: the multipler used to remove decimals, i.e. price * (10 ** POWER). Default is 18. Must be between 2 - 18
-//        and must always be the last part of the request string.
+// TYPE: data point being requested, e.g. PR (pair price), EX (specific exchange data), DS (discrepancies)
+//       some types, e.g. EXC and DSC require additional SUPPN supplementary data defining Exchanges to query, as defined below
+// SUBTYPE: data sub type, e.g. AVG (average), LAT (latest), HI (hi price), LOW (low price),
+//          AVI Mean with IDQ (Median and Interquartile Deviation Method to remove outliers)
+// SUPP1: any supplementary request data, e.g. GDX (coinbase) etc. required for TYPE queries such as EXC
+// SUPP2: any supplementary request data, e.g. GDX (coinbase) etc. required for comparisons on TYPEs such as DSC
+// SUPP3: any supplementary request data
 //
 // Examples:
-// BTC.GBP.PRC.AVG - average BTC/GBP price, calculated from all supported exchanges over the last hour
-// BTC.GBP.PRC.AVG.IDQ - average BTC/GBP price, calculated from all supported exchanges over the last hour, removing outliers
-// BTC.GBP.PRC.AVG.IDQ.24H - average BTC/GBP price, calculated from all supported exchanges over the last 24 hours, removing outliers
-// BTC.GBP.PRC.AVG.IDQ.24H.9 - as above, with result * (10 ** 9)
-// BTC.GBP.PRC.EXC.GDX.AVG.24H.12 - average 24 Hour BTC/GBP price from Coinbase, return with price * (10 ** 12)
-// ETH.USD.PRC.EXC.BNC.LAT - latest ETH/USD price from Binance
-// BTC.ETH.PRC.DSC.BNC.GDX - latest BTC/ETH price discrepancy between Coinbase and Binance
-const processRequest = async (dataToGet, supportedPairs) => {
+// BTC.GBP.PR.AVG - average BTC/GBP price, calculated from all supported exchanges in the last hour
+// BTC.GBP.PR.HI - highest BTC/GBP price, calculated from all supported exchanges in the last hour
+// BTC.GBP.PR.AVI - average BTC/GBP price, calculated from all supported exchanges over the last hour, removing outliers
+// BTC.GBP.PR.LAT - latest BTC/GBP price submitted to Finchains - latest exchange to submit price (not always the same exchange)
+// BTC.GBP.PR.AVI.24H - average BTC/GBP price, calculated from all supported exchanges over the last 24 hours, removing outliers
+// BTC.GBP.EX.AVG.GDX.24H - average 24 Hour BTC/GBP price from Coinbase
+// BTC.GBP.EX.AVI.GDX.24H - average 24 Hour BTC/GBP price from Coinbase, remove outliers
+// ETH.USD.EX.LAT.BNC - latest ETH/USD price from Binance
+// ETH.USD.EX.HI.DGX.24H - highest ETH/USD price from Coinbase in last 24 hours
+// ETH.USD.EX.LOW.DGX.24H - highest ETH/USD price from Coinbase in last 24 hours
+const processRequest = (dataToGet, supportedPairs) => {
   return new Promise((resolve, reject) => {
-    const d = apiBuilder(dataToGet)
-
-    if(!pairIsSupported(supportedPairs, d.base, d.target)) {
-      reject(new Error(`pair ${d.pair} not currently supported`))
-    }
-
-    console.log(new Date(), "get", d.url)
-
-    fetch(d.url)
+    apiBuilder(dataToGet, supportedPairs)
+      .then((d) => fetch(d.url))
       .then((r) => r.json())
       .then((data) => {
         // Finchains API returns:
         // data.priceRaw: = actual decimal price
         // data.price: priceRaw * (10 ** 18)
-        if(d.power !== 18) {
-          let pow = parseInt(d.power)
-          if(pow > 18) {
-            pow = 18
-          }
-          if(pow < 2) {
-            pow = 2
-          }
-          resolve(new BN( data.priceRaw * ( 10 ** pow ) ))
-        } else {
-          // Finchains API returns price as * (10 ** 18) by default.
-          resolve( new BN( data.price ) )
-        }
+        resolve( new BN( data.price ) )
       })
       .catch((err) => {
         // return error to the caller
