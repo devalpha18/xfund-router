@@ -202,13 +202,13 @@ the Data Provider, which decodes the Hex input back to the string.
 As such the data request string should be converted to a `hex` value before 
 calling your smart contract's `requestData` function and passing the value. 
 
-For example, when requesting `BTC.USD.PRC.AVG.IDG`, this can be done with:
+For example, when requesting `BTC.USD.PR.AVI`, this can be done with:
 
 ```javascript
-const endpoint = web3.utils.asciiToHex("BTC.USD.PRC.AVG.IDQ")
+const endpoint = web3.utils.asciiToHex("BTC.USD.PR.AVI")
 ```
 
-will resulting value for `endpoint` is `0x4254432e5553442e5052432e4156472e494451` - the 
+will resulting value for `endpoint` is `0x4254432e5553442e50522e415649` - the 
 actual `_data` value that should be sent to the `requestData` function when calling it.
 :::
 

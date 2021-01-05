@@ -162,7 +162,7 @@ The result should be 0.
 Next, request some data from the provider. Run:
 
 ```bash
-truffle(develop)> let endpoint = web3.utils.asciiToHex("BTC.GBP.PRC.AVG.IDQ")
+truffle(develop)> let endpoint = web3.utils.asciiToHex("BTC.GBP.PR.AVI")
 truffle(develop)> mockConsumer.requestData(provider, endpoint, 80, {from: consumerOwner})
 ```
 
