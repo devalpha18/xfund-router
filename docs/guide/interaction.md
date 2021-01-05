@@ -130,8 +130,15 @@ The price should now be a non-zero value.
 
 :::tip Note
 By default, the OoO sends all price data converted to `actualPrice * (10 ** 18)` in
-order to remove any decimals. The Power multiplier can be defined in the data
-request string (see [Finchains OoO API](ooo_api.md))
+order to remove any decimals. 
+
+To convert to the actual decimal price, you can for example:
+
+```bash
+truffle(rinkeby)> let actualPrice = web3.utils.fromWei(priceAfter)
+truffle(rinkeby)> actualPrice.toString()
+```
+
 :::
 
 Next - see what data can be requested via the [Finchains OoO API](ooo_api.md).
