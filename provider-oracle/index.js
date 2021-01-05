@@ -20,7 +20,7 @@ const run = async () => {
   const runWhat = args["--run"]
   const eventToGet = args["--event"] || "DataRequested"
 
-  const { WATCH_FROM_BLOCK, FINCHAINS_API_URL } = process.env
+  const { WATCH_FROM_BLOCK, FINCHAINS_API_URL, MIN_FEE } = process.env
 
   const fromBlock = WATCH_FROM_BLOCK || 0
 
@@ -48,23 +48,29 @@ const run = async () => {
 
           // check it's for us
           if(Web3.utils.toChecksumAddress(dataProvider) === Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)) {
+            // check request ID exists (has not been fulfiled, cancelled etc.)
             const requestExists = await getRequestExists(requestId)
             if(requestExists) {
               console.log(new Date(), "data requested", dataToGet, "from", dataConsumer)
-              await processRequest( dataToGet, supportedPairs )
-                .then(async (priceToSend) => {
-                  if ( priceToSend.gt( new BN( "0" ) ) ) {
-                    console.log(new Date(), "fulfillRequest data", priceToSend.toString())
-                    const txHash = await fulfillRequest(requestId, priceToSend, dataConsumer, gasPriceWei)
-                    console.log(new Date(), "fulfillRequest txHash", txHash)
-                  }
-                })
-                .catch((err) => {
-                  console.error(new Date(), "ERROR:")
-                  console.error(err.toString())
-                })
+              // check fees
+              if(parseInt(fee) >= parseInt(MIN_FEE)) {
+                await processRequest( dataToGet, supportedPairs )
+                  .then(async (priceToSend) => {
+                    if ( priceToSend.gt( new BN( "0" ) ) ) {
+                      console.log(new Date(), "fulfillRequest data", priceToSend.toString())
+                      const txHash = await fulfillRequest(requestId, priceToSend, dataConsumer, gasPriceWei)
+                      console.log(new Date(), "fulfillRequest txHash", txHash)
+                    }
+                  })
+                  .catch((err) => {
+                    console.error(new Date(), "ERROR:")
+                    console.error(err.toString())
+                  })
+              } else {
+                console.log(new Date(), "fee", fee, "for requestId", requestId, "not enough. MIN_FEE=", MIN_FEE)
+              }
             } else {
-              console.log(new Date(), "request", requestId, "does not exist. Probably already processed")
+              console.log(new Date(), "request", requestId, "does not exist. Perhaps already processed or cancelled")
             }
           } else {
             console.log(new Date(), "request", requestId, "not for me (for ", dataProvider, ")")
@@ -82,7 +88,7 @@ const run = async () => {
         })
         .catch((err) => {
           console.error(new Date(), "ERROR:")
-          console.error(err)
+          console.error(err.toString())
         })
       break
     default:
