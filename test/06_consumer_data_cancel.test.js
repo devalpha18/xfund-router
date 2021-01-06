@@ -92,7 +92,7 @@ describe('Consumer - request cancellation tests', function () {
       await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner1})
 
       // add a dataProvider1
-      await this.MockConsumerContract.addDataProvider(dataProvider1, fee, {from: dataConsumerOwner1});
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider1, fee, false, {from: dataConsumerOwner1});
 
       // Admin Transfer 10 Tokens to dataConsumerOwner1
       await this.MockTokenContract.transfer(dataConsumerOwner1, new BN(10 * (10 ** decimals)), {from: admin})
@@ -217,11 +217,11 @@ describe('Consumer - request cancellation tests', function () {
       await this.MockConsumerContract2.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner2})
 
       // add dataProvider1
-      await this.MockConsumerContract1.addDataProvider(dataProvider1, c1p1Fee, {from: dataConsumerOwner1});
-      await this.MockConsumerContract2.addDataProvider(dataProvider1, c2p1Fee, {from: dataConsumerOwner2});
+      await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, c1p1Fee, false, {from: dataConsumerOwner1});
+      await this.MockConsumerContract2.addRemoveDataProvider(dataProvider1, c2p1Fee, false, {from: dataConsumerOwner2});
       // add dataProvider2
-      await this.MockConsumerContract1.addDataProvider(dataProvider2, c1p2Fee, {from: dataConsumerOwner1});
-      await this.MockConsumerContract2.addDataProvider(dataProvider2, c2p2Fee, {from: dataConsumerOwner2});
+      await this.MockConsumerContract1.addRemoveDataProvider(dataProvider2, c1p2Fee, false, {from: dataConsumerOwner1});
+      await this.MockConsumerContract2.addRemoveDataProvider(dataProvider2, c2p2Fee, false, {from: dataConsumerOwner2});
 
       // Admin Transfer 10000000000 Tokens to dataConsumerOwners
       await this.MockTokenContract.transfer(dataConsumerOwner1, new BN(10 * (10 ** decimals)), {from: admin})

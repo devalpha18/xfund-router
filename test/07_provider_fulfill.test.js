@@ -100,7 +100,7 @@ describe('Provider - fulfillment tests', function () {
       await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
       // add a dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee, {from: dataConsumerOwner});
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
 
       // Admin Transfer 100 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(100 * (10 ** decimals)), {from: admin})
@@ -247,7 +247,7 @@ describe('Provider - fulfillment tests', function () {
       } )
 
       // revoke priviledges for dataProvider
-      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } )
 
       // dataProvider tries to fulfill request
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
@@ -292,7 +292,7 @@ describe('Provider - fulfillment tests', function () {
     // set up ideal scenario for these tests
     beforeEach( async function () {
       // add a dataProvider
-      await this.MockConsumerContract.addDataProvider( dataProvider, fee, { from: dataConsumerOwner } );
+      await this.MockConsumerContract.addRemoveDataProvider( dataProvider, fee, false, { from: dataConsumerOwner } );
 
       // Admin Transfer 100 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer( dataConsumerOwner, new BN( 100 * ( 10 ** decimals ) ), { from: admin } )

@@ -107,7 +107,7 @@ describe('Router - interaction tests', function () {
       const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
       const mockRouter = await Router.new(mockToken.address, {from: admin})
       const mockConsumer = await MockConsumer.new(mockRouter.address, {from: dataConsumerOwner})
-      await mockConsumer.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+      await mockConsumer.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
 
       const isNotAuthorised = await mockRouter.providerIsAuthorised(rando, dataProvider)
       expect(isNotAuthorised).to.equal(false)
@@ -126,7 +126,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'requestExists - request does exist', async function () {
-        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -146,7 +146,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestConsumer - request does exist, consumer is contract address', async function () {
-        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -166,7 +166,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestProvider - request does exist, provider is contract address', async function () {
-        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -187,7 +187,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestExpires - request does exist, expires > now', async function () {
-        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -211,7 +211,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestGasPrice - request does exist, gas price is same as gasPrice sent in request', async function () {
-        await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+        await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
         // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -577,7 +577,7 @@ describe('Router - interaction tests', function () {
     })
 
     it( 'fulfillRequest - request cannot be fulfilled by random actor', async function () {
-      await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -599,7 +599,7 @@ describe('Router - interaction tests', function () {
     })
 
     it( 'fulfillRequest - unauthorised dataProvider can no longer provide data', async function () {
-      await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -611,7 +611,7 @@ describe('Router - interaction tests', function () {
       const reqId = getReqIdFromReceipt(receipt)
 
       // after data request has been sent, dataProvider is revoked
-      await this.MockConsumerContract.removeDataProvider(dataProvider, {from: dataConsumerOwner})
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, {from: dataConsumerOwner})
 
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
       const sig = await web3.eth.accounts.sign(msg, dataProviderPk)
@@ -626,7 +626,7 @@ describe('Router - interaction tests', function () {
 
     // Assumes Consumer has correctly implemented Consumer lib and isValidFulfillment modifier!
     it( 'fulfillRequest - data sent must match data in signature', async function () {
-      await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
@@ -658,7 +658,7 @@ describe('Router - interaction tests', function () {
     })
 
     it( 'cancelRequest - must come from dataConsumer who submitted the request', async function () {
-      await this.MockConsumerContract.addDataProvider(dataProvider, 100, {from: dataConsumerOwner})
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner

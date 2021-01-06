@@ -362,7 +362,7 @@ describe('Consumer - only owner function tests', function () {
     it( 'owner can add a data provider - emits AddedDataProvider event', async function () {
       const fee = 100
 
-      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'AddedDataProvider', {
         sender: dataConsumerOwner,
@@ -375,7 +375,7 @@ describe('Consumer - only owner function tests', function () {
     it( 'owner can add a data provider - emits Router GrantProviderPermission event', async function () {
       const fee = 100
 
-      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
       expectEvent(receipt, 'GrantProviderPermission', {
         dataConsumer: this.MockConsumerContract.address,
@@ -386,7 +386,7 @@ describe('Consumer - only owner function tests', function () {
     it( 'owner can add a data provider - dataProvider is authorised for this contract on Router', async function () {
       const fee = 100
 
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
       // dataProvider should now be authorised on Router for this contract
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( true )
@@ -396,7 +396,7 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       await expectRevert(
-        this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: rando } ),
         "ConsumerLib: only owner"
       )
     } )
@@ -405,7 +405,7 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       await expectRevert(
-        this.MockConsumerContract.addDataProvider(dataProvider, fee, { from: rando } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: rando } ),
         "ConsumerLib: only owner"
       )
 
@@ -413,30 +413,30 @@ describe('Consumer - only owner function tests', function () {
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
     } )
 
-    it( 'addDataProvider - data provider must not be a zero address', async function () {
+    it( 'addRemoveDataProvider - data provider must not be a zero address', async function () {
       const fee = 100
 
       await expectRevert(
-        this.MockConsumerContract.addDataProvider(constants.ZERO_ADDRESS, fee, { from: dataConsumerOwner } ),
+        this.MockConsumerContract.addRemoveDataProvider(constants.ZERO_ADDRESS, fee, false, { from: dataConsumerOwner } ),
         "ConsumerLib: dataProvider cannot be the zero address"
       )
     } )
 
-    it( 'addDataProvider - initial fee must be > 0', async function () {
+    it( 'addRemoveDataProvider - initial fee must be > 0', async function () {
       await expectRevert(
-        this.MockConsumerContract.addDataProvider(dataProvider, 0, { from: dataConsumerOwner } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, false, { from: dataConsumerOwner } ),
         "ConsumerLib: fee must be > 0"
       )
     } )
 
-    it( 'addDataProvider - can add, remove, then authorise with fee = 0 - oldFee and newFee match in event', async function () {
+    it( 'addRemoveDataProvider - can add, remove, then authorise with fee = 0 - oldFee and newFee match in event', async function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, 0,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, false, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'AddedDataProvider', {
         sender: dataConsumerOwner,
@@ -446,14 +446,14 @@ describe('Consumer - only owner function tests', function () {
       } )
     } )
 
-    it( 'addDataProvider - can add, remove, then authorise with fee = 0 - fee remains unchanged', async function () {
+    it( 'addRemoveDataProvider - can add, remove, then authorise with fee = 0 - fee remains unchanged', async function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
-      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } )
 
-      await this.MockConsumerContract.addDataProvider(dataProvider, 0,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, false, { from: dataConsumerOwner } )
 
       const f = await this.MockConsumerContract.getDataProviderFee(dataProvider)
       expect( f.toNumber() ).to.equal( fee )
@@ -463,9 +463,9 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'RemovedDataProvider', {
         sender: dataConsumerOwner,
@@ -477,9 +477,9 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
-      const receipt = await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'RevokeProviderPermission', {
         dataConsumer: this.MockConsumerContract.address,
@@ -491,11 +491,11 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
       // dataProvider should be authorised in Router
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( true )
 
-      await this.MockConsumerContract.removeDataProvider(dataProvider,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } )
 
       // dataProvider should no longer be authorised in Router
       expect( await this.RouterContract.providerIsAuthorised(this.MockConsumerContract.address, dataProvider) ).to.equal( false )
@@ -505,10 +505,10 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
       await expectRevert(
-        this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: rando } ),
         "ConsumerLib: only owner"
       )
 
@@ -518,10 +518,10 @@ describe('Consumer - only owner function tests', function () {
       const fee = 100
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
       await expectRevert(
-        this.MockConsumerContract.removeDataProvider(dataProvider, { from: rando } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: rando } ),
         "ConsumerLib: only owner"
       )
 
@@ -531,7 +531,7 @@ describe('Consumer - only owner function tests', function () {
 
     it( 'cannot remove non existent data provider', async function () {
       await expectRevert(
-        this.MockConsumerContract.removeDataProvider(dataProvider, { from: dataConsumerOwner } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, true, { from: dataConsumerOwner } ),
         "ConsumerLib: _dataProvider is not authorised"
       )
 
@@ -543,12 +543,12 @@ describe('Consumer - only owner function tests', function () {
       const newFee = 200
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
       const f1 = await this.MockConsumerContract.getDataProviderFee(dataProvider)
       expect( f1.toNumber() ).to.equal( fee )
 
       // update
-      const receipt = await this.MockConsumerContract.addDataProvider(dataProvider, newFee,  { from: dataConsumerOwner } )
+      const receipt = await this.MockConsumerContract.addRemoveDataProvider(dataProvider, newFee, false, { from: dataConsumerOwner } )
 
       expectEvent( receipt, 'AddedDataProvider', {
         sender: dataConsumerOwner,
@@ -563,10 +563,10 @@ describe('Consumer - only owner function tests', function () {
       const newFee = 200
 
       // add the dataProvider with fee of 100
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
 
       // set fee to 200
-      await this.MockConsumerContract.addDataProvider(dataProvider, newFee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, newFee, false, { from: dataConsumerOwner } )
 
       const f2 = await this.MockConsumerContract.getDataProviderFee(dataProvider)
       expect( f2.toNumber() ).to.equal( newFee )
@@ -578,12 +578,12 @@ describe('Consumer - only owner function tests', function () {
       const newFee = 200
 
       // add the dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee,  { from: dataConsumerOwner } )
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, { from: dataConsumerOwner } )
       const f1 = await this.MockConsumerContract.getDataProviderFee(dataProvider)
       expect( f1.toNumber() ).to.equal( fee )
 
       await expectRevert(
-        this.MockConsumerContract.addDataProvider(dataProvider, newFee, { from: rando } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, newFee, false, { from: rando } ),
         "ConsumerLib: only owner"
       )
 
@@ -592,10 +592,10 @@ describe('Consumer - only owner function tests', function () {
       expect( f2.toNumber() ).to.equal( fee )
     } )
 
-    it( 'addDataProvider - initial fee must be > 0', async function () {
+    it( 'addRemoveDataProvider - initial fee must be > 0', async function () {
 
       await expectRevert(
-        this.MockConsumerContract.addDataProvider(dataProvider, 0, { from: dataConsumerOwner } ),
+        this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, false, { from: dataConsumerOwner } ),
         "ConsumerLib: fee must be > 0"
       )
     } )
