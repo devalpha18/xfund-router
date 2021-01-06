@@ -257,7 +257,6 @@ library ConsumerLib {
         require(_amount > 0, "ConsumerLib: amount cannot be zero");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         require(_amount <= self.requestVars[2], "ConsumerLib: amount cannot exceed own gasTopUpLimit");
-        require(address(msg.sender).balance >= _amount, "ConsumerLib: sender has insufficient balance");
         return true;
     }
 

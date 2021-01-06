@@ -38,9 +38,9 @@ Addresses for the currently deployed contracts, required for interaction and int
 
 ### Testnet (Rinkeby)
 
-xFUND Mock Token: [`0x8aF5e2b4F5eBd6b7E0E82d73bDDa20b3f589ae2e`](https://rinkeby.etherscan.io/address/0x8aF5e2b4F5eBd6b7E0E82d73bDDa20b3f589ae2e#code)  
-Router: [`0x414aE636df82F7D61d1cC694071918eC8B857889`](https://rinkeby.etherscan.io/address/0x414aE636df82F7D61d1cC694071918eC8B857889#code)  
-ConsumerLib: [`0xcD10aCBdf6FCd16c6f03d923c13416e08812829C`](https://rinkeby.etherscan.io/address/0xcD10aCBdf6FCd16c6f03d923c13416e08812829C#code)  
+xFUND Mock Token: [`0x81366aF400cf3050eA04B1BcB8592C3203C84dFb`](https://rinkeby.etherscan.io/address/0x81366aF400cf3050eA04B1BcB8592C3203C84dFb#code)  
+Router: [`0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B`](https://rinkeby.etherscan.io/address/0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B#code)  
+ConsumerLib: [`0xD64127b18F8280F0528Cf5b77402a358cC21612E`](https://rinkeby.etherscan.io/address/0xD64127b18F8280F0528Cf5b77402a358cC21612E#code)  
 Finchains Data Provider Oracle Address: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)
 
 ### Mainnet

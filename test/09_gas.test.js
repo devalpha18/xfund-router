@@ -496,9 +496,12 @@ describe('Consumer - Gas top up and withdraw', function () {
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
         // add a data provider
         await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
+
+        const balance = await web3.eth.getBalance(dataConsumerOwner1)
+
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "ConsumerLib: sender has insufficient balance"
+          `sender doesn't have enough funds to send tx. The upfront cost is: 101120000000000000000 and the sender's account only has: ${balance}`
         )
       } )
 
@@ -515,7 +518,7 @@ describe('Consumer - Gas top up and withdraw', function () {
 
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "ConsumerLib: sender has insufficient balance"
+          `sender doesn't have enough funds to send tx. The upfront cost is: 101120000000000000000 and the sender's account only has: ${startBalance}`
         )
 
         const newBalance = await web3.eth.getBalance(dataConsumerOwner1)
@@ -532,9 +535,11 @@ describe('Consumer - Gas top up and withdraw', function () {
         // add a data provider
         await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
 
+        const dcBalance = await web3.eth.getBalance(dataConsumerOwner1)
+
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "ConsumerLib: sender has insufficient balance"
+          `sender doesn't have enough funds to send tx. The upfront cost is: 101120000000000000000 and the sender's account only has: ${dcBalance}`
         )
 
         const routerBalance = await web3.eth.getBalance(this.RouterContract.address)
@@ -570,8 +575,14 @@ describe('Consumer - Gas top up and withdraw', function () {
         )
       } )
 
+      it( 'cannot increase own limit past Router limit - should revert with error', async function () {
+        const topupValue = web3.utils.toWei("10", "ether")
+        await expectRevert(
+          this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, topupValue, { from: dataConsumerOwner1 }),
+          "ConsumerLib: _value must be <= Router gasTopUpLimit"
+        )
+      } )
     })
-
   })
 
   /*
