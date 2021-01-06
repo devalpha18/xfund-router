@@ -3,8 +3,11 @@
 pragma solidity ^0.6.0;
 
 import "../lib/Consumer.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract MockBadConsumerBadImpl is Consumer {
+    using SafeMath for uint256;
+
     uint256 public price;
     uint256 public price2;
     uint256 public price3;

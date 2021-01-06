@@ -4,8 +4,6 @@ pragma solidity ^0.6.0;
 
 import "./ConsumerLib.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title Data Consumer smart contract
@@ -21,8 +19,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * smart contract
  */
 contract Consumer {
-    using SafeMath for uint256;
-    using Address for address;
     using ConsumerLib for ConsumerLib.State;
 
     /*
@@ -107,7 +103,8 @@ contract Consumer {
     /**
      * @dev addRemoveDataProvider add a new authorised data provider to this contract, and
      *      authorise it to provide data via the Router, set new fees, or remove
-     *      a currently authorised provider
+     *      a currently authorised provider. Fees are set here to reduce gas costs when
+     *      requesting data, and to remove the need to specify the fee with every request
      *      Can only be called by the current owner.
      *      Note: Contract ownership is checked in the underlying ConsumerLib function
      *
@@ -275,7 +272,7 @@ contract Consumer {
     }
 
     /**
-     * @dev getDataProviderFee returns the fee for the given provider
+     * @dev getDataProviderFee returns the fee currently set for the given provider
      *
      * @return uint256
      */

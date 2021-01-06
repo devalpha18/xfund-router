@@ -408,7 +408,7 @@ library ConsumerLib {
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // check gas isn't stupidly high
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
-        // check there are enough tokens, and that the router has a high enough allowance to pay fees
+        // get the fee currently set
         uint256 fee = self.dataProviders[_dataProvider].fee;
 
         // generate the requestId
