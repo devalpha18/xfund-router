@@ -17,8 +17,7 @@ smart contract
 - [`withdrawAllTokens()`](#Consumer-withdrawAllTokens--)
 - [`transferOwnership(address payable _newOwner)`](#Consumer-transferOwnership-address-payable-)
 - [`setRouterAllowance(uint256 _routerAllowance, bool _increase)`](#Consumer-setRouterAllowance-uint256-bool-)
-- [`addDataProvider(address _dataProvider, uint256 _fee)`](#Consumer-addDataProvider-address-uint256-)
-- [`removeDataProvider(address _dataProvider)`](#Consumer-removeDataProvider-address-)
+- [`addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`](#Consumer-addRemoveDataProvider-address-uint256-bool-)
 - [`setRequestVar(uint8 _var, uint256 _value)`](#Consumer-setRequestVar-uint8-uint256-)
 - [`setRouter(address _router)`](#Consumer-setRouter-address-)
 - [`topUpGas(address _dataProvider)`](#Consumer-topUpGas-address-)
@@ -82,10 +81,12 @@ setRouterAllowance allows the token holder (contract owner) to
 - `_routerAllowance`: the amount of tokens the owner would like to increase/decrease allocation by
 
 - `_increase`: bool true to increase, false to decrease
-<a name="Consumer-addDataProvider-address-uint256-"></a>
-### Function `addDataProvider(address _dataProvider, uint256 _fee)`
-addDataProvider add a new authorised data provider to this contract, and
-     authorise it to provide data via the Router
+<a name="Consumer-addRemoveDataProvider-address-uint256-bool-"></a>
+### Function `addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`
+addRemoveDataProvider add a new authorised data provider to this contract, and
+     authorise it to provide data via the Router, set new fees, or remove
+     a currently authorised provider. Fees are set here to reduce gas costs when
+     requesting data, and to remove the need to specify the fee with every request
      Can only be called by the current owner.
      Note: Contract ownership is checked in the underlying ConsumerLib function
 
@@ -94,16 +95,8 @@ addDataProvider add a new authorised data provider to this contract, and
 - `_dataProvider`: the address of the data provider
 
 - `_fee`: the data provider's fee
-<a name="Consumer-removeDataProvider-address-"></a>
-### Function `removeDataProvider(address _dataProvider)`
-removeDataProvider remove a data provider and its authorisation to provide data
-     for this smart contract from the Router
-     Can only be called by the current owner.
-     Note: Contract ownership is checked in the underlying ConsumerLib function
 
-
-#### Parameters:
-- `_dataProvider`: the address of the data provider
+- `_remove`: bool set to true to de-authorise
 <a name="Consumer-setRequestVar-uint8-uint256-"></a>
 ### Function `setRequestVar(uint8 _var, uint256 _value)`
 setRequestVar set the specified variable. Request variables are used
@@ -136,7 +129,7 @@ setRouter set the address of the Router smart contract
 topUpGas send ETH to the Router for refunding gas costs to data providers
      for fulfilling data requests. The ETH sent will only be used for the data
      provider specified, and can be withdrawn at any time via the withdrawTopUpGas
-     function.
+     function. ConsumerLib handles any input validation.
 
      ETH sent is forwarded to the Router smart contract, and held there. It is "assigned"
      to the specified data provider's address.
@@ -229,7 +222,7 @@ getRouterAddress returns the address of the Router smart contract being used
 
 <a name="Consumer-getDataProviderFee-address-"></a>
 ### Function `getDataProviderFee(address _dataProvider) -> uint256`
-getDataProviderFee returns the fee for the given provider
+getDataProviderFee returns the fee currently set for the given provider
 
 
 <a name="Consumer-owner--"></a>

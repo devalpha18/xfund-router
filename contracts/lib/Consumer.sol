@@ -4,8 +4,6 @@ pragma solidity ^0.6.0;
 
 import "./ConsumerLib.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title Data Consumer smart contract
@@ -21,8 +19,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * smart contract
  */
 contract Consumer {
-    using SafeMath for uint256;
-    using Address for address;
     using ConsumerLib for ConsumerLib.State;
 
     /*
@@ -105,28 +101,19 @@ contract Consumer {
     }
 
     /**
-     * @dev addDataProvider add a new authorised data provider to this contract, and
-     *      authorise it to provide data via the Router
+     * @dev addRemoveDataProvider add a new authorised data provider to this contract, and
+     *      authorise it to provide data via the Router, set new fees, or remove
+     *      a currently authorised provider. Fees are set here to reduce gas costs when
+     *      requesting data, and to remove the need to specify the fee with every request
      *      Can only be called by the current owner.
      *      Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
+     * @param _remove bool set to true to de-authorise
      */
-    function addDataProvider(address _dataProvider, uint256 _fee) external {
-        require(consumerState.addDataProvider(_dataProvider, _fee));
-    }
-
-    /**
-     * @dev removeDataProvider remove a data provider and its authorisation to provide data
-     *      for this smart contract from the Router
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
-     *
-     * @param _dataProvider the address of the data provider
-     */
-    function removeDataProvider(address _dataProvider) external {
-        require(consumerState.removeDataProvider(_dataProvider));
+    function addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove) external {
+        require(consumerState.addRemoveDataProvider(_dataProvider, _fee, _remove));
     }
 
     /**
@@ -163,7 +150,7 @@ contract Consumer {
      * @dev topUpGas send ETH to the Router for refunding gas costs to data providers
      *      for fulfilling data requests. The ETH sent will only be used for the data
      *      provider specified, and can be withdrawn at any time via the withdrawTopUpGas
-     *      function.
+     *      function. ConsumerLib handles any input validation.
      *
      *      ETH sent is forwarded to the Router smart contract, and held there. It is "assigned"
      *      to the specified data provider's address.
@@ -181,13 +168,9 @@ contract Consumer {
     function topUpGas(address _dataProvider)
     external
     payable {
-        require(msg.sender == consumerState.OWNER, "Consumer: only owner can do this");
         uint256 amount = msg.value;
-        require(consumerState.dataProviders[_dataProvider].isAuthorised, "Consumer: _dataProvider is not authorised");
-        require(address(msg.sender).balance >= amount, "Consumer: sender has insufficient balance");
-        require(amount > 0, "Consumer: amount cannot be zero");
-        require(amount <= consumerState.requestVars[2], "Consumer: amount cannot exceed own gasTopUpLimit");
-        require(consumerState.router.topUpGas{value:amount}(_dataProvider), "Consumer: router.topUpGas failed");
+        require(consumerState.validateTopUpGas(_dataProvider, amount));
+        require(consumerState.router.topUpGas{value:amount}(_dataProvider));
     }
 
     /**
@@ -289,7 +272,7 @@ contract Consumer {
     }
 
     /**
-     * @dev getDataProviderFee returns the fee for the given provider
+     * @dev getDataProviderFee returns the fee currently set for the given provider
      *
      * @return uint256
      */

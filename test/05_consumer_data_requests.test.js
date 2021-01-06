@@ -92,7 +92,7 @@ describe('Consumer - data request tests', function () {
       await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
 
       // add a dataProvider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee, {from: dataConsumerOwner});
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
 
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -169,7 +169,7 @@ describe('Consumer - data request tests', function () {
 
       it( 'dataConsumer (owner) can add rando as new data provider and initialise a request', async function () {
         // add rando as new provider
-        await this.MockConsumerContract.addDataProvider( rando, fee, { from: dataConsumerOwner } );
+        await this.MockConsumerContract.addRemoveDataProvider( rando, fee, false, { from: dataConsumerOwner } );
 
         const reciept = await this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } )
         const reqId = await getReqIdFromReceipt(reciept)
@@ -181,7 +181,7 @@ describe('Consumer - data request tests', function () {
 
       it( 'request will fail if dataProvider revoked - reverts with error', async function () {
         // remove dataProvider as a data provider
-        await this.MockConsumerContract.removeDataProvider( dataProvider, { from: dataConsumerOwner } );
+        await this.MockConsumerContract.addRemoveDataProvider( dataProvider, 0, true, { from: dataConsumerOwner } );
         // dataProvider is no longer authorised
         await expectRevert(
           this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } ),
@@ -200,7 +200,7 @@ describe('Consumer - data request tests', function () {
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
       // add Data provider
-      await this.MockConsumerContract.addDataProvider(dataProvider, fee, {from: dataConsumerOwner});
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
 
       // set provider to pay gas for data fulfilment - not testing this here
       await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
@@ -274,7 +274,7 @@ describe('Consumer - data request tests', function () {
         // add tokens to consumer contract
         await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialContract, { from: dataConsumerOwner } )
         // add Data provider
-        await this.MockConsumerContract.addDataProvider( dataProvider, dpFee, { from: dataConsumerOwner } );
+        await this.MockConsumerContract.addRemoveDataProvider( dataProvider, dpFee, false, { from: dataConsumerOwner } );
         // increase router allowance
         await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
 
@@ -313,9 +313,9 @@ describe('Consumer - data request tests', function () {
         // add tokens to consumer contract
         await this.MockTokenContract.transfer( this.MockConsumerContract.address, initialContract, { from: dataConsumerOwner } )
         // add Data provider1
-        await this.MockConsumerContract.addDataProvider( dataProvider, dp1Fee, { from: dataConsumerOwner } );
+        await this.MockConsumerContract.addRemoveDataProvider( dataProvider, dp1Fee, false, { from: dataConsumerOwner } );
         // add Data provider2
-        await this.MockConsumerContract.addDataProvider( dataProvider2, dp2Fee, { from: dataConsumerOwner } );
+        await this.MockConsumerContract.addRemoveDataProvider( dataProvider2, dp2Fee, false, { from: dataConsumerOwner } );
         // increase router allowance
         await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
 
@@ -362,9 +362,9 @@ describe('Consumer - data request tests', function () {
         // add tokens to consumer contract
         await this.MockTokenContract.transfer( MockConsumerContract1.address, initialContract1, { from: dataConsumerOwner } )
         // add Data provider1
-        await MockConsumerContract1.addDataProvider( dataProvider, c1p1Fee, { from: dataConsumerOwner } );
+        await MockConsumerContract1.addRemoveDataProvider( dataProvider, c1p1Fee, false, { from: dataConsumerOwner } );
         // add Data provider2
-        await MockConsumerContract1.addDataProvider( dataProvider2, c1p2Fee, { from: dataConsumerOwner } );
+        await MockConsumerContract1.addRemoveDataProvider( dataProvider2, c1p2Fee, false, { from: dataConsumerOwner } );
         // increase router allowance
         await MockConsumerContract1.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
 
@@ -373,9 +373,9 @@ describe('Consumer - data request tests', function () {
         // add tokens to consumer contract
         await this.MockTokenContract.transfer( MockConsumerContract2.address, initialContract2, { from: dataConsumerOwner2 } )
         // add Data provider1
-        await MockConsumerContract2.addDataProvider( dataProvider, c2p1Fee, { from: dataConsumerOwner2 } );
+        await MockConsumerContract2.addRemoveDataProvider( dataProvider, c2p1Fee, false, { from: dataConsumerOwner2 } );
         // add Data provider2
-        await MockConsumerContract2.addDataProvider( dataProvider2, c2p2Fee, { from: dataConsumerOwner2 } );
+        await MockConsumerContract2.addRemoveDataProvider( dataProvider2, c2p2Fee, false, { from: dataConsumerOwner2 } );
         // increase router allowance
         await MockConsumerContract2.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner2 } )
 

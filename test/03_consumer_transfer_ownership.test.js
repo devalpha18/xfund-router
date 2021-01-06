@@ -166,7 +166,7 @@ describe('Consumer - transfer ownership tests', function () {
 
   it('router must have zero eth balance before ownership transfer can happen - should revert', async function () {
     const topupValue = web3.utils.toWei("0.1", "ether")
-    await this.MockConsumerContract.addDataProvider(dataProvider, 100,  { from: dataConsumerOwner } )
+    await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, { from: dataConsumerOwner } )
     await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: topupValue })
 
     await expectRevert(
@@ -177,7 +177,7 @@ describe('Consumer - transfer ownership tests', function () {
 
   it('router must have zero eth balance before ownership transfer can happen - router balance remains intact', async function () {
     const topupValue = web3.utils.toWei("0.1", "ether")
-    await this.MockConsumerContract.addDataProvider(dataProvider, 100,  { from: dataConsumerOwner } )
+    await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, { from: dataConsumerOwner } )
     await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: topupValue })
 
     await expectRevert(
@@ -192,7 +192,7 @@ describe('Consumer - transfer ownership tests', function () {
 
   it('router must have zero eth balance before ownership transfer can happen - Router getGasDepositsForConsumer should be 0.1 ETH', async function () {
     const topupValue = web3.utils.toWei("0.1", "ether")
-    await this.MockConsumerContract.addDataProvider(dataProvider, 100,  { from: dataConsumerOwner } )
+    await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, { from: dataConsumerOwner } )
     await this.MockConsumerContract.topUpGas(dataProvider, { from: dataConsumerOwner, value: topupValue })
 
     await expectRevert(

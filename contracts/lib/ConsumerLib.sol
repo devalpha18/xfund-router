@@ -174,19 +174,31 @@ library ConsumerLib {
     }
 
     /**
-     * @dev addDataProvider add a new authorised data provider to this contract, and
-     *      authorise it to provide data via the Router. Can also be used to modify
-     *      a provider's fee for an existing authorised provider. If the provider is currently
-     *      authorises, the Router's grantProviderPermission is not called to conserve gas.
+     * @dev addRemoveDataProvider add a new authorised data provider to this contract, and
+     *      authorise it to provide data via the Router, or de-authorise an existing provider.
+     *      Can also be used to modify a provider's fee for an existing authorised provider.
+     *      If the provider is currently authorised when setting the fee, the Router's
+     *      grantProviderPermission is not called to conserve gas.
      *
      * @param self the Contract's State object
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
+     * @param _remove bool set to true to de-authorise
      * @return success
      */
-    function addDataProvider(State storage self, address _dataProvider, uint256 _fee) external returns (bool success) {
+    function addRemoveDataProvider(State storage self, address _dataProvider, uint256 _fee, bool _remove)
+    external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
+
+        if(_remove) {
+            require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
+            // msg.sender to Router will be the address of this contract
+            require(self.router.revokeProviderPermission(_dataProvider));
+            self.dataProviders[_dataProvider].isAuthorised = false;
+            emit RemovedDataProvider(msg.sender, _dataProvider);
+            return true;
+        }
 
         DataProvider storage dp = self.dataProviders[_dataProvider];
 
@@ -212,26 +224,6 @@ library ConsumerLib {
     }
 
     /**
-     * @dev removeDataProvider remove a data provider and its authorisation to provide data
-     *      for this smart contract from the Router
-     *
-     * @param self the Contract's State object
-     * @param _dataProvider the address of the data provider
-     * @return success
-     */
-    function removeDataProvider(State storage self, address _dataProvider)
-    external
-    returns (bool success) {
-        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
-        require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
-        // msg.sender to Router will be the address of this contract
-        require(self.router.revokeProviderPermission(_dataProvider));
-        self.dataProviders[_dataProvider].isAuthorised = false;
-        emit RemovedDataProvider(msg.sender, _dataProvider);
-        return true;
-    }
-
-    /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
      *      and withdraws any tokens currentlry held by the contract.
      *      Can only be called by the current owner.
@@ -247,6 +239,25 @@ library ConsumerLib {
         require(withdrawAllTokens(self));
         emit OwnershipTransferred(msg.sender, self.OWNER, newOwner);
         self.OWNER = newOwner;
+        return true;
+    }
+
+    /**
+     * @dev validateTopUpGas called by the underlying Consumer.sol contract in order to
+     *      validate the topUpGas input prior to forwarding ETH and data to the Router.
+     *
+     * @param _dataProvider address of data provider for whom gas will be refunded
+     * @param _amount amount of ETH being sent as gas topup
+     * @return success
+     */
+    function validateTopUpGas(State storage self, address _dataProvider, uint256 _amount)
+    external view
+    returns (bool success) {
+        require(msg.sender == self.OWNER, "ConsumerLib: only owner");
+        require(_amount > 0, "ConsumerLib: amount cannot be zero");
+        require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
+        require(_amount <= self.requestVars[2], "ConsumerLib: amount cannot exceed own gasTopUpLimit");
+        require(address(msg.sender).balance >= _amount, "ConsumerLib: sender has insufficient balance");
         return true;
     }
 
@@ -397,7 +408,7 @@ library ConsumerLib {
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // check gas isn't stupidly high
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
-        // check there are enough tokens, and that the router has a high enough allowance to pay fees
+        // get the fee currently set
         uint256 fee = self.dataProviders[_dataProvider].fee;
 
         // generate the requestId

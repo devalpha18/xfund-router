@@ -11,9 +11,9 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 
 ## Functions:
 - [`init(struct ConsumerLib.State self, address _router)`](#ConsumerLib-init-struct-ConsumerLib-State-address-)
-- [`addDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee)`](#ConsumerLib-addDataProvider-struct-ConsumerLib-State-address-uint256-)
-- [`removeDataProvider(struct ConsumerLib.State self, address _dataProvider)`](#ConsumerLib-removeDataProvider-struct-ConsumerLib-State-address-)
+- [`addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee, bool _remove)`](#ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint256-bool-)
 - [`transferOwnership(struct ConsumerLib.State self, address payable newOwner)`](#ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-)
+- [`validateTopUpGas(struct ConsumerLib.State self, address _dataProvider, uint256 _amount)`](#ConsumerLib-validateTopUpGas-struct-ConsumerLib-State-address-uint256-)
 - [`withdrawTopUpGas(struct ConsumerLib.State self, address _dataProvider)`](#ConsumerLib-withdrawTopUpGas-struct-ConsumerLib-State-address-)
 - [`withdrawEth(struct ConsumerLib.State self, uint256 amount)`](#ConsumerLib-withdrawEth-struct-ConsumerLib-State-uint256-)
 - [`withdrawAllTokens(struct ConsumerLib.State self)`](#ConsumerLib-withdrawAllTokens-struct-ConsumerLib-State-)
@@ -47,12 +47,13 @@ init - called once during the Consumer.sol's constructor function to initialise 
 - `self`: the Contract's State object
 
 - `_router`: address of the Router smart contract
-<a name="ConsumerLib-addDataProvider-struct-ConsumerLib-State-address-uint256-"></a>
-### Function `addDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee) -> bool success`
-addDataProvider add a new authorised data provider to this contract, and
-     authorise it to provide data via the Router. Can also be used to modify
-     a provider's fee for an existing authorised provider. If the provider is currently
-     authorises, the Router's grantProviderPermission is not called to conserve gas.
+<a name="ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint256-bool-"></a>
+### Function `addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee, bool _remove) -> bool success`
+addRemoveDataProvider add a new authorised data provider to this contract, and
+     authorise it to provide data via the Router, or de-authorise an existing provider.
+     Can also be used to modify a provider's fee for an existing authorised provider.
+     If the provider is currently authorised when setting the fee, the Router's
+     grantProviderPermission is not called to conserve gas.
 
 
 #### Parameters:
@@ -62,16 +63,7 @@ addDataProvider add a new authorised data provider to this contract, and
 
 - `_fee`: the data provider's fee
 
-<a name="ConsumerLib-removeDataProvider-struct-ConsumerLib-State-address-"></a>
-### Function `removeDataProvider(struct ConsumerLib.State self, address _dataProvider) -> bool success`
-removeDataProvider remove a data provider and its authorisation to provide data
-     for this smart contract from the Router
-
-
-#### Parameters:
-- `self`: the Contract's State object
-
-- `_dataProvider`: the address of the data provider
+- `_remove`: bool set to true to de-authorise
 
 <a name="ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-"></a>
 ### Function `transferOwnership(struct ConsumerLib.State self, address payable newOwner) -> bool success`
@@ -84,6 +76,17 @@ Transfers ownership of the contract to a new account (`newOwner`),
 - `self`: the Contract's State object
 
 - `newOwner`: the address of the new owner
+
+<a name="ConsumerLib-validateTopUpGas-struct-ConsumerLib-State-address-uint256-"></a>
+### Function `validateTopUpGas(struct ConsumerLib.State self, address _dataProvider, uint256 _amount) -> bool success`
+validateTopUpGas called by the underlying Consumer.sol contract in order to
+     validate the topUpGas input prior to forwarding ETH and data to the Router.
+
+
+#### Parameters:
+- `_dataProvider`: address of data provider for whom gas will be refunded
+
+- `_amount`: amount of ETH being sent as gas topup
 
 <a name="ConsumerLib-withdrawTopUpGas-struct-ConsumerLib-State-address-"></a>
 ### Function `withdrawTopUpGas(struct ConsumerLib.State self, address _dataProvider) -> bool success`

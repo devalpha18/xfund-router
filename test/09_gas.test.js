@@ -70,7 +70,7 @@ describe('Consumer - Gas top up and withdraw', function () {
     describe('should succeed - single consumer, single provider', function () {
       beforeEach(async function () {
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
       })
 
       it( 'owner can top up - Router emits GasToppedUp event', async function () {
@@ -161,8 +161,8 @@ describe('Consumer - Gas top up and withdraw', function () {
     describe('should succeed - single consumer, multiple providers', function () {
       beforeEach( async function () {
         // add a data providers
-        await this.MockConsumerContract1.addDataProvider( dataProvider1, 100, { from: dataConsumerOwner1 } )
-        await this.MockConsumerContract1.addDataProvider( dataProvider2, 100, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider1, 100, false, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider2, 100, false, { from: dataConsumerOwner1 } )
       } )
 
       it( 'owner can top up - Router emits GasToppedUp event', async function () {
@@ -289,10 +289,10 @@ describe('Consumer - Gas top up and withdraw', function () {
         await this.MockTokenContract.transfer( this.MockConsumerContract2.address, amountForContract, { from: dataConsumerOwner2 } )
 
         // add a data providers
-        await this.MockConsumerContract1.addDataProvider( dataProvider1, 100, { from: dataConsumerOwner1 } )
-        await this.MockConsumerContract1.addDataProvider( dataProvider2, 100, { from: dataConsumerOwner1 } )
-        await this.MockConsumerContract2.addDataProvider( dataProvider1, 100, { from: dataConsumerOwner2 } )
-        await this.MockConsumerContract2.addDataProvider( dataProvider2, 100, { from: dataConsumerOwner2 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider1, 100, false, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider2, 100, false, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract2.addRemoveDataProvider( dataProvider1, 100, false, { from: dataConsumerOwner2 } )
+        await this.MockConsumerContract2.addRemoveDataProvider( dataProvider2, 100, false, { from: dataConsumerOwner2 } )
       } )
 
       it( 'owner can top up - Router emits GasToppedUp event', async function () {
@@ -472,11 +472,11 @@ describe('Consumer - Gas top up and withdraw', function () {
         const topupValue = web3.utils.toWei("0.1", "ether")
 
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
 
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: rando, value: topupValue }),
-          "Consumer: only owner can do this"
+          "ConsumerLib: only owner"
         )
       } )
 
@@ -485,7 +485,7 @@ describe('Consumer - Gas top up and withdraw', function () {
 
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue }),
-          "Consumer: _dataProvider is not authorised"
+          "ConsumerLib: _dataProvider is not authorised"
         )
       } )
 
@@ -495,10 +495,10 @@ describe('Consumer - Gas top up and withdraw', function () {
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "Consumer: sender has insufficient balance"
+          "ConsumerLib: sender has insufficient balance"
         )
       } )
 
@@ -509,13 +509,13 @@ describe('Consumer - Gas top up and withdraw', function () {
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
 
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
 
         const startBalance = await web3.eth.getBalance(dataConsumerOwner1)
 
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "Consumer: sender has insufficient balance"
+          "ConsumerLib: sender has insufficient balance"
         )
 
         const newBalance = await web3.eth.getBalance(dataConsumerOwner1)
@@ -530,11 +530,11 @@ describe('Consumer - Gas top up and withdraw', function () {
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, { from: dataConsumerOwner1 })
 
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
 
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "Consumer: sender has insufficient balance"
+          "ConsumerLib: sender has insufficient balance"
         )
 
         const routerBalance = await web3.eth.getBalance(this.RouterContract.address)
@@ -544,29 +544,29 @@ describe('Consumer - Gas top up and withdraw', function () {
 
       it( 'amount must be > 0: no value sent - should revert with error', async function () {
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1}),
-          "Consumer: amount cannot be zero"
+          "ConsumerLib: amount cannot be zero"
         )
       } )
 
       it( 'amount must be > 0: value set to 0 - should revert with error', async function () {
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: 0}),
-          "Consumer: amount cannot be zero"
+          "ConsumerLib: amount cannot be zero"
         )
       } )
 
       it( 'cannot exceed own limit - should revert with error', async function () {
         const topupValue = web3.utils.toWei("10", "ether")
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider(dataProvider1, 100,  { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, 100, false, { from: dataConsumerOwner1 } )
         await expectRevert(
           this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue}),
-          "Consumer: amount cannot exceed own gasTopUpLimit"
+          "ConsumerLib: amount cannot exceed own gasTopUpLimit"
         )
       } )
 
@@ -581,7 +581,7 @@ describe('Consumer - Gas top up and withdraw', function () {
     describe( 'should succeed - single consumer, single provider', function () {
       beforeEach( async function () {
         // add a data provider
-        await this.MockConsumerContract1.addDataProvider( dataProvider1, 100, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider1, 100, false, { from: dataConsumerOwner1 } )
       } )
 
       it( 'owner can withdraw - Consumer emits PaymentRecieved event', async function () {
@@ -738,7 +738,7 @@ describe('Consumer - Gas top up and withdraw', function () {
         expect(balance1.toString()).to.equal(expectedBalance1.toString())
 
         // remove a data provider
-        const receipt2 = await this.MockConsumerContract1.removeDataProvider( dataProvider1, { from: dataConsumerOwner1 } )
+        const receipt2 = await this.MockConsumerContract1.addRemoveDataProvider( dataProvider1, 0, true, { from: dataConsumerOwner1 } )
 
         const receipt3 = await this.MockConsumerContract1.withdrawTopUpGas(dataProvider1, { from: dataConsumerOwner1 })
 
@@ -790,8 +790,8 @@ describe('Consumer - Gas top up and withdraw', function () {
     describe( 'should succeed - single consumer, multiple providers', function () {
       beforeEach( async function () {
         // add a data providers
-        await this.MockConsumerContract1.addDataProvider( dataProvider1, 100, { from: dataConsumerOwner1 } )
-        await this.MockConsumerContract1.addDataProvider( dataProvider2, 100, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider1, 100, false, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider2, 100, false, { from: dataConsumerOwner1 } )
       } )
 
       it( 'owner can withdraw - Consumer emits PaymentRecieved event', async function () {
@@ -1016,7 +1016,7 @@ describe('Consumer - Gas top up and withdraw', function () {
         const topupValue = web3.utils.toWei("0.1", "ether")
 
         // add provider in order to top up first
-        await this.MockConsumerContract1.addDataProvider( dataProvider1, 100, { from: dataConsumerOwner1 } )
+        await this.MockConsumerContract1.addRemoveDataProvider( dataProvider1, 100, false, { from: dataConsumerOwner1 } )
         await this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue })
 
         await expectRevert(
