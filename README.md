@@ -122,7 +122,7 @@ truffle(develop)> mockConsumer.setRouterAllowance("11579208923731619542357098500
    `MockConsumer` smart contract. Run:
    
 ```bash
-truffle(develop)> mockConsumer.addDataProvider(provider, 100000000, {from: consumerOwner})
+truffle(develop)> mockConsumer.addRemoveDataProvider(provider, 100000000, false, {from: consumerOwner})
 ```
 
 This will add the wallet address of the `provider` with a fee of 0.1 MOCKs.

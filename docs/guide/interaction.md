@@ -30,7 +30,7 @@ truffle(rinkeby)> let demoConsumer = await DemoConsumer.deployed()
 The following steps need only be done periodically, to ensure all parties have
 the correct amount of tokens and gas to pay for data.
 
-Go to [xFUNDMOCK](https://rinkeby.etherscan.io/address/0x2dd7aF39Fb46E457A47Fb8D10f135cA6ca77Eb38#writeContract)
+Go to [xFUNDMOCK](https://rinkeby.etherscan.io/address/0x8aF5e2b4F5eBd6b7E0E82d73bDDa20b3f589ae2e#writeContract)
 on Etherscan, and connect MetaMask **with the account used to deploy the `DemoConsumer`
 smart contract**, then run the `gimme()` function. This is a faucet function, and will
 supply your wallet with 10 `xFUNDMOCK` tokens. You may do this once per hour.
@@ -56,7 +56,7 @@ to supply our `DemoConsumer` smart contract with data. Only authorised provider 
 can send transactions to supply your contract with data.
 
 ```bash 
-truffle(rinkeby)> demoConsumer.addDataProvider(provider, 100000000, {from: consumerOwner})
+truffle(rinkeby)> demoConsumer.addRemoveDataProvider(provider, 100000000, false, {from: consumerOwner})
 ```
 
 This will authorise `0x611661f4B5D82079E924AcE2A6D113fAbd214b14` to send data to your

@@ -21,7 +21,7 @@ The following addresses supply data from the Finchains OoO API:
 
 Data is acquired via the OoO API using dot-separated strings to define the desired data - for example
 "Average BTC/USD Price over 24 hours, with outliers removed" would be requested using
-`BTC.USD.PR.AVI`. 
+`BTC.USD.PR.AVI.24H`. 
 
 The hex-encoded string is supplied along with the Provider address (as defined above,
 depending on Ethereum network) and the `xFUND` fee as parameters to your smart contract, 
@@ -61,7 +61,8 @@ The three or four-letter code for the target currency in which to return the
 price, e.g. `GBP`, `USD`
 
 A full list of supported currency `BASE`/`TARGET` pairs is available from
-the [Finchains API](https://crypto.finchains.io/api/pairs)
+the [Finchains API](https://crypto.finchains.io/api/pairs). Supported pairs specific
+to each exchange are linked below.
 
 ### TYPE
 
@@ -73,21 +74,21 @@ The currently implemented types are as follows:
 
 For Type `EX`, the exchange abbreviation is required in `SUPP1`:
 
-- `BNC`: Binance
-- `BFI`: Bitfinex
-- `BFO`: Bitforex
-- `BMR`: Bitmart
-- `BTS`: Bitstamp
-- `BTX`: Bittrex
-- `CBT`: Coinsbit
-- `CRY`: crypto.com
-- `DFX`: Digifinex
-- `GAT`: Gate
-- `GDX`: Coionbase
-- `GMN`: Gemini
-- `HUO`: Huobi
-- `KRK`: Kraken
-- `PRB`: Probit
+- `BNC`: Binance ([supported pairs](https://crypto.finchains.io/api/exchange/binance/pairs))
+- `BFI`: Bitfinex ([supported pairs](https://crypto.finchains.io/api/exchange/bitfinex/pairs))
+- `BFO`: Bitforex ([supported pairs](https://crypto.finchains.io/api/exchange/bitforex/pairs))
+- `BMR`: Bitmart ([supported pairs](https://crypto.finchains.io/api/exchange/bitmart/pairs))
+- `BTS`: Bitstamp ([supported pairs](https://crypto.finchains.io/api/exchange/bitstamp/pairs))
+- `BTX`: Bittrex ([supported pairs](https://crypto.finchains.io/api/exchange/bittrex/pairs))
+- `CBT`: Coinsbit ([supported pairs](https://crypto.finchains.io/api/exchange/coinsbit/pairs))
+- `CRY`: crypto.com ([supported pairs](https://crypto.finchains.io/api/exchange/crypto_com/pairs))
+- `DFX`: Digifinex ([supported pairs](https://crypto.finchains.io/api/exchange/digifinex/pairs))
+- `GAT`: Gate ([supported pairs](https://crypto.finchains.io/api/exchange/gate/pairs))
+- `GDX`: Coinbase ([supported pairs](https://crypto.finchains.io/api/exchange/gdax/pairs))
+- `GMN`: Gemini ([supported pairs](https://crypto.finchains.io/api/exchange/gemini/pairs))
+- `HUO`: Huobi ([supported pairs](https://crypto.finchains.io/api/exchange/huobi/pairs))
+- `KRK`: Kraken ([supported pairs](https://crypto.finchains.io/api/exchange/kraken/pairs))
+- `PRB`: Probit ([supported pairs](https://crypto.finchains.io/api/exchange/probit/pairs))
 
 ### SUBTYPE
 
@@ -151,21 +152,21 @@ from _any_ exchange oracle.
 
 For Type `EX`, the exchange abbreviation is required in `SUPP1`:
 
-- `BNC`: Binance
-- `BFI`: Bitfinex
-- `BFO`: Bitforex
-- `BMR`: Bitmart
-- `BTS`: Bitstamp
-- `BTX`: Bittrex
-- `CBT`: Coinsbit
-- `CRY`: crypto.com
-- `DFX`: Digifinex
-- `GAT`: Gate
-- `GDX`: Coionbase
-- `GMN`: Gemini
-- `HUO`: Huobi
-- `KRK`: Kraken
-- `PRB`: Probit
+- `BNC`: Binance ([supported pairs](https://crypto.finchains.io/api/exchange/binance/pairs))
+- `BFI`: Bitfinex ([supported pairs](https://crypto.finchains.io/api/exchange/bitfinex/pairs))
+- `BFO`: Bitforex ([supported pairs](https://crypto.finchains.io/api/exchange/bitforex/pairs))
+- `BMR`: Bitmart ([supported pairs](https://crypto.finchains.io/api/exchange/bitmart/pairs))
+- `BTS`: Bitstamp ([supported pairs](https://crypto.finchains.io/api/exchange/bitstamp/pairs))
+- `BTX`: Bittrex ([supported pairs](https://crypto.finchains.io/api/exchange/bittrex/pairs))
+- `CBT`: Coinsbit ([supported pairs](https://crypto.finchains.io/api/exchange/coinsbit/pairs))
+- `CRY`: crypto.com ([supported pairs](https://crypto.finchains.io/api/exchange/crypto_com/pairs))
+- `DFX`: Digifinex ([supported pairs](https://crypto.finchains.io/api/exchange/digifinex/pairs))
+- `GAT`: Gate ([supported pairs](https://crypto.finchains.io/api/exchange/gate/pairs))
+- `GDX`: Coinbase ([supported pairs](https://crypto.finchains.io/api/exchange/gdax/pairs))
+- `GMN`: Gemini ([supported pairs](https://crypto.finchains.io/api/exchange/gemini/pairs))
+- `HUO`: Huobi ([supported pairs](https://crypto.finchains.io/api/exchange/huobi/pairs))
+- `KRK`: Kraken ([supported pairs](https://crypto.finchains.io/api/exchange/kraken/pairs))
+- `PRB`: Probit ([supported pairs](https://crypto.finchains.io/api/exchange/probit/pairs))
 
 ### SUPP1
 
