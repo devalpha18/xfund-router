@@ -2,8 +2,8 @@
 
 pragma solidity ^0.6.0;
 
-import "../interfaces/IRouter.sol";
-import "../interfaces/IERC20_Ex.sol";
+import "../../interfaces/IRouter.sol";
+import "../../interfaces/IERC20_Ex.sol";
 
 /*
  * Mostly junk implementation for testing Router interaction
@@ -61,7 +61,7 @@ contract MockBadConsumer {
             now + 300,
             requestId,
             _data,
-            this.recieveData.selector
+            this.badReceiveData.selector
         );
     }
 
@@ -93,7 +93,7 @@ contract MockBadConsumer {
             expires,
             requestId,
             _data,
-            this.recieveData.selector
+            this.badReceiveData.selector
         );
     }
 
@@ -115,7 +115,7 @@ contract MockBadConsumer {
             expires,
             _requestId,
             _data,
-            this.recieveData.selector
+            this.badReceiveData.selector
         );
     }
 
@@ -146,15 +146,15 @@ contract MockBadConsumer {
         return router.withDrawGasTopUpForProvider(_dataProvider);
     }
 
-    function recieveData(
+    function badReceiveData(
         uint256 _price,
         bytes32 _requestId,
         bytes memory _signature
     )
-    public
-    returns (bool success) {
+    public returns (bool success) {
         price = _price;
         emit ReceivedData(_requestId, _price, _signature);
         return true;
     }
+
 }

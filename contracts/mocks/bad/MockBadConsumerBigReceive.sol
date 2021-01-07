@@ -2,10 +2,10 @@
 
 pragma solidity ^0.6.0;
 
-import "../lib/Consumer.sol";
+import "../../lib/Consumer.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract MockBadConsumerBadImpl is Consumer {
+contract MockBadConsumerBigReceive  is Consumer {
     using SafeMath for uint256;
 
     uint256 public price;
@@ -41,45 +41,11 @@ contract MockBadConsumerBadImpl is Consumer {
         price = _price;
     }
 
-    // Minimal implementation - bad, does not have data validation
-    function requestDataNoCheck(
-        address payable _dataProvider,
-        bytes32 _data,
-        uint256 _gasPrice)
-    external returns (bytes32 requestId) {
-        // call the underlying Consumer.sol lib's submitDataRequest function
-        return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveDataNoCheck.selector);
-    }
-
-    function recieveDataNoCheck(
+    function receiveData(
         uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature
+        bytes32 _requestId
     )
-    external
-    returns (bool success) {
-        price = _price;
-        return true;
-    }
-
-    // Has large receiving function
-    function requestDataBigFunc(
-        address payable _dataProvider,
-        bytes32 _data,
-        uint256 _gasPrice)
-    external returns (bytes32 requestId) {
-        // call the underlying Consumer.sol lib's submitDataRequest function
-        return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveDataBigFunc.selector);
-    }
-
-    function recieveDataBigFunc(
-        uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature
-    )
-    external
-    isValidFulfillment(_requestId, _price, _signature)
-    returns (bool success) {
+    internal override {
         price = _price;
         price2 = _price.mul(2);
         price3 = _price.div(2);
@@ -90,12 +56,11 @@ contract MockBadConsumerBadImpl is Consumer {
                 price,
                 price2,
                 price3,
-                _requestId,
-                _signature
+                _requestId
             )
         );
 
-        bytes32 pointlessSigSha = keccak256(abi.encodePacked(_signature));
+        bytes32 pointlessSigSha = keccak256(abi.encodePacked(_requestId, price));
 
         emit BiggerEvent(msg.sender, _requestId, _price, pointlessSigSha, someSha);
 
@@ -105,8 +70,6 @@ contract MockBadConsumerBadImpl is Consumer {
 
         emit Counted(arbitraryCounter);
 
-        deleteRequest(_price, _requestId, _signature);
         emit DoneDeletified(_requestId);
-        return true;
     }
 }
