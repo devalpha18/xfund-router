@@ -12,8 +12,8 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * @dev Library smart contract containing the core functionality required for a data consumer
  * to initialise data requests and interact with the Router smart contract. This contract
  * will be deployed, and allow developers to link it to their own smart contract, via the
- * Consumer.sol smart contract. There is no need to import this smart contract, since the
- * Consumer.sol smart contract has the required proxy functions for data request and fulfilment
+ * ConsumerBase.sol smart contract. There is no need to import this smart contract, since the
+ * ConsumerBase.sol smart contract has the required proxy functions for data request and fulfilment
  * interaction.
  *
  * Most of the functions in this contract are proxied by the Consumer smart contract
@@ -147,7 +147,7 @@ library ConsumerLib {
      */
 
     /**
-     * @dev init - called once during the Consumer.sol's constructor function to initialise the
+     * @dev init - called once during the ConsumerBase.sol's constructor function to initialise the
      *      contract's data storage
      * @param self the Contract's State object
      * @param _router address of the Router smart contract
@@ -243,7 +243,7 @@ library ConsumerLib {
     }
 
     /**
-     * @dev validateTopUpGas called by the underlying Consumer.sol contract in order to
+     * @dev validateTopUpGas called by the underlying ConsumerBase.sol contract in order to
      *      validate the topUpGas input prior to forwarding ETH and data to the Router.
      *
      * @param _dataProvider address of data provider for whom gas will be refunded
