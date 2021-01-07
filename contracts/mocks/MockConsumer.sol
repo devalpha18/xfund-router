@@ -91,21 +91,9 @@ contract MockConsumer is ConsumerBase {
 
     /*
      * @dev recieveData - example end user function to recieve data. This will be called
-     * by the data provider, via the Router's fulfillRequest function.
-     *
-     * Important: The isValidFulfillment modifier is used to validate the request to ensure it has indeed
-     * been sent by the authorised data provider.
-     *
-     * Note: The receiving function should not be complex, in order to conserve gas. It should accept the
-     * result validate it (using the isValidFulfillment modifier) and store it. Optionally, a simple
-     * event can be emitted for logging. Finally, storage should be cleaned up by calling the
-     * deleteRequest(_price, _requestId, _signature) function.
      *
      * @param _price uint256 result being sent
      * @param _requestId bytes32 request ID of the request being fulfilled
-     * @param _signature bytes signature of the data and request info. Signed by provider to ensure only the provider
-     *        has sent the data
-     * @return requestId bytes32 request ID which can be used to track/cancel the request
      */
     function receiveData(
         uint256 _price,
