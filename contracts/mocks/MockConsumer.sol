@@ -2,9 +2,9 @@
 
 pragma solidity ^0.6.0;
 
-import "../lib/Consumer.sol";
+import "../lib/ConsumerBase.sol";
 
-contract MockConsumer is Consumer {
+contract MockConsumer is ConsumerBase {
 
     uint256 public price;
 
@@ -76,7 +76,7 @@ contract MockConsumer is Consumer {
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
     constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         price = 0;
     }
 

@@ -2,10 +2,10 @@
 
 pragma solidity ^0.6.0;
 
-import "../../lib/Consumer.sol";
+import "../../lib/ConsumerBase.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract MockBadConsumerBigReceive  is Consumer {
+contract MockBadConsumerBigReceive is ConsumerBase {
     using SafeMath for uint256;
 
     uint256 public price;
@@ -32,7 +32,7 @@ contract MockBadConsumerBigReceive  is Consumer {
     );
 
     constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         price = 0;
         arbitraryCounter = 0;
     }
