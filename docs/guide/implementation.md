@@ -125,7 +125,7 @@ Finally, modify the `constructor` function to call the `ConsumerBase.sol`'s cons
 
 ```solidity
     constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         price = 0;
     }
 ```
@@ -150,15 +150,7 @@ contract MyDataConsumer is ConsumerBase {
 }
 ```
 
-## 3. Define the required smart contract function
-
-Next, we need to add a couple of functions which we will use to request data, and which
-a Data Provider will use to fulfil the request and send data to our smart contract.
-
-The functions can be called anything, but for simplicity, we'll call them `requestData` and
-`recieveData`.
-
-### 3.1 recieveData function
+## 3. Define the required `recieveData` smart contract function
 
 `recieveData` will be called by the Data Provider (indirectly - it is actually proxied 
 via the Router smart contract) in order to fulfil a data request and send data to 
@@ -166,7 +158,8 @@ our smart contract. It should override the abstract `recieveData` function defin
 in the `ConsumerBase.sol` base smart contract, and must have the following parameters:
 
 `uint256 _price` - the price data the provider is sending  
-`bytes32 _requestId` - the ID of the request being fulfilled  
+`bytes32 _requestId` - the ID of the request being fulfilled. This is passed
+in case your contract needs to do some further processing with the request ID.
 
 Add the following function definition to your `MyDataConsumer.sol` contract:
 
@@ -182,7 +175,9 @@ You can optionally also add an event to the function, for example:
 Define a new event in the contract:
 
 ```solidity
-event GotSomeData(bytes32 requestId, uint256 price);
+contract MyDataConsumer is ConsumerBase {
+    ...
+    event GotSomeData(bytes32 requestId, uint256 price);
 ```
 
 and emit within the `recieveData` function:
