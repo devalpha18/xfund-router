@@ -3,8 +3,8 @@
 Library smart contract containing the core functionality required for a data consumer
 to initialise data requests and interact with the Router smart contract. This contract
 will be deployed, and allow developers to link it to their own smart contract, via the
-Consumer.sol smart contract. There is no need to import this smart contract, since the
-Consumer.sol smart contract has the required proxy functions for data request and fulfilment
+ConsumerBase.sol smart contract. There is no need to import this smart contract, since the
+ConsumerBase.sol smart contract has the required proxy functions for data request and fulfilment
 interaction.
 
 Most of the functions in this contract are proxied by the Consumer smart contract
@@ -40,7 +40,7 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 
 <a name="ConsumerLib-init-struct-ConsumerLib-State-address-"></a>
 ### Function `init(struct ConsumerLib.State self, address _router)`
-init - called once during the Consumer.sol's constructor function to initialise the
+init - called once during the ConsumerBase.sol's constructor function to initialise the
      contract's data storage
 
 #### Parameters:
@@ -79,7 +79,7 @@ Transfers ownership of the contract to a new account (`newOwner`),
 
 <a name="ConsumerLib-validateTopUpGas-struct-ConsumerLib-State-address-uint256-"></a>
 ### Function `validateTopUpGas(struct ConsumerLib.State self, address _dataProvider, uint256 _amount) -> bool success`
-validateTopUpGas called by the underlying Consumer.sol contract in order to
+validateTopUpGas called by the underlying ConsumerBase.sol contract in order to
      validate the topUpGas input prior to forwarding ETH and data to the Router.
 
 

@@ -37,7 +37,7 @@ module.exports = {
                 children: [
                     "/api/Router",
                     "/api/lib/ConsumerLib",
-                    "/api/lib/Consumer",
+                    "/api/lib/ConsumerBase",
                 ]
             },
         ],

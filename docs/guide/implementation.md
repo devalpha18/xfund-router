@@ -14,7 +14,7 @@ smart contracts.
 
 These are smart contracts deployed and maintained by the Unification Foundation and are
 the core of the xFUND Router network. Your smart contract will only import and build on
-the `Consumer.sol` base smart contract, which in turn links to the `ConsumerLib` and interacts
+the `ConsumerBase.sol` base smart contract, which in turn links to the `ConsumerLib` and interacts
 with the `Router` smart contracts.
 :::
 
@@ -96,32 +96,32 @@ The `price` variable is what we would like to be updated by OoO when we request 
 
 ### 2.1 Import the `xfund-router` Library contracts
 
-Next, we need to import the `Consumer.sol` smart contract, which interfaces with the 
+Next, we need to import the `ConsumerBase.sol` smart contract, which interfaces with the 
 `ConsumerLib.sol` library smart contract, and the `Router.sol` smart contract (both of which
-have been deployed and are maintained by the Unification Foundation). The `Consumer.sol`
+have been deployed and are maintained by the Unification Foundation). The `ConsumerBase.sol`
 smart contract contains all the required functions for interacting with the system, meaning that
 you only need to define a couple of simple functions in your own smart contract in order to
 use the OoO system.
 
 ::: tip Note
-You can view the functions implemented by `Consumer.sol` in the [Data Consumer smaert contract
-API documentation](../api/lib/Consumer.md). These functions are also callable from your
+You can view the functions implemented by `ConsumerBase.sol` in the [Data Consumer smaert contract
+API documentation](../api/lib/ConsumerBase.md). These functions are also callable from your
 smart contract.
 :::
 
-First, import the `Consumer.sol` smart contract. After the `pragma` definition, add:
+First, import the `ConsumerBase.sol` smart contract. After the `pragma` definition, add:
 
 ```solidity
-import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
+import "@unification-com/xfund-router/contracts/lib/ConsumerBase.sol";
 ```
 
-Then, edit the contract definition, so that it extends `Consumer.sol`:
+Then, edit the contract definition, so that it extends `ConsumerBase.sol`:
 
 ```solidity
-contract MyDataConsumer is Consumer {
+contract MyDataConsumer is ConsumerBase {
 ```
 
-Finally, modify the `constructor` function to call the `Consumer.sol`'s constructor:
+Finally, modify the `constructor` function to call the `ConsumerBase.sol`'s constructor:
 
 ```solidity
     constructor(address _router)
@@ -137,20 +137,20 @@ The full `MyDataConsumer.sol` contract code should now look like this:
 
 pragma solidity ^0.6.0;
 
-import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
+import "@unification-com/xfund-router/contracts/lib/ConsumerBase.sol";
 
-contract MyDataConsumer is Consumer {
+contract MyDataConsumer is ConsumerBase {
 
     uint256 public price;
 
     constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         price = 0;
     }
 }
 ```
 
-## 3. Define the required smart contract functions
+## 3. Define the required smart contract function
 
 Next, we need to add a couple of functions which we will use to request data, and which
 a Data Provider will use to fulfil the request and send data to our smart contract.
@@ -158,102 +158,24 @@ a Data Provider will use to fulfil the request and send data to our smart contra
 The functions can be called anything, but for simplicity, we'll call them `requestData` and
 `recieveData`.
 
-### 3.1 requestData
-
-`requestData`: we will call this function to request data from a data provider. It passes
-the data request on to the Router, which Data Providers watch for events being emitted. When a provider
-sees a data request for them, they can act on it and supply the data. This function must have
-the following parameters - although the names do not matter:
-
-`address payable _dataProvider` - the wallet address provider we are requesting data from  
-`bytes32 _data`, - the data we are requesting  
-`uint256 _gasPrice` - the maximum price we are willing to pay for the provider to fulfil the request
-
-The `requestData` function must also, at the very least, call `Consumer.sol`'s `submitDataRequest`
-function, which validates the request and forwards it to the Router smart contract.
-
-Add the following function definition to your `MyDataConsumer.sol` contract:
-
-```solidity
-    function requestData(
-        address payable _dataProvider,
-        bytes32 _data,
-        uint256 _gasPrice)
-    public returns (bytes32 requestId) {
-        // call the underlying Consumer.sol's submitDataRequest function
-        return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveData.selector);
-    }
-```
-
-The return value is optional.
-
-::: tip Note
-`this.recieveData.selector` is an encoded value automatically calculated. This is ultimately
-passed to the Router, and is what the data provider will call when fulfilling a request. If
-you are naming the Receiver function something other than `recieveData`, then this will need
-modifying to reflect that, e.g. `this.myOwnFunction.selector`
-:::
-
-::: danger IMPORTANT
-`_data` is passed to the `ConsumerLib.sol`'s `submitDataRequest` function which 
-accepts a `bytes32` value. This in turn forwards it to the Router, and ultimately
-the Data Provider, which decodes the Hex input back to the string.
-
-As such the data request string should be converted to a `hex` value before 
-calling your smart contract's `requestData` function and passing the value. 
-
-For example, when requesting `BTC.USD.PR.AVI`, this can be done with:
-
-```javascript
-const endpoint = web3.utils.asciiToHex("BTC.USD.PR.AVI")
-```
-
-will resulting value for `endpoint` is `0x4254432e5553442e50522e415649` - the 
-actual `_data` value that should be sent to the `requestData` function when calling it.
-:::
-
-### 3.2 recieveData
+### 3.1 recieveData function
 
 `recieveData` will be called by the Data Provider (indirectly - it is actually proxied 
-via the Router smart contract) in order to fulfil a data request and send data to our smart contract.
-It must have the following parameters - although the names do not matter:
+via the Router smart contract) in order to fulfil a data request and send data to 
+our smart contract. It should override the abstract `recieveData` function defined
+in the `ConsumerBase.sol` base smart contract, and must have the following parameters:
 
 `uint256 _price` - the price data the provider is sending  
 `bytes32 _requestId` - the ID of the request being fulfilled  
-`bytes memory _signature` - the provider's signature containing the data, request ID etc.used
-to validate the data being sent is actually from the requested provider etc.
-
-::: danger Important
-It must also have the `Consumer.sol`'s `isValidFulfillment` modifier, so that the origin
-of the data fulfilment can be verified such that only genuine data fulfilments are executed
-from authorised providers!
-:::
 
 Add the following function definition to your `MyDataConsumer.sol` contract:
 
 ```solidity
-    function recieveData(
-        uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature
-    )
-    external
-    // Important: include this modifier!
-    isValidFulfillment(_requestId, _price, _signature)
-    returns (bool success) {
-        // set the new price as sent by the provider
+    function receiveData(uint256 _price, bytes32 _requestId)
+    internal override {
         price = _price;
-        // clean up the request ID - it's no longer required to be stored.
-        deleteRequest(_price, _requestId, _signature);
-        return true;
     }
 ```
-
-::: warning Note
-the `deleteRequest` function call is optional but highly recommended. It is a built
-in function in the `Consumer.sol` smart contract, and will clean up the now unused request ID
-from your contract's storage.
-:::
 
 You can optionally also add an event to the function, for example:
 
@@ -278,46 +200,24 @@ The final `MyDataConsumer.sol` code should now look something like this:
 
 pragma solidity ^0.6.0;
 
-import "@unification-com/xfund-router/contracts/lib/Consumer.sol";
+import "@unification-com/xfund-router/contracts/lib/ConsumerBase.sol";
 
-contract MyDataConsumer is Consumer {
+contract MyDataConsumer is ConsumerBase {
 
     uint256 public price;
 
     event GotSomeData(bytes32 requestId, uint256 price);
 
     constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         price = 0;
     }
 
-    function requestData(
-        address payable _dataProvider,
-        bytes32 _data,
-        uint256 _gasPrice)
-    public returns (bytes32 requestId) {
-        // call the underlying Consumer.sol's submitDataRequest function
-        return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveData.selector);
-    }
-
-    function recieveData(
-        uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature
-    )
-    external
-    // Important: include this modifier!
-    isValidFulfillment(_requestId, _price, _signature)
-    returns (bool success) {
-        // set the new price as sent by the provider
+    function receiveData(uint256 _price, bytes32 _requestId)
+    internal override {
         price = _price;
-
         // optionally emit an event to the logs
         emit GotSomeData(_requestId, _price);
-
-        // clean up the request ID - it's no longer required to be stored.
-        deleteRequest(_price, _requestId, _signature);
-        return true;
     }
 }
 ```
@@ -337,7 +237,7 @@ values:
 
 ```dotenv
 # Private key for wallet used to deploy. This will be the contract owner
-# Most functions in Consumer.sol can only be called by the owner
+# Most functions in ConsumerBase.sol can only be called by the owner
 ETH_PKEY=
 # Infura API key - used for deployment
 INFURA_PROJECT_ID=

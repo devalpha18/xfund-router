@@ -3,7 +3,7 @@
 ## Integration
 
 In order to request data, and enable data provision in your smart contract, you will need to
-import the `Consumer.sol` smart contract and set up two simple functions within your smart contract.
+import the `ConsumerBase.sol` smart contract and set up two simple functions within your smart contract.
 
 1. Add the package to your project:
 
@@ -11,59 +11,37 @@ import the `Consumer.sol` smart contract and set up two simple functions within 
 yarn add @unification-com/xfund-router
 ```
 
-2. In your smart contract, import `Consumer.sol`:
+2. In your smart contract, import `ConsumerBase.sol`:
 
 ```solidity
-import "@unification-com/xfund-router/contracts/v1/lib/Consumer.sol";
+import "@unification-com/xfund-router/contracts/v1/lib/ConsumerBase.sol";
 ```
 
 3. Extend your contract, adding `is Consumer`:
 
 ```solidity
-contract MockConsumer is Consumer {
+contract MockConsumer is ConsumerBase {
 ```
 
 4. Ensure your `constructor` function has a parameter to accept the `Router` smart contract
-   address, and pass it to the `Consumer`:
+   address, and pass it to the `ConsumerBase`:
 
 ```solidity
 constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         // other stuff...
     }
 ```
 
-5. Implement a `requestData` function, for example:
+5. Implement the `receiveData` function for data Providers to send data, e.g.
 
 ```solidity
-function requestData(
-    address payable _dataProvider,
-    string memory _data,
-    uint256 _gasPrice)
-    public returns (bytes32 requestId) {
-        // call the underlying Consumer.sol lib's submitDataRequest function
-        return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveData.selector);
-    }
+function receiveData(uint256 _price, bytes32 _requestId) internal override {
+    price = _price;
+}
 ```
 
-6. Implement a function for data Providers to send data, e.g.
-
-```solidity
-function recieveData(
-        uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature)
-    external
-    isValidFulfillment(_requestId, _price, _signature)
-    returns (bool success) {
-        price = _price;
-        emit GotSomeData(msg.sender, _requestId, _price);
-        deleteRequest(_price, _requestId, _signature);
-        return true;
-    }
-```
-
-7. Link our deployed `ConsumerLib` library contract to your contract
+6. Link our deployed `ConsumerLib` library contract to your contract
 
 For example, using `truffle`, a very simple migration script for `Rinkeby` testnet
 may look like:
