@@ -121,7 +121,7 @@ abstract contract ConsumerBase {
      *      when initialising a request, and are common settings for requests.
      *
      *      The variable to be set can be one of:
-     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
+     *      1 - max gas price limit in gwei the consumer is willing to pay for data processing
      *      2 - max ETH that can be sent in a gas top up Tx
      *      3 - request timeout in seconds
      *
@@ -244,7 +244,7 @@ abstract contract ConsumerBase {
      *      Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
      *      defined receiveData function to finalise the flfilment. Contract developers will need to
      *      override the abstract receiveData function defined below.
-     *      Finally, rawReceiveData will deleteRequest to clean up storage.
+     *      Finally, rawReceiveData will delete the Request ID to clean up storage.
      *
      * @param _price uint256 result being sent
      * @param _requestId bytes32 request ID of the request being fulfilled
@@ -267,7 +267,7 @@ abstract contract ConsumerBase {
         // call override function in end-user's contract
         receiveData(_price, _requestId);
         // delete the fulfilled request
-        deleteRequest(_requestId);
+        delete consumerState.dataRequests[_requestId];
     }
 
     /*
@@ -291,16 +291,6 @@ abstract contract ConsumerBase {
      */
     function cancelRequest(bytes32 _requestId) external {
         require(consumerState.cancelRequest(_requestId));
-    }
-
-    /**
-    * @dev deleteRequest delete a request from the contract, in order to clean up
-    *      any unused request IDs from storage.     *
-    * @param _requestId the id of the request being cancelled
-    */
-    function deleteRequest(bytes32 _requestId)
-    internal {
-        delete consumerState.dataRequests[_requestId];
     }
 
     /*
@@ -338,7 +328,7 @@ abstract contract ConsumerBase {
      * @dev getRequestVar returns requested variable
      *
      *      The variable to be set can be one of:
-     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
+     *      1 - max gas price limit in gwei the consumer is willing to pay for data processing
      *      2 - max ETH that can be sent in a gas top up Tx
      *      3 - request timeout in seconds
      *
