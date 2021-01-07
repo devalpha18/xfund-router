@@ -12,7 +12,7 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
-const MockBadConsumerBadImpl = contract.fromArtifact('MockBadConsumerBadImpl') // Loads a compiled contract
+const MockBadConsumerBigReceive = contract.fromArtifact('MockBadConsumerBigReceive') // Loads a compiled contract
 const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
 const signData = async function(reqId, priceToSend, consumerContractAddress, providerPk) {
@@ -133,14 +133,11 @@ describe('Provider - gas refund tests', function () {
   const fee = new BN(0.1 * ( 10 ** 9 ))
   const endpoint = web3.utils.asciiToHex("PRICE.BTC.USD.AVG")
   const gasPrice = 90 // gwei, 10 ** 9 done in contract
-  const callbackFuncSig = web3.eth.abi.encodeFunctionSignature('recieveData(uint256,bytes32,bytes)')
-  const callbackFuncNoCheckSig = web3.eth.abi.encodeFunctionSignature('recieveDataNoCheck(uint256,bytes32,bytes)')
-  const callbackFuncBigFuncSig = web3.eth.abi.encodeFunctionSignature('recieveDataBigFunc(uint256,bytes32,bytes)')
   // const priceToSend = new BN("1")
   // const priceToSend = new BN("115792089237316195423570985008687907853269984665640564039457584007913129639935")
   const priceToSend = new BN("2000000000000000000000")
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 5000
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 4500
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 1000
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 1000
 
   // deploy contracts before every test
   beforeEach(async function () {
@@ -154,14 +151,14 @@ describe('Provider - gas refund tests', function () {
     this.ConsumerLib = await ConsumerLib.new({from: admin})
     await MockConsumer.detectNetwork();
     await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
-    await MockBadConsumerBadImpl.detectNetwork();
-    await MockBadConsumerBadImpl.link("ConsumerLib", this.ConsumerLib.address)
+    await MockBadConsumerBigReceive.detectNetwork();
+    await MockBadConsumerBigReceive.link("ConsumerLib", this.ConsumerLib.address)
 
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
 
     // dataConsumerOwner deploy bad Consumer contract
-    this.MockBadConsumerBadImplContract = await MockBadConsumerBadImpl.new(this.RouterContract.address, {from: dataConsumerOwner})
+    this.MockBadConsumerBigReceiveContract = await MockBadConsumerBigReceive.new(this.RouterContract.address, {from: dataConsumerOwner})
 
   })
 
@@ -173,24 +170,24 @@ describe('Provider - gas refund tests', function () {
     beforeEach(async function () {
       // increase Router allowance
       await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
-      await this.MockBadConsumerBadImplContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
+      await this.MockBadConsumerBigReceiveContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
 
       // add a dataProvider
       await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
-      await this.MockBadConsumerBadImplContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
+      await this.MockBadConsumerBigReceiveContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
 
       // Admin Transfer 100 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(100 * (10 ** decimals)), {from: admin})
 
       // Transfer 10 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN(10 * (10 ** decimals)), {from: dataConsumerOwner})
-      await this.MockTokenContract.transfer(this.MockBadConsumerBadImplContract.address, new BN(10 * (10 ** decimals)), {from: dataConsumerOwner})
+      await this.MockTokenContract.transfer(this.MockBadConsumerBigReceiveContract.address, new BN(10 * (10 ** decimals)), {from: dataConsumerOwner})
 
       const topupValue = web3.utils.toWei( "0.5", "ether" )
       await this.MockConsumerContract.topUpGas( dataProvider, { from: dataConsumerOwner, value: topupValue } )
-      await this.MockBadConsumerBadImplContract.topUpGas( dataProvider, { from: dataConsumerOwner, value: topupValue } )
+      await this.MockBadConsumerBigReceiveContract.topUpGas( dataProvider, { from: dataConsumerOwner, value: topupValue } )
       // twice for big data test
-      await this.MockBadConsumerBadImplContract.topUpGas( dataProvider, { from: dataConsumerOwner, value: topupValue } )
+      await this.MockBadConsumerBigReceiveContract.topUpGas( dataProvider, { from: dataConsumerOwner, value: topupValue } )
     })
 
     describe('consumer pays gas', function () {
@@ -338,6 +335,8 @@ describe('Provider - gas refund tests', function () {
 
         const gasDiff = await estimateGasDiff(fulfullReceipt, gasPrice)
 
+        // console.log("gasDiff", gasDiff.toString())
+
         expect( gasDiff ).to.be.bignumber.lte( new BN( MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO ) )
 
       } )
@@ -413,6 +412,7 @@ describe('Provider - gas refund tests', function () {
           } )
 
           const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+          // console.log("gasDiff OUT", gasDiff.toString())
 
           // actual gas used will invariably be slightly more than the estimate in the Router
           // smart contract. Ensure it's never above an acceptable threshold for a "normal"
@@ -431,48 +431,19 @@ describe('Provider - gas refund tests', function () {
       })
 
       describe('bad consumer implementation', function () {
-        it( 'requestDataNoCheck spend/refund diff always >= 0: 50 iterations', async function () {
-          for(let i = 0; i < 50; i += 1) {
-            // simulate gas price fluctuation
-            const randGas = randomGasPrice(10, 20)
-
-            const receipt = await this.MockBadConsumerBadImplContract.requestDataNoCheck( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
-            const reqId = getReqIdFromReceipt(receipt)
-
-            const price = randomPrice()
-            const gasPriceGwei = randGas * ( 10 ** 9 )
-
-            const sig = await signData( reqId, price, this.MockBadConsumerBadImplContract.address, dataProviderPk )
-            const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
-              from: dataProvider,
-              gasPrice: gasPriceGwei
-            } )
-
-            const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-            const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
-            const diff = refundAmount.sub( actualSpent )
-
-            expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
-
-            // check price
-            const retPrice = await this.MockBadConsumerBadImplContract.price()
-            expect(retPrice).to.be.bignumber.equal(price)
-          }
-        })
-
-        it( 'requestDataBigFunc spend/refund diff always >= 0: 50 iterations', async function () {
+        it( 'requestData spend/refund diff always >= 0 when receiveData func is big: 50 iterations', async function () {
           for(let i = 0; i < 50; i += 1) {
             // simulate gas price fluctuation
             const randGas = randomGasPrice(10, 20)
 
             // calling this should cost around 200000 gas
-            const receipt = await this.MockBadConsumerBadImplContract.requestDataBigFunc( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+            const receipt = await this.MockBadConsumerBigReceiveContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
             const reqId = getReqIdFromReceipt(receipt)
 
             const price = randomPrice()
             const gasPriceGwei = randGas * ( 10 ** 9 )
 
-            const sig = await signData( reqId, price, this.MockBadConsumerBadImplContract.address, dataProviderPk )
+            const sig = await signData( reqId, price, this.MockBadConsumerBigReceiveContract.address, dataProviderPk )
             const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
               from: dataProvider,
               gasPrice: gasPriceGwei
@@ -482,10 +453,13 @@ describe('Provider - gas refund tests', function () {
             const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
             const diff = refundAmount.sub( actualSpent )
 
+            // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+            // console.log("gasDiff OUT", gasDiff.toString())
+
             expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
 
             // check price
-            const retPrice = await this.MockBadConsumerBadImplContract.price()
+            const retPrice = await this.MockBadConsumerBigReceiveContract.price()
             expect(retPrice).to.be.bignumber.equal(price)
           }
         })

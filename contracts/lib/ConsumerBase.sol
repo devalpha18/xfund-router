@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
  * Most of the functions in this contract are proxy functions to the ConsumerLib
  * smart contract
  */
-contract Consumer {
+abstract contract ConsumerBase {
     using ConsumerLib for ConsumerLib.State;
 
     /*
@@ -121,7 +121,7 @@ contract Consumer {
      *      when initialising a request, and are common settings for requests.
      *
      *      The variable to be set can be one of:
-     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
+     *      1 - max gas price limit in gwei the consumer is willing to pay for data processing
      *      2 - max ETH that can be sent in a gas top up Tx
      *      3 - request timeout in seconds
      *
@@ -207,27 +207,80 @@ contract Consumer {
         require(consumerState.withdrawEth(_amount));
     }
 
-    /**
-     * @dev submitDataRequest submit a new data request to the Router. The router will
-     *      verify the data request, and route it to the data provider
+    /*
+     * @dev requestData - initialises a data request.
+     *      Kicks off the ConsumerLib.sol lib's submitDataRequest function which
+     *      forwards the request to the deployed Router smart contract.
+     *
+     *      Note: the ConsumerLib.sol lib's submitDataRequest function has the onlyOwner()
+     *      and isProvider(_dataProvider) modifiers. These ensure only this contract owner
+     *      can initialise a request, and that the provider is authorised respectively.
+     *      The router will also verify the data request, and route it to the data provider
      *      Can only be called by the current owner.
      *      Note: Contract ownership is checked in the underlying ConsumerLib function
      *
-     * @param _dataProvider the address of the data provider to send the request to
-     * @param _data type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
-     * @param _gasPrice the gas price the consumer would like the provider to use for sending data back
-     * @param _callbackFunctionSignature the callback function the provider should call to send data back
-     * @return requestId - the bytes32 request id
+     * @param _dataProvider payable address of the data provider
+     * @param _data bytes32 value of data being requested, e.g. PRICE.BTC.USD.AVG requests
+     *        average price for BTC/USD pair
+     * @param _gasPrice uint256 max gas price consumer is willing to pay, in gwei. The
+     *        (10 ** 9) conversion to wei is done automatically within the ConsumerLib.sol
+     *        submitDataRequest function before forwarding it to the Router.
+     * @return requestId bytes32 request ID which can be used to track or cancel the request
      */
-    function submitDataRequest(
+    function requestData(
         address payable _dataProvider,
         bytes32 _data,
-        uint256 _gasPrice,
-        bytes4 _callbackFunctionSignature
-    ) public
-    returns (bytes32 requestId) {
-        return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice, _callbackFunctionSignature);
+        uint256 _gasPrice)
+    external returns (bytes32 requestId) {
+        // call the underlying ConsumerLib.sol lib's submitDataRequest function
+        return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice, this.rawReceiveData.selector);
     }
+
+    /*
+     * @dev rawReceiveData - Called by the Router's fulfillRequest function
+     *      in order to fulfil a data request. Data providers call the Router's fulfillRequest function
+     *      The request  is validated to ensure it has indeed
+     *      been sent by the authorised data provider, via the Router.
+     *      Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
+     *      defined receiveData function to finalise the flfilment. Contract developers will need to
+     *      override the abstract receiveData function defined below.
+     *      Finally, rawReceiveData will delete the Request ID to clean up storage.
+     *
+     * @param _price uint256 result being sent
+     * @param _requestId bytes32 request ID of the request being fulfilled
+     * @param _signature bytes signature of the data and request info. Signed by provider to ensure only the provider
+     *        has sent the data
+     * @return requestId bytes32 request ID which can be used to track the request
+     */
+    function rawReceiveData(
+        uint256 _price,
+        bytes32 _requestId,
+        bytes memory _signature) external
+    {
+        // validate
+        require(msg.sender == address(consumerState.router), "Consumer: data did not originate from Router");
+        require(consumerState.dataRequests[_requestId], "Consumer: _requestId does not exist");
+        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _price, address(this))));
+        address provider = ECDSA.recover(message, _signature);
+        require(consumerState.dataProviders[provider].isAuthorised, "Consumer: provider is not authorised");
+
+        // call override function in end-user's contract
+        receiveData(_price, _requestId);
+        // delete the fulfilled request
+        delete consumerState.dataRequests[_requestId];
+    }
+
+    /*
+    * @dev receiveData - should be overridden by contract developers to process the
+    *      data fulfilment in their own contract.
+    *
+    * @param _price uint256 result being sent
+    * @param _requestId bytes32 request ID of the request being fulfilled
+    */
+    function receiveData(
+        uint256 _price,
+        bytes32 _requestId
+    ) internal virtual;
 
    /**
      * @dev cancelRequest submit cancellation to the router for the specified request
@@ -238,24 +291,6 @@ contract Consumer {
      */
     function cancelRequest(bytes32 _requestId) external {
         require(consumerState.cancelRequest(_requestId));
-    }
-
-    /**
-    * @dev deleteRequest delete a request from the contract. This function should be called
-    *      by the Consumer's contract once a request has been fulfilled, in order to clean up
-    *      any unused request IDs from storage. The _price and _signature params are used to validate
-    *      the params prior to deleting the request, as protection.
-    *
-    * @param _price the data being sent in the fulfilment
-    * @param _requestId the id of the request being cancelled
-    * @param _signature the signature as sent by the provider
-    */
-    function deleteRequest(uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature)
-    public
-    isValidFulfillment(_requestId, _price, _signature) {
-        delete consumerState.dataRequests[_requestId];
     }
 
     /*
@@ -293,7 +328,7 @@ contract Consumer {
      * @dev getRequestVar returns requested variable
      *
      *      The variable to be set can be one of:
-     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
+     *      1 - max gas price limit in gwei the consumer is willing to pay for data processing
      *      2 - max ETH that can be sent in a gas top up Tx
      *      3 - request timeout in seconds
      *
@@ -302,28 +337,5 @@ contract Consumer {
      */
     function getRequestVar(uint8 _var) external view returns (uint256) {
         return consumerState.requestVars[_var];
-    }
-
-    /*
-     * MODIFIERS
-     */
-
-    /**
-     * @dev isValidFulfillment should be used in the Consumer's contract during data request fulfilment,
-     *      to ensure that the data being sent is valid, and from the provider specified in the data
-     *      request. The modifier will decode the signature sent by the provider, to ensure that it
-     *      is valid.
-     *
-     * @param _price the data being sent in the fulfilment
-     * @param _requestId the id of the request being cancelled
-     * @param _signature the signature as sent by the provider
-     */
-    modifier isValidFulfillment(bytes32 _requestId, uint256 _price, bytes memory _signature) {
-        require(msg.sender == address(consumerState.router), "Consumer: data did not originate from Router");
-        require(consumerState.dataRequests[_requestId], "Consumer: _requestId does not exist");
-        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _price, address(this))));
-        address provider = ECDSA.recover(message, _signature);
-        require(consumerState.dataProviders[provider].isAuthorised, "Consumer: provider is not authorised");
-        _;
     }
 }

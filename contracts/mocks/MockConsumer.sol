@@ -2,9 +2,9 @@
 
 pragma solidity ^0.6.0;
 
-import "../lib/Consumer.sol";
+import "../lib/ConsumerBase.sol";
 
-contract MockConsumer is Consumer {
+contract MockConsumer is ConsumerBase {
 
     uint256 public price;
 
@@ -76,7 +76,7 @@ contract MockConsumer is Consumer {
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
     constructor(address _router)
-    public Consumer(_router) {
+    public ConsumerBase(_router) {
         price = 0;
     }
 
@@ -87,30 +87,6 @@ contract MockConsumer is Consumer {
      */
     function setPrice(uint256 _price) external {
         price = _price;
-    }
-
-    /*
-     * @dev requestData - example end user function to start a data request.
-     * Kicks off the Consumer.sol lib's submitDataRequest function which
-     * forwards the request to the deployed Router smart contract
-     *
-     * Note: the  ConsumerLib.sol lib's submitDataRequest function has the onlyOwner()
-     * and isProvider(_dataProvider) modifiers. These ensure only this contract owner
-     * can initialise a request, and that the provider is authorised respectively.
-     *
-     * @param _dataProvider payable address of the data provider
-     * @param _data bytes32 value of data being requested, e.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
-     * @param _gasPrice uint256 max gas price consumer is willing to pay, in gwei. * (10 ** 9) conversion
-     *        is done automatically within the Consumer.sol lib's submitDataRequest function
-     * @return requestId bytes32 request ID which can be used to track/cancel the request
-     */
-    function requestData(
-        address payable _dataProvider,
-        bytes32 _data,
-        uint256 _gasPrice)
-    external returns (bytes32 requestId) {
-        // call the underlying Consumer.sol lib's submitDataRequest function
-        return submitDataRequest(_dataProvider, _data, _gasPrice, this.recieveData.selector);
     }
 
     /*
@@ -131,17 +107,12 @@ contract MockConsumer is Consumer {
      *        has sent the data
      * @return requestId bytes32 request ID which can be used to track/cancel the request
      */
-    function recieveData(
+    function receiveData(
         uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature
+        bytes32 _requestId
     )
-    external
-    isValidFulfillment(_requestId, _price, _signature)
-    returns (bool success) {
+    internal override {
         price = _price;
         emit GotSomeData(msg.sender, _requestId, _price);
-        deleteRequest(_price, _requestId, _signature);
-        return true;
     }
 }

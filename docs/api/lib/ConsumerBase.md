@@ -12,32 +12,30 @@ Most of the functions in this contract are proxy functions to the ConsumerLib
 smart contract
 
 ## Functions:
-- [`constructor(address _router)`](#Consumer-constructor-address-)
-- [`receive()`](#Consumer-receive--)
-- [`withdrawAllTokens()`](#Consumer-withdrawAllTokens--)
-- [`transferOwnership(address payable _newOwner)`](#Consumer-transferOwnership-address-payable-)
-- [`setRouterAllowance(uint256 _routerAllowance, bool _increase)`](#Consumer-setRouterAllowance-uint256-bool-)
-- [`addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`](#Consumer-addRemoveDataProvider-address-uint256-bool-)
-- [`setRequestVar(uint8 _var, uint256 _value)`](#Consumer-setRequestVar-uint8-uint256-)
-- [`setRouter(address _router)`](#Consumer-setRouter-address-)
-- [`topUpGas(address _dataProvider)`](#Consumer-topUpGas-address-)
-- [`withdrawTopUpGas(address _dataProvider)`](#Consumer-withdrawTopUpGas-address-)
-- [`withdrawEth(uint256 _amount)`](#Consumer-withdrawEth-uint256-)
-- [`submitDataRequest(address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature)`](#Consumer-submitDataRequest-address-payable-bytes32-uint256-bytes4-)
-- [`cancelRequest(bytes32 _requestId)`](#Consumer-cancelRequest-bytes32-)
-- [`deleteRequest(uint256 _price, bytes32 _requestId, bytes _signature)`](#Consumer-deleteRequest-uint256-bytes32-bytes-)
-- [`getRouterAddress()`](#Consumer-getRouterAddress--)
-- [`getDataProviderFee(address _dataProvider)`](#Consumer-getDataProviderFee-address-)
-- [`owner()`](#Consumer-owner--)
-- [`getRequestVar(uint8 _var)`](#Consumer-getRequestVar-uint8-)
+- [`constructor(address _router)`](#ConsumerBase-constructor-address-)
+- [`receive()`](#ConsumerBase-receive--)
+- [`withdrawAllTokens()`](#ConsumerBase-withdrawAllTokens--)
+- [`transferOwnership(address payable _newOwner)`](#ConsumerBase-transferOwnership-address-payable-)
+- [`setRouterAllowance(uint256 _routerAllowance, bool _increase)`](#ConsumerBase-setRouterAllowance-uint256-bool-)
+- [`addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`](#ConsumerBase-addRemoveDataProvider-address-uint256-bool-)
+- [`setRequestVar(uint8 _var, uint256 _value)`](#ConsumerBase-setRequestVar-uint8-uint256-)
+- [`setRouter(address _router)`](#ConsumerBase-setRouter-address-)
+- [`topUpGas(address _dataProvider)`](#ConsumerBase-topUpGas-address-)
+- [`withdrawTopUpGas(address _dataProvider)`](#ConsumerBase-withdrawTopUpGas-address-)
+- [`withdrawEth(uint256 _amount)`](#ConsumerBase-withdrawEth-uint256-)
+- [`requestData(address payable _dataProvider, bytes32 _data, uint256 _gasPrice)`](#ConsumerBase-requestData-address-payable-bytes32-uint256-)
+- [`rawReceiveData(uint256 _price, bytes32 _requestId, bytes _signature)`](#ConsumerBase-rawReceiveData-uint256-bytes32-bytes-)
+- [`cancelRequest(bytes32 _requestId)`](#ConsumerBase-cancelRequest-bytes32-)
+- [`getRouterAddress()`](#ConsumerBase-getRouterAddress--)
+- [`getDataProviderFee(address _dataProvider)`](#ConsumerBase-getDataProviderFee-address-)
+- [`owner()`](#ConsumerBase-owner--)
+- [`getRequestVar(uint8 _var)`](#ConsumerBase-getRequestVar-uint8-)
 
 ## Events:
-- [`PaymentRecieved(address sender, uint256 amount)`](#Consumer-PaymentRecieved-address-uint256-)
+- [`PaymentRecieved(address sender, uint256 amount)`](#ConsumerBase-PaymentRecieved-address-uint256-)
 
-## Modifiers:
-- [`isValidFulfillment(bytes32 _requestId, uint256 _price, bytes _signature)`](#Consumer-isValidFulfillment-bytes32-uint256-bytes-)
 
-<a name="Consumer-constructor-address-"></a>
+<a name="ConsumerBase-constructor-address-"></a>
 ### Function `constructor(address _router)`
 Contract constructor. Accepts the address for the router smart contract,
      and a token allowance for the Router to spend on the consumer's behalf (to pay fees).
@@ -48,17 +46,17 @@ Contract constructor. Accepts the address for the router smart contract,
 
 #### Parameters:
 - `_router`: address of the deployed Router smart contract
-<a name="Consumer-receive--"></a>
+<a name="ConsumerBase-receive--"></a>
 ### Function `receive()`
 fallback payable function, which emits an event if ETH is received either via
      the withdrawTopUpGas function, or accidentally.
-<a name="Consumer-withdrawAllTokens--"></a>
+<a name="ConsumerBase-withdrawAllTokens--"></a>
 ### Function `withdrawAllTokens()`
 withdrawAllTokens allows the token holder (contract owner) to withdraw all
      Tokens held by this contract back to themselves.
      Can only be called by the current owner.
      Note: Contract ownership is checked in the underlying ConsumerLib function
-<a name="Consumer-transferOwnership-address-payable-"></a>
+<a name="ConsumerBase-transferOwnership-address-payable-"></a>
 ### Function `transferOwnership(address payable _newOwner)`
 Transfers ownership of the contract to a new account (`newOwner`),
      and withdraws any tokens currently held by the contract. Can only be run if the
@@ -68,7 +66,7 @@ Transfers ownership of the contract to a new account (`newOwner`),
 
 #### Parameters:
 - `_newOwner`: address of the new contract owner
-<a name="Consumer-setRouterAllowance-uint256-bool-"></a>
+<a name="ConsumerBase-setRouterAllowance-uint256-bool-"></a>
 ### Function `setRouterAllowance(uint256 _routerAllowance, bool _increase)`
 setRouterAllowance allows the token holder (contract owner) to
      increase/decrease the token allowance for the Router, in order for the Router to
@@ -81,7 +79,7 @@ setRouterAllowance allows the token holder (contract owner) to
 - `_routerAllowance`: the amount of tokens the owner would like to increase/decrease allocation by
 
 - `_increase`: bool true to increase, false to decrease
-<a name="Consumer-addRemoveDataProvider-address-uint256-bool-"></a>
+<a name="ConsumerBase-addRemoveDataProvider-address-uint256-bool-"></a>
 ### Function `addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`
 addRemoveDataProvider add a new authorised data provider to this contract, and
      authorise it to provide data via the Router, set new fees, or remove
@@ -97,13 +95,13 @@ addRemoveDataProvider add a new authorised data provider to this contract, and
 - `_fee`: the data provider's fee
 
 - `_remove`: bool set to true to de-authorise
-<a name="Consumer-setRequestVar-uint8-uint256-"></a>
+<a name="ConsumerBase-setRequestVar-uint8-uint256-"></a>
 ### Function `setRequestVar(uint8 _var, uint256 _value)`
 setRequestVar set the specified variable. Request variables are used
      when initialising a request, and are common settings for requests.
 
      The variable to be set can be one of:
-     1 - gas price limit in gwei the consumer is willing to pay for data processing
+     1 - max gas price limit in gwei the consumer is willing to pay for data processing
      2 - max ETH that can be sent in a gas top up Tx
      3 - request timeout in seconds
 
@@ -115,7 +113,7 @@ setRequestVar set the specified variable. Request variables are used
 - `_var`: bytes32 the variable being set.
 
 - `_value`: uint256 the new value
-<a name="Consumer-setRouter-address-"></a>
+<a name="ConsumerBase-setRouter-address-"></a>
 ### Function `setRouter(address _router)`
 setRouter set the address of the Router smart contract
      Can only be called by the current owner.
@@ -124,7 +122,7 @@ setRouter set the address of the Router smart contract
 
 #### Parameters:
 - `_router`: on chain address of the router smart contract
-<a name="Consumer-topUpGas-address-"></a>
+<a name="ConsumerBase-topUpGas-address-"></a>
 ### Function `topUpGas(address _dataProvider)`
 topUpGas send ETH to the Router for refunding gas costs to data providers
      for fulfilling data requests. The ETH sent will only be used for the data
@@ -145,7 +143,7 @@ topUpGas send ETH to the Router for refunding gas costs to data providers
 
 #### Parameters:
 - `_dataProvider`: address of data provider for whom gas will be refunded
-<a name="Consumer-withdrawTopUpGas-address-"></a>
+<a name="ConsumerBase-withdrawTopUpGas-address-"></a>
 ### Function `withdrawTopUpGas(address _dataProvider)`
 withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
      held by the Router for the specified data provider. All ETH held will be withdrawn
@@ -158,7 +156,7 @@ withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
 
 #### Parameters:
 - `_dataProvider`: address of associated data provider for whom ETH will be withdrawn
-<a name="Consumer-withdrawEth-uint256-"></a>
+<a name="ConsumerBase-withdrawEth-uint256-"></a>
 ### Function `withdrawEth(uint256 _amount)`
 withdrawEth allows the Consumer contract's owner to withdraw any ETH
      that has been sent to the Contract, either accidentally or via the
@@ -173,26 +171,13 @@ withdrawEth allows the Consumer contract's owner to withdraw any ETH
 
 #### Parameters:
 - `_amount`: amount (in wei) of ETH to be withdrawn
-<a name="Consumer-submitDataRequest-address-payable-bytes32-uint256-bytes4-"></a>
-### Function `submitDataRequest(address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature) -> bytes32 requestId`
-submitDataRequest submit a new data request to the Router. The router will
-     verify the data request, and route it to the data provider
-     Can only be called by the current owner.
-     Note: Contract ownership is checked in the underlying ConsumerLib function
-
-
-#### Parameters:
-- `_dataProvider`: the address of the data provider to send the request to
-
-- `_data`: type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
-
-- `_gasPrice`: the gas price the consumer would like the provider to use for sending data back
-
-- `_callbackFunctionSignature`: the callback function the provider should call to send data back
-
-#### Return Values:
-- requestId - the bytes32 request id
-<a name="Consumer-cancelRequest-bytes32-"></a>
+<a name="ConsumerBase-requestData-address-payable-bytes32-uint256-"></a>
+### Function `requestData(address payable _dataProvider, bytes32 _data, uint256 _gasPrice) -> bytes32 requestId`
+No description
+<a name="ConsumerBase-rawReceiveData-uint256-bytes32-bytes-"></a>
+### Function `rawReceiveData(uint256 _price, bytes32 _requestId, bytes _signature)`
+No description
+<a name="ConsumerBase-cancelRequest-bytes32-"></a>
 ### Function `cancelRequest(bytes32 _requestId)`
 cancelRequest submit cancellation to the router for the specified request
      Can only be called by the current owner.
@@ -201,41 +186,27 @@ cancelRequest submit cancellation to the router for the specified request
 
 #### Parameters:
 - `_requestId`: the id of the request being cancelled
-<a name="Consumer-deleteRequest-uint256-bytes32-bytes-"></a>
-### Function `deleteRequest(uint256 _price, bytes32 _requestId, bytes _signature)`
-deleteRequest delete a request from the contract. This function should be called
-     by the Consumer's contract once a request has been fulfilled, in order to clean up
-     any unused request IDs from storage. The _price and _signature params are used to validate
-     the params prior to deleting the request, as protection.
-
-
-#### Parameters:
-- `_price`: the data being sent in the fulfilment
-
-- `_requestId`: the id of the request being cancelled
-
-- `_signature`: the signature as sent by the provider
-<a name="Consumer-getRouterAddress--"></a>
+<a name="ConsumerBase-getRouterAddress--"></a>
 ### Function `getRouterAddress() -> address`
 getRouterAddress returns the address of the Router smart contract being used
 
 
-<a name="Consumer-getDataProviderFee-address-"></a>
+<a name="ConsumerBase-getDataProviderFee-address-"></a>
 ### Function `getDataProviderFee(address _dataProvider) -> uint256`
 getDataProviderFee returns the fee currently set for the given provider
 
 
-<a name="Consumer-owner--"></a>
+<a name="ConsumerBase-owner--"></a>
 ### Function `owner() -> address`
 owner returns the address of the Consumer contract's owner
 
 
-<a name="Consumer-getRequestVar-uint8-"></a>
+<a name="ConsumerBase-getRequestVar-uint8-"></a>
 ### Function `getRequestVar(uint8 _var) -> uint256`
 getRequestVar returns requested variable
 
      The variable to be set can be one of:
-     1 - gas price limit in gwei the consumer is willing to pay for data processing
+     1 - max gas price limit in gwei the consumer is willing to pay for data processing
      2 - max ETH that can be sent in a gas top up Tx
      3 - request timeout in seconds
 
@@ -244,7 +215,7 @@ getRequestVar returns requested variable
 - `_var`: uint8 var to get
 
 
-<a name="Consumer-PaymentRecieved-address-uint256-"></a>
+<a name="ConsumerBase-PaymentRecieved-address-uint256-"></a>
 ### Event `PaymentRecieved(address sender, uint256 amount)`
 PaymentRecieved - emitted when ETH is sent to this contract address, either via the
      withdrawTopUpGas function (the Router sends ETH stored for gas refunds), or accidentally
@@ -254,17 +225,3 @@ PaymentRecieved - emitted when ETH is sent to this contract address, either via 
 
 - `amount`: amount sent (wei)
 
-<a name="Consumer-isValidFulfillment-bytes32-uint256-bytes-"></a>
-### Modifier `isValidFulfillment(bytes32 _requestId, uint256 _price, bytes _signature)`
-isValidFulfillment should be used in the Consumer's contract during data request fulfilment,
-     to ensure that the data being sent is valid, and from the provider specified in the data
-     request. The modifier will decode the signature sent by the provider, to ensure that it
-     is valid.
-
-
-#### Parameters:
-- `_price`: the data being sent in the fulfilment
-
-- `_requestId`: the id of the request being cancelled
-
-- `_signature`: the signature as sent by the provider
