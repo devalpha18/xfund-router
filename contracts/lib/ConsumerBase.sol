@@ -231,7 +231,7 @@ abstract contract ConsumerBase {
         address payable _dataProvider,
         bytes32 _data,
         uint256 _gasPrice)
-    external returns (bytes32 requestId) {
+    public returns (bytes32 requestId) {
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
         return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice, this.rawReceiveData.selector);
     }
