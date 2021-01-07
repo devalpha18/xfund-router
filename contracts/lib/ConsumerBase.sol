@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
  * Most of the functions in this contract are proxy functions to the ConsumerLib
  * smart contract
  */
-abstract contract Consumer {
+abstract contract ConsumerBase {
     using ConsumerLib for ConsumerLib.State;
 
     /*
@@ -212,7 +212,7 @@ abstract contract Consumer {
      *      Kicks off the ConsumerLib.sol lib's submitDataRequest function which
      *      forwards the request to the deployed Router smart contract.
      *
-     *      Note: the  ConsumerLib.sol lib's submitDataRequest function has the onlyOwner()
+     *      Note: the ConsumerLib.sol lib's submitDataRequest function has the onlyOwner()
      *      and isProvider(_dataProvider) modifiers. These ensure only this contract owner
      *      can initialise a request, and that the provider is authorised respectively.
      *      The router will also verify the data request, and route it to the data provider
@@ -220,9 +220,11 @@ abstract contract Consumer {
      *      Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _dataProvider payable address of the data provider
-     * @param _data bytes32 value of data being requested, e.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
-     * @param _gasPrice uint256 max gas price consumer is willing to pay, in gwei. * (10 ** 9) conversion
-     *        is done automatically within the Consumer.sol lib's submitDataRequest function
+     * @param _data bytes32 value of data being requested, e.g. PRICE.BTC.USD.AVG requests
+     *        average price for BTC/USD pair
+     * @param _gasPrice uint256 max gas price consumer is willing to pay, in gwei. The
+     *        (10 ** 9) conversion to wei is done automatically within the ConsumerLib.sol
+     *        submitDataRequest function before forwarding it to the Router.
      * @return requestId bytes32 request ID which can be used to track or cancel the request
      */
     function requestData(
@@ -230,7 +232,7 @@ abstract contract Consumer {
         bytes32 _data,
         uint256 _gasPrice)
     external returns (bytes32 requestId) {
-        // call the underlying Consumer.sol lib's submitDataRequest function
+        // call the underlying ConsumerLib.sol lib's submitDataRequest function
         return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice, this.rawReceiveData.selector);
     }
 
@@ -254,7 +256,6 @@ abstract contract Consumer {
         uint256 _price,
         bytes32 _requestId,
         bytes memory _signature) external
-        isValidFulfillment(_requestId, _price, _signature)
     {
         // validate
         require(msg.sender == address(consumerState.router), "Consumer: data did not originate from Router");
