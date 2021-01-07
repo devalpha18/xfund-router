@@ -34,7 +34,7 @@ contract Router is AccessControl {
     // provider expects the consumer to pay for the gas.
     // Note: This is increased during fulfillRequest if the actual cost
     // is more.
-    uint256 public constant EXPECTED_GAS = 81000;
+    uint256 public constant EXPECTED_GAS = 73500;
 
     /*
      * STRUCTURES
