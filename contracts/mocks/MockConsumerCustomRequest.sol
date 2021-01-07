@@ -4,12 +4,12 @@ pragma solidity ^0.6.0;
 
 import "../lib/ConsumerBase.sol";
 
-contract MockConsumer is ConsumerBase {
+contract MockConsumerCustomRequest is ConsumerBase {
 
     uint256 public price;
 
     // Can be called when data provider has sent data
-    event GotSomeData(address router, bytes32 requestId, uint256 price);
+    event GotSomeData(address router, bytes32 requestId, bytes32 data, uint256 price);
 
     /*
      * MIRRORED EVENTS - FOR CLIENT LOG DECODING
@@ -49,6 +49,11 @@ contract MockConsumer is ConsumerBase {
         uint256 expires
     );
 
+    event CustomDataRequested(
+        bytes32 indexed requestId,
+        bytes32 data
+    );
+
     // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
     event GrantProviderPermission(address indexed dataConsumer, address indexed dataProvider);
 
@@ -75,6 +80,8 @@ contract MockConsumer is ConsumerBase {
     event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
+    mapping(bytes32 => bytes32) private myCustomRequestStorage;
+
     constructor(address _router)
     public ConsumerBase(_router) {
         price = 0;
@@ -89,6 +96,17 @@ contract MockConsumer is ConsumerBase {
         price = _price;
     }
 
+    function customRequestData(
+        address payable _dataProvider,
+        bytes32 _data,
+        uint256 _gasPrice)
+    external {
+        // call the underlying ConsumerLib.sol lib's submitDataRequest function
+        bytes32 requestId = requestData(_dataProvider, _data, _gasPrice);
+        emit CustomDataRequested(requestId, _data);
+        myCustomRequestStorage[requestId] = _data;
+    }
+
     /*
      * @dev recieveData - example end user function to recieve data. This will be called
      *
@@ -101,6 +119,8 @@ contract MockConsumer is ConsumerBase {
     )
     internal override {
         price = _price;
-        emit GotSomeData(msg.sender, _requestId, _price);
+        bytes32 data = myCustomRequestStorage[_requestId];
+        emit GotSomeData(msg.sender, _requestId, data, _price);
+        delete myCustomRequestStorage[_requestId];
     }
 }

@@ -11,6 +11,7 @@ const { expect } = require('chai')
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
+const MockConsumerCustomRequest = contract.fromArtifact("MockConsumerCustomRequest") // Loads a compiled contract
 const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
 const sleepFor = (ms) => {
@@ -77,8 +78,12 @@ describe('Consumer - data request tests', function () {
     await MockConsumer.detectNetwork();
     await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
 
-    // dataConsumerOwner deploy Consumer contract
+    await MockConsumerCustomRequest.detectNetwork();
+    await MockConsumerCustomRequest.link("ConsumerLib", this.ConsumerLib.address)
+
+    // dataConsumerOwner deploy Consumer contracts
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+    this.MockConsumerCustomRequestContract = await MockConsumerCustomRequest.new(this.RouterContract.address, {from: dataConsumerOwner})
 
   })
 
@@ -90,15 +95,18 @@ describe('Consumer - data request tests', function () {
     beforeEach(async function () {
       // increase Router allowance
       await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
+      await this.MockConsumerCustomRequestContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
 
       // add a dataProvider
       await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
+      await this.MockConsumerCustomRequestContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
 
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
 
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
+      await this.MockTokenContract.transfer(this.MockConsumerCustomRequestContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
 
       // set provider to pay gas for data fulfilment - not testing this here
       await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
@@ -114,6 +122,17 @@ describe('Consumer - data request tests', function () {
 
         expectEvent( reciept, 'DataRequestSubmitted', {
           requestId: reqId,
+        } )
+      } )
+
+      it( 'dataConsumer (owner) can initialise a custom request - emits CustomDataRequested event', async function () {
+        const reciept = await this.MockConsumerCustomRequestContract.customRequestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+        const reqId = await getReqIdFromReceipt(reciept)
+
+        expectEvent( reciept, 'CustomDataRequested', {
+          requestId: reqId,
+          data: `${endpoint}000000000000000000000000000000`
         } )
       } )
 
