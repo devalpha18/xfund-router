@@ -72,7 +72,7 @@ library ConsumerLib {
 
     /**
      * @dev OwnershipTransferred - emitted when the owner transfers ownership of the Consumer contract to
-     *      a new address
+     * a new address
      * @param sender address of the owner
      * @param previousOwner old owner address
      * @param newOwner new owner address
@@ -148,7 +148,7 @@ library ConsumerLib {
 
     /**
      * @dev init - called once during the ConsumerBase.sol's constructor function to initialise the
-     *      contract's data storage
+     * contract's data storage
      * @param self the Contract's State object
      * @param _router address of the Router smart contract
      */
@@ -175,10 +175,11 @@ library ConsumerLib {
 
     /**
      * @dev addRemoveDataProvider add a new authorised data provider to this contract, and
-     *      authorise it to provide data via the Router, or de-authorise an existing provider.
-     *      Can also be used to modify a provider's fee for an existing authorised provider.
-     *      If the provider is currently authorised when setting the fee, the Router's
-     *      grantProviderPermission is not called to conserve gas.
+     * authorise it to provide data via the Router, or de-authorise an existing provider.
+     * Can also be used to modify a provider's fee for an existing authorised provider.
+     *
+     * If the provider is currently authorised when setting the fee, the Router's
+     * grantProviderPermission is not called to conserve gas.
      *
      * @param self the Contract's State object
      * @param _dataProvider the address of the data provider
@@ -225,8 +226,9 @@ library ConsumerLib {
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
-     *      and withdraws any tokens currentlry held by the contract.
-     *      Can only be called by the current owner.
+     * and withdraws any tokens currentlry held by the contract.
+     *
+     * Can only be called by the current owner.
      *
      * @param self the Contract's State object
      * @param newOwner the address of the new owner
@@ -244,7 +246,7 @@ library ConsumerLib {
 
     /**
      * @dev validateTopUpGas called by the underlying ConsumerBase.sol contract in order to
-     *      validate the topUpGas input prior to forwarding ETH and data to the Router.
+     * validate the topUpGas input prior to forwarding ETH and data to the Router.
      *
      * @param _dataProvider address of data provider for whom gas will be refunded
      * @param _amount amount of ETH being sent as gas topup
@@ -262,10 +264,10 @@ library ConsumerLib {
 
     /**
      * @dev withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
-     *      held by the Router for the specified data provider. All ETH held will be withdrawn
-     *      from the Router and forwarded to the Consumer contract owner's wallet.this
+     * held by the Router for the specified data provider. All ETH held will be withdrawn
+     * from the Router and forwarded to the Consumer contract owner's wallet.this
      *
-     *      NOTE: This function is called by the Consumer's withdrawTopUpGas function
+     * NOTE: This function is called by the Consumer's withdrawTopUpGas function
      *
      * @param self the Contract's State object
      * @param _dataProvider address of associated data provider for whom ETH will be withdrawn
@@ -281,12 +283,12 @@ library ConsumerLib {
 
     /**
      * @dev withdrawEth allows the Consumer contract's owner to withdraw any ETH
-     *      that has been sent to the Contract, either accidentally or via the
-     *      withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
-     *      is automatically called as part of that function. ETH is sent to the
-     *      Consumer contract's current owner's wallet.
+     * that has been sent to the Contract, either accidentally or via the
+     * withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
+     * is automatically called as part of that function. ETH is sent to the
+     * Consumer contract's current owner's wallet.
      *
-     *      NOTE: This function is called by the Consumer's withdrawEth function
+     * NOTE: This function is called by the Consumer's withdrawEth function
      *
      * @param self the Contract's State object
      * @param amount amount (in wei) of ETH to be withdrawn
@@ -304,7 +306,7 @@ library ConsumerLib {
 
     /**
      * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
-     *      Tokens held by this contract back to themselves.
+     * Tokens held by this contract back to themselves.
      *
      * @param self the Contract's State object
      * @return success
@@ -321,8 +323,8 @@ library ConsumerLib {
 
     /**
      * @dev setRouterAllowance allows the token holder (contract owner) to
-     *      increase/decrease the token allowance for the Router, in order for the Router to
-     *      pay fees for data requests
+     * increase/decrease the token allowance for the Router, in order for the Router to
+     * pay fees for data requests
      *
      * @param self the Contract's State object
      * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
@@ -343,12 +345,12 @@ library ConsumerLib {
 
     /**
      * @dev setRequestVar set the specified variable. Request variables are used
-     *      when initialising a request, and are common settings for requests.
+     * when initialising a request, and are common settings for requests.
      *
-     *      The variable to be set can be one of:
-     *      1 - gas price limit in gwei the consumer is willing to pay for data processing
-     *      2 - max ETH that can be sent in a gas top up Tx
-     *      3 - request timeout in seconds
+     * The variable to be set can be one of:
+     * 1 - gas price limit in gwei the consumer is willing to pay for data processing
+     * 2 - max ETH that can be sent in a gas top up Tx
+     * 3 - request timeout in seconds
      *
      * @param self the Contract's State object
      * @param _var uint8 the variable being set.
@@ -386,7 +388,7 @@ library ConsumerLib {
 
     /**
      * @dev submitDataRequest submit a new data request to the Router. The router will
-     *      verify the data request, and route it to the data provider
+     * verify the data request, and route it to the data provider
      *
      * @param self State object
      * @param _dataProvider the address of the data provider to send the request to

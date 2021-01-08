@@ -33,7 +33,8 @@ abstract contract ConsumerBase {
 
     /**
      * @dev PaymentRecieved - emitted when ETH is sent to this contract address, either via the
-     *      withdrawTopUpGas function (the Router sends ETH stored for gas refunds), or accidentally
+     * withdrawTopUpGas function (the Router sends ETH stored for gas refunds), or accidentally
+     *
      * @param sender address of sender
      * @param amount amount sent (wei)
      */
@@ -45,10 +46,10 @@ abstract contract ConsumerBase {
 
     /**
      * @dev Contract constructor. Accepts the address for the router smart contract,
-     *      and a token allowance for the Router to spend on the consumer's behalf (to pay fees).
+     * and a token allowance for the Router to spend on the consumer's behalf (to pay fees).
      *
-     *      The Consumer contract should have enough tokens allocated to it to pay fees
-     *      and the Router should be able to use the Tokens to forward fees.
+     * The Consumer contract should have enough tokens allocated to it to pay fees
+     * and the Router should be able to use the Tokens to forward fees.
      *
      * @param _router address of the deployed Router smart contract
      */
@@ -58,7 +59,7 @@ abstract contract ConsumerBase {
 
     /**
      * @dev fallback payable function, which emits an event if ETH is received either via
-     *      the withdrawTopUpGas function, or accidentally.
+     * the withdrawTopUpGas function, or accidentally.
      */
     receive() external payable {
         emit PaymentRecieved(msg.sender, msg.value);
@@ -66,9 +67,11 @@ abstract contract ConsumerBase {
 
     /**
      * @dev withdrawAllTokens allows the token holder (contract owner) to withdraw all
-     *      Tokens held by this contract back to themselves.
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * Tokens held by this contract back to themselves.
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      */
     function withdrawAllTokens() external {
         require(consumerState.withdrawAllTokens());
@@ -76,10 +79,13 @@ abstract contract ConsumerBase {
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
-     *      and withdraws any tokens currently held by the contract. Can only be run if the
-     *      current owner has no ETH held by the Router.
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * and withdraws any tokens currently held by the contract. Can only be run if the
+     * current owner has no ETH held by the Router.
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
+     *
      * @param _newOwner address of the new contract owner
      */
     function transferOwnership(address payable _newOwner) external {
@@ -88,10 +94,12 @@ abstract contract ConsumerBase {
 
     /**
      * @dev setRouterAllowance allows the token holder (contract owner) to
-     *      increase/decrease the token allowance for the Router, in order for the Router to
-     *      pay fees for data requests
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * increase/decrease the token allowance for the Router, in order for the Router to
+     * pay fees for data requests
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _routerAllowance the amount of tokens the owner would like to increase/decrease allocation by
      * @param _increase bool true to increase, false to decrease
@@ -102,11 +110,13 @@ abstract contract ConsumerBase {
 
     /**
      * @dev addRemoveDataProvider add a new authorised data provider to this contract, and
-     *      authorise it to provide data via the Router, set new fees, or remove
-     *      a currently authorised provider. Fees are set here to reduce gas costs when
-     *      requesting data, and to remove the need to specify the fee with every request
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * authorise it to provide data via the Router, set new fees, or remove
+     * a currently authorised provider. Fees are set here to reduce gas costs when
+     * requesting data, and to remove the need to specify the fee with every request
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _dataProvider the address of the data provider
      * @param _fee the data provider's fee
@@ -118,15 +128,16 @@ abstract contract ConsumerBase {
 
     /**
      * @dev setRequestVar set the specified variable. Request variables are used
-     *      when initialising a request, and are common settings for requests.
+     * when initialising a request, and are common settings for requests.
      *
-     *      The variable to be set can be one of:
-     *      1 - max gas price limit in gwei the consumer is willing to pay for data processing
-     *      2 - max ETH that can be sent in a gas top up Tx
-     *      3 - request timeout in seconds
+     * The variable to be set can be one of:
+     * 1 - max gas price limit in gwei the consumer is willing to pay for data processing
+     * 2 - max ETH that can be sent in a gas top up Tx
+     * 3 - request timeout in seconds
      *
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _var bytes32 the variable being set.
      * @param _value uint256 the new value
@@ -137,8 +148,10 @@ abstract contract ConsumerBase {
 
     /**
      * @dev setRouter set the address of the Router smart contract
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _router on chain address of the router smart contract
      */
@@ -148,20 +161,23 @@ abstract contract ConsumerBase {
 
     /**
      * @dev topUpGas send ETH to the Router for refunding gas costs to data providers
-     *      for fulfilling data requests. The ETH sent will only be used for the data
-     *      provider specified, and can be withdrawn at any time via the withdrawTopUpGas
-     *      function. ConsumerLib handles any input validation.
+     * for fulfilling data requests. The ETH sent will only be used for the data
+     * provider specified, and can be withdrawn at any time via the withdrawTopUpGas
+     * function. ConsumerLib handles any input validation.
      *
-     *      ETH sent is forwarded to the Router smart contract, and held there. It is "assigned"
-     *      to the specified data provider's address.
+     * ETH sent is forwarded to the Router smart contract, and held there. It is "assigned"
+     * to the specified data provider's address.
      *
-     *      NOTE: this is a payable function, and a value must be sent when calling it.
-     *      The value sent cannot exceed either this contract's own gasTopUpLimitm or the
-     *      Router's topup limit. This is a safeguarde to prevent any accidental large amounts
-     *      being sent.
-     *      Can only be called by the current owner.
-     *      Note: since Library contracts cannot have payable functions, the whole function
-     *      is defined here, along with contract ownership checks.
+     * NOTE: this is a payable function, and a value must be sent when calling it.
+     *
+     * The value sent cannot exceed either this contract's own gasTopUpLimitm or the
+     * Router's topup limit. This is a safeguarde to prevent any accidental large amounts
+     * being sent.
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: since Library contracts cannot have payable functions, the whole function
+     * is defined here, along with contract ownership checks.
      *
      * @param _dataProvider address of data provider for whom gas will be refunded
      */
@@ -175,12 +191,14 @@ abstract contract ConsumerBase {
 
     /**
      * @dev withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
-     *      held by the Router for the specified data provider. All ETH held will be withdrawn
-     *      from the Router and forwarded to the Consumer contract owner's wallet.this
+     * held by the Router for the specified data provider. All ETH held will be withdrawn
+     * from the Router and forwarded to the Consumer contract owner's wallet.this
      *
-     *      NOTE: This function calls the ConsumerLib's underlying withdrawTopUpGas function
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * NOTE: This function calls the ConsumerLib's underlying withdrawTopUpGas function
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _dataProvider address of associated data provider for whom ETH will be withdrawn
      */
@@ -191,14 +209,16 @@ abstract contract ConsumerBase {
 
     /**
      * @dev withdrawEth allows the Consumer contract's owner to withdraw any ETH
-     *      that has been sent to the Contract, either accidentally or via the
-     *      withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
-     *      is automatically called as part of that function. ETH is sent to the
-     *      Consumer contract's current owner's wallet.
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * that has been sent to the Contract, either accidentally or via the
+     * withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
+     * is automatically called as part of that function. ETH is sent to the
+     * Consumer contract's current owner's wallet.
      *
-     *      NOTE: This function calls the ConsumerLib's underlying withdrawEth function
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
+     *
+     * NOTE: This function calls the ConsumerLib's underlying withdrawEth function
      *
      * @param _amount amount (in wei) of ETH to be withdrawn
      */
@@ -207,24 +227,26 @@ abstract contract ConsumerBase {
         require(consumerState.withdrawEth(_amount));
     }
 
-    /*
+    /**
      * @dev requestData - initialises a data request.
-     *      Kicks off the ConsumerLib.sol lib's submitDataRequest function which
-     *      forwards the request to the deployed Router smart contract.
+     * Kicks off the ConsumerLib.sol lib's submitDataRequest function which
+     * forwards the request to the deployed Router smart contract.
      *
-     *      Note: the ConsumerLib.sol lib's submitDataRequest function has the onlyOwner()
-     *      and isProvider(_dataProvider) modifiers. These ensure only this contract owner
-     *      can initialise a request, and that the provider is authorised respectively.
-     *      The router will also verify the data request, and route it to the data provider
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     * Note: the ConsumerLib.sol lib's submitDataRequest function has the onlyOwner()
+     * and isProvider(_dataProvider) modifiers. These ensure only this contract owner
+     * can initialise a request, and that the provider is authorised respectively.
+     * The router will also verify the data request, and route it to the data provider
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _dataProvider payable address of the data provider
      * @param _data bytes32 value of data being requested, e.g. PRICE.BTC.USD.AVG requests
-     *        average price for BTC/USD pair
+     * average price for BTC/USD pair
      * @param _gasPrice uint256 max gas price consumer is willing to pay, in gwei. The
-     *        (10 ** 9) conversion to wei is done automatically within the ConsumerLib.sol
-     *        submitDataRequest function before forwarding it to the Router.
+     * (10 ** 9) conversion to wei is done automatically within the ConsumerLib.sol
+     * submitDataRequest function before forwarding it to the Router.
      * @return requestId bytes32 request ID which can be used to track or cancel the request
      */
     function requestData(
@@ -236,21 +258,22 @@ abstract contract ConsumerBase {
         return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice, this.rawReceiveData.selector);
     }
 
-    /*
+    /**
      * @dev rawReceiveData - Called by the Router's fulfillRequest function
-     *      in order to fulfil a data request. Data providers call the Router's fulfillRequest function
-     *      The request  is validated to ensure it has indeed
-     *      been sent by the authorised data provider, via the Router.
-     *      Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
-     *      defined receiveData function to finalise the flfilment. Contract developers will need to
-     *      override the abstract receiveData function defined below.
-     *      Finally, rawReceiveData will delete the Request ID to clean up storage.
+     * in order to fulfil a data request. Data providers call the Router's fulfillRequest function
+     * The request  is validated to ensure it has indeed
+     * been sent by the authorised data provider, via the Router.
+     *
+     * Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
+     * defined receiveData function to finalise the flfilment. Contract developers will need to
+     * override the abstract receiveData function defined below.
+     *
+     * Finally, rawReceiveData will delete the Request ID to clean up storage.
      *
      * @param _price uint256 result being sent
      * @param _requestId bytes32 request ID of the request being fulfilled
      * @param _signature bytes signature of the data and request info. Signed by provider to ensure only the provider
-     *        has sent the data
-     * @return requestId bytes32 request ID which can be used to track the request
+     * has sent the data
      */
     function rawReceiveData(
         uint256 _price,
@@ -272,7 +295,7 @@ abstract contract ConsumerBase {
 
     /*
     * @dev receiveData - should be overridden by contract developers to process the
-    *      data fulfilment in their own contract.
+    * data fulfilment in their own contract.
     *
     * @param _price uint256 result being sent
     * @param _requestId bytes32 request ID of the request being fulfilled
@@ -284,8 +307,10 @@ abstract contract ConsumerBase {
 
    /**
      * @dev cancelRequest submit cancellation to the router for the specified request
-     *      Can only be called by the current owner.
-     *      Note: Contract ownership is checked in the underlying ConsumerLib function
+     *
+     * Can only be called by the current owner.
+     *
+     * Note: Contract ownership is checked in the underlying ConsumerLib function
      *
      * @param _requestId the id of the request being cancelled
      */
@@ -327,10 +352,10 @@ abstract contract ConsumerBase {
     /**
      * @dev getRequestVar returns requested variable
      *
-     *      The variable to be set can be one of:
-     *      1 - max gas price limit in gwei the consumer is willing to pay for data processing
-     *      2 - max ETH that can be sent in a gas top up Tx
-     *      3 - request timeout in seconds
+     * The variable to be set can be one of:
+     * 1 - max gas price limit in gwei the consumer is willing to pay for data processing
+     * 2 - max ETH that can be sent in a gas top up Tx
+     * 3 - request timeout in seconds
      *
      * @param _var uint8 var to get
      * @return uint256
