@@ -65,9 +65,9 @@ Contract constructor. Accepts the address for a Token smart contract.
 <a name="Router-setGasTopUpLimit-uint256-"></a>
 ### Function `setGasTopUpLimit(uint256 _gasTopUpLimit) -> bool success`
 setGasTopUpLimit set the max amount of ETH that can be sent
-     in a topUpGas Tx. Router admin calls this to set the maximum amount
-     a Consumer can send in a single Tx, to prevent large amounts of ETH
-     being sent.
+in a topUpGas Tx. Router admin calls this to set the maximum amount
+a Consumer can send in a single Tx, to prevent large amounts of ETH
+being sent.
 
 
 #### Parameters:
@@ -76,7 +76,7 @@ setGasTopUpLimit set the max amount of ETH that can be sent
 <a name="Router-setProviderPaysGas-bool-"></a>
 ### Function `setProviderPaysGas(bool _providerPays) -> bool success`
 setProviderPaysGas - provider calls for setting who pays gas
-     for sending the fulfillRequest Tx
+for sending the fulfillRequest Tx
 
 #### Parameters:
 - `_providerPays`: bool - true if provider will pay gas
@@ -91,10 +91,12 @@ setProviderMinFee - provider calls for setting its minimum fee
 <a name="Router-topUpGas-address-"></a>
 ### Function `topUpGas(address _dataProvider) -> bool success`
 topUpGas data consumer contract calls this function to top up gas
-     Gas is the ETH held by this contract which is used to refund Tx costs
-     to the data provider for fulfilling a request.
-     To prevent silly amounts of ETH being sent, a sensible limit is imposed.
-     Can only top up for authorised providers
+Gas is the ETH held by this contract which is used to refund Tx costs
+to the data provider for fulfilling a request.
+
+To prevent silly amounts of ETH being sent, a sensible limit is imposed.
+
+Can only top up for authorised providers
 
 
 #### Parameters:
@@ -103,13 +105,14 @@ topUpGas data consumer contract calls this function to top up gas
 <a name="Router-withDrawGasTopUpForProvider-address-"></a>
 ### Function `withDrawGasTopUpForProvider(address _dataProvider) -> uint256 amountWithdrawn`
 withDrawGasTopUpForProvider data consumer contract calls this function to
-     withdraw any remaining ETH stored in the Router for gas refunds for a specified
-     data provider.
-     Consumer contract will then transfer through to the consumer contract's
-     owner.
+withdraw any remaining ETH stored in the Router for gas refunds for a specified
+data provider.
 
-     NOTE - data provider authorisation is not checked, since a consumer needs to
-     be able to withdraw for a data provide that has been revoked.
+Consumer contract will then transfer through to the consumer contract's
+owner.
+
+NOTE - data provider authorisation is not checked, since a consumer needs to
+be able to withdraw for a data provide that has been revoked.
 
 
 #### Parameters:
@@ -118,8 +121,8 @@ withDrawGasTopUpForProvider data consumer contract calls this function to
 <a name="Router-initialiseRequest-address-payable-uint256-uint256-uint256-uint256-bytes32-bytes32-bytes4-"></a>
 ### Function `initialiseRequest(address payable _dataProvider, uint256 _fee, uint256 _requestNonce, uint256 _gasPrice, uint256 _expires, bytes32 _requestId, bytes32 _data, bytes4 _callbackFunctionSignature) -> bool success`
 initialiseRequest - called by Consumer contract to initialise a data request. Can only be called by
-     a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
-     for the provider. Only the provider specified in the reqyest may fulfil the request.
+a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
+for the provider. Only the provider specified in the reqyest may fulfil the request.
 
 #### Parameters:
 - `_dataProvider`: address of the data provider. Must be authorised for this consumer
@@ -143,7 +146,7 @@ initialiseRequest - called by Consumer contract to initialise a data request. Ca
 <a name="Router-fulfillRequest-bytes32-uint256-bytes-"></a>
 ### Function `fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes _signature) -> bool`
 fulfillRequest - called by data provider to forward data to the Consumer. Only the specified provider
-     may fulfil the data request. Gas paid by the provider may also be refunded to the provider.
+may fulfil the data request. Gas paid by the provider may also be refunded to the provider.
 
 #### Parameters:
 - `_requestId`: the request the provider is sending data for
@@ -151,14 +154,14 @@ fulfillRequest - called by data provider to forward data to the Consumer. Only t
 - `_requestedData`: the data to send
 
 - `_signature`: data provider's signature of the _requestId, _requestedData and Consumer's address
-                  this will used to validate the data's origin in the Consumer's contract
+this will used to validate the data's origin in the Consumer's contract
 
 #### Return Values:
 - success if the execution was successful.
 <a name="Router-cancelRequest-bytes32-"></a>
 ### Function `cancelRequest(bytes32 _requestId) -> bool`
 cancelRequest - called by data Consumer to cancel a request. Can only be called once the request's
-     expire time is exceeded. Cancelled requests cannot be fulfilled.
+expire time is exceeded. Cancelled requests cannot be fulfilled.
 
 #### Parameters:
 - `_requestId`: the request the consumer wishes to cancel
@@ -256,7 +259,7 @@ getTotalGasDeposits - get total gas deposited in Router
 <a name="Router-getGasDepositsForConsumer-address-"></a>
 ### Function `getGasDepositsForConsumer(address _dataConsumer) -> uint256`
 getGasDepositsForConsumer - get total gas deposited in Router
-     by a data consumer
+by a data consumer
 
 #### Parameters:
 - `_dataConsumer`: address of data consumer
@@ -264,7 +267,7 @@ getGasDepositsForConsumer - get total gas deposited in Router
 <a name="Router-getGasDepositsForConsumerProviders-address-address-"></a>
 ### Function `getGasDepositsForConsumerProviders(address _dataConsumer, address _dataProvider) -> uint256`
 getGasDepositsForConsumerProviders - get total gas deposited in Router
-     by a data consumer for a given data provider
+by a data consumer for a given data provider
 
 #### Parameters:
 - `_dataConsumer`: address of data consumer
@@ -274,7 +277,7 @@ getGasDepositsForConsumerProviders - get total gas deposited in Router
 <a name="Router-getProviderPaysGas-address-"></a>
 ### Function `getProviderPaysGas(address _dataProvider) -> bool`
 getProviderPaysGas - returns whether or not the given provider pays gas
-     for sending the fulfillRequest Tx
+for sending the fulfillRequest Tx
 
 #### Parameters:
 - `_dataProvider`: address of data provider
@@ -308,7 +311,7 @@ DataRequested. Emitted when a data request is sent by a Consumer.
 <a name="Router-GrantProviderPermission-address-address-"></a>
 ### Event `GrantProviderPermission(address dataConsumer, address dataProvider)`
 GrantProviderPermission. Emitted when a Consumer grants permission to a provider
-     to fulfil data requests.
+to fulfil data requests.
 
 #### Parameters:
 - `dataConsumer`: address of the Consumer's contract
@@ -317,7 +320,7 @@ GrantProviderPermission. Emitted when a Consumer grants permission to a provider
 <a name="Router-RevokeProviderPermission-address-address-"></a>
 ### Event `RevokeProviderPermission(address dataConsumer, address dataProvider)`
 RevokeProviderPermission. Emitted when a Consumer revokes permission for a provider
-     to fulfil data requests.
+to fulfil data requests.
 
 #### Parameters:
 - `dataConsumer`: address of the Consumer's contract
@@ -356,7 +359,7 @@ TokenSet. Emitted once during contract construction
 <a name="Router-SetGasTopUpLimit-address-uint256-uint256-"></a>
 ### Event `SetGasTopUpLimit(address sender, uint256 oldLimit, uint256 newLimit)`
 SetGasTopUpLimit. Emitted when the Router admin changes the gas topup limit
-     with the setGasTopUpLimit function
+with the setGasTopUpLimit function
 
 #### Parameters:
 - `sender`: address of the admin
@@ -393,7 +396,7 @@ GasToppedUp. Emitted when a Consumer calls the topUpGas function to send ETH to 
 <a name="Router-GasWithdrawnByConsumer-address-address-uint256-"></a>
 ### Event `GasWithdrawnByConsumer(address dataConsumer, address dataProvider, uint256 amount)`
 GasWithdrawnByConsumer. Emitted when a Consumer withdraws any ETH held by the Router for gas refunds
-     via the withDrawGasTopUpForProvider function
+via the withDrawGasTopUpForProvider function
 
 #### Parameters:
 - `dataConsumer`: address of the Consumer's contract
@@ -404,7 +407,7 @@ GasWithdrawnByConsumer. Emitted when a Consumer withdraws any ETH held by the Ro
 <a name="Router-GasRefundedToProvider-address-address-uint256-"></a>
 ### Event `GasRefundedToProvider(address dataConsumer, address dataProvider, uint256 amount)`
 GasRefundedToProvider. Emitted when a provider fulfils a data request, if the Consumer is to pay
-     the gas costs for data fulfilment
+the gas costs for data fulfilment
 
 #### Parameters:
 - `dataConsumer`: address of the Consumer's contract
