@@ -102,7 +102,7 @@ contract Router is AccessControl {
 
     /**
      * @dev GrantProviderPermission. Emitted when a Consumer grants permission to a provider
-     *      to fulfil data requests.
+     * to fulfil data requests.
      * @param dataConsumer address of the Consumer's contract
      * @param dataProvider address of the data provider
      */
@@ -110,7 +110,7 @@ contract Router is AccessControl {
 
     /**
      * @dev RevokeProviderPermission. Emitted when a Consumer revokes permission for a provider
-     *      to fulfil data requests.
+     * to fulfil data requests.
      * @param dataConsumer address of the Consumer's contract
      * @param dataProvider address of the data provider
      */
@@ -152,7 +152,7 @@ contract Router is AccessControl {
 
     /**
      * @dev SetGasTopUpLimit. Emitted when the Router admin changes the gas topup limit
-     *      with the setGasTopUpLimit function
+     * with the setGasTopUpLimit function
      * @param sender address of the admin
      * @param oldLimit old limit
      * @param newLimit new limit
@@ -183,7 +183,7 @@ contract Router is AccessControl {
 
     /**
      * @dev GasWithdrawnByConsumer. Emitted when a Consumer withdraws any ETH held by the Router for gas refunds
-     *      via the withDrawGasTopUpForProvider function
+     * via the withDrawGasTopUpForProvider function
      * @param dataConsumer address of the Consumer's contract
      * @param dataProvider address of the provider who can claim a gas refund
      * @param amount amount of ETH (in wei) being sent
@@ -192,7 +192,7 @@ contract Router is AccessControl {
 
     /**
      * @dev GasRefundedToProvider. Emitted when a provider fulfils a data request, if the Consumer is to pay
-     *      the gas costs for data fulfilment
+     * the gas costs for data fulfilment
      * @param dataConsumer address of the Consumer's contract
      * @param dataProvider address of the provider who can claim a gas refund
      * @param amount amount of ETH (in wei) being refunded
@@ -214,9 +214,9 @@ contract Router is AccessControl {
 
     /**
      * @dev setGasTopUpLimit set the max amount of ETH that can be sent
-     *      in a topUpGas Tx. Router admin calls this to set the maximum amount
-     *      a Consumer can send in a single Tx, to prevent large amounts of ETH
-     *      being sent.
+     * in a topUpGas Tx. Router admin calls this to set the maximum amount
+     * a Consumer can send in a single Tx, to prevent large amounts of ETH
+     * being sent.
      *
      * @param _gasTopUpLimit amount in wei
      * @return success
@@ -231,7 +231,7 @@ contract Router is AccessControl {
 
     /**
      * @dev setProviderPaysGas - provider calls for setting who pays gas
-     *      for sending the fulfillRequest Tx
+     * for sending the fulfillRequest Tx
      * @param _providerPays bool - true if provider will pay gas
      * @return success
      */
@@ -254,10 +254,12 @@ contract Router is AccessControl {
 
     /**
      * @dev topUpGas data consumer contract calls this function to top up gas
-     *      Gas is the ETH held by this contract which is used to refund Tx costs
-     *      to the data provider for fulfilling a request.
-     *      To prevent silly amounts of ETH being sent, a sensible limit is imposed.
-     *      Can only top up for authorised providers
+     * Gas is the ETH held by this contract which is used to refund Tx costs
+     * to the data provider for fulfilling a request.
+     *
+     * To prevent silly amounts of ETH being sent, a sensible limit is imposed.
+     *
+     * Can only top up for authorised providers
      *
      * @param _dataProvider address of data provider
      * @return success
@@ -286,13 +288,14 @@ contract Router is AccessControl {
 
     /**
      * @dev withDrawGasTopUpForProvider data consumer contract calls this function to
-     *      withdraw any remaining ETH stored in the Router for gas refunds for a specified
-     *      data provider.
-     *      Consumer contract will then transfer through to the consumer contract's
-     *      owner.
+     * withdraw any remaining ETH stored in the Router for gas refunds for a specified
+     * data provider.
      *
-     *      NOTE - data provider authorisation is not checked, since a consumer needs to
-     *      be able to withdraw for a data provide that has been revoked.
+     * Consumer contract will then transfer through to the consumer contract's
+     * owner.
+     *
+     * NOTE - data provider authorisation is not checked, since a consumer needs to
+     * be able to withdraw for a data provide that has been revoked.
      *
      * @param _dataProvider address of data provider
      * @return amountWithdrawn
@@ -325,8 +328,8 @@ contract Router is AccessControl {
 
     /**
      * @dev initialiseRequest - called by Consumer contract to initialise a data request. Can only be called by
-     *      a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
-     *      for the provider. Only the provider specified in the reqyest may fulfil the request.
+     * a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
+     * for the provider. Only the provider specified in the reqyest may fulfil the request.
      * @param _dataProvider address of the data provider. Must be authorised for this consumer
      * @param _fee amount of Tokens to pay for data
      * @param _requestNonce incremented nonce for Consumer to help prevent request replay
@@ -392,11 +395,11 @@ contract Router is AccessControl {
 
     /**
      * @dev fulfillRequest - called by data provider to forward data to the Consumer. Only the specified provider
-     *      may fulfil the data request. Gas paid by the provider may also be refunded to the provider.
+     * may fulfil the data request. Gas paid by the provider may also be refunded to the provider.
      * @param _requestId the request the provider is sending data for
      * @param _requestedData the data to send
      * @param _signature data provider's signature of the _requestId, _requestedData and Consumer's address
-     *                   this will used to validate the data's origin in the Consumer's contract
+     * this will used to validate the data's origin in the Consumer's contract
      * @return success if the execution was successful.
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) external returns (bool){
@@ -476,7 +479,7 @@ contract Router is AccessControl {
 
     /**
      * @dev cancelRequest - called by data Consumer to cancel a request. Can only be called once the request's
-     *      expire time is exceeded. Cancelled requests cannot be fulfilled.
+     * expire time is exceeded. Cancelled requests cannot be fulfilled.
      * @param _requestId the request the consumer wishes to cancel
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
@@ -610,7 +613,7 @@ contract Router is AccessControl {
 
     /**
      * @dev getGasDepositsForConsumer - get total gas deposited in Router
-     *      by a data consumer
+     * by a data consumer
      * @param _dataConsumer address of data consumer
      * @return uint256
      */
@@ -620,7 +623,7 @@ contract Router is AccessControl {
 
     /**
      * @dev getGasDepositsForConsumerProviders - get total gas deposited in Router
-     *      by a data consumer for a given data provider
+     * by a data consumer for a given data provider
      * @param _dataConsumer address of data consumer
      * @param _dataProvider address of data provider
      * @return uint256
@@ -631,7 +634,7 @@ contract Router is AccessControl {
 
     /**
      * @dev getProviderPaysGas - returns whether or not the given provider pays gas
-     *      for sending the fulfillRequest Tx
+     * for sending the fulfillRequest Tx
      * @param _dataProvider address of data provider
      * @return bool
      */

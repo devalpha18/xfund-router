@@ -41,7 +41,7 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 <a name="ConsumerLib-init-struct-ConsumerLib-State-address-"></a>
 ### Function `init(struct ConsumerLib.State self, address _router)`
 init - called once during the ConsumerBase.sol's constructor function to initialise the
-     contract's data storage
+contract's data storage
 
 #### Parameters:
 - `self`: the Contract's State object
@@ -50,10 +50,11 @@ init - called once during the ConsumerBase.sol's constructor function to initial
 <a name="ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint256-bool-"></a>
 ### Function `addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee, bool _remove) -> bool success`
 addRemoveDataProvider add a new authorised data provider to this contract, and
-     authorise it to provide data via the Router, or de-authorise an existing provider.
-     Can also be used to modify a provider's fee for an existing authorised provider.
-     If the provider is currently authorised when setting the fee, the Router's
-     grantProviderPermission is not called to conserve gas.
+authorise it to provide data via the Router, or de-authorise an existing provider.
+Can also be used to modify a provider's fee for an existing authorised provider.
+
+If the provider is currently authorised when setting the fee, the Router's
+grantProviderPermission is not called to conserve gas.
 
 
 #### Parameters:
@@ -68,8 +69,9 @@ addRemoveDataProvider add a new authorised data provider to this contract, and
 <a name="ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-"></a>
 ### Function `transferOwnership(struct ConsumerLib.State self, address payable newOwner) -> bool success`
 Transfers ownership of the contract to a new account (`newOwner`),
-     and withdraws any tokens currentlry held by the contract.
-     Can only be called by the current owner.
+and withdraws any tokens currentlry held by the contract.
+
+Can only be called by the current owner.
 
 
 #### Parameters:
@@ -80,7 +82,7 @@ Transfers ownership of the contract to a new account (`newOwner`),
 <a name="ConsumerLib-validateTopUpGas-struct-ConsumerLib-State-address-uint256-"></a>
 ### Function `validateTopUpGas(struct ConsumerLib.State self, address _dataProvider, uint256 _amount) -> bool success`
 validateTopUpGas called by the underlying ConsumerBase.sol contract in order to
-     validate the topUpGas input prior to forwarding ETH and data to the Router.
+validate the topUpGas input prior to forwarding ETH and data to the Router.
 
 
 #### Parameters:
@@ -91,10 +93,10 @@ validateTopUpGas called by the underlying ConsumerBase.sol contract in order to
 <a name="ConsumerLib-withdrawTopUpGas-struct-ConsumerLib-State-address-"></a>
 ### Function `withdrawTopUpGas(struct ConsumerLib.State self, address _dataProvider) -> bool success`
 withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
-     held by the Router for the specified data provider. All ETH held will be withdrawn
-     from the Router and forwarded to the Consumer contract owner's wallet.this
+held by the Router for the specified data provider. All ETH held will be withdrawn
+from the Router and forwarded to the Consumer contract owner's wallet.this
 
-     NOTE: This function is called by the Consumer's withdrawTopUpGas function
+NOTE: This function is called by the Consumer's withdrawTopUpGas function
 
 
 #### Parameters:
@@ -104,12 +106,12 @@ withdrawTopUpGas allows the Consumer contract's owner to withdraw any ETH
 <a name="ConsumerLib-withdrawEth-struct-ConsumerLib-State-uint256-"></a>
 ### Function `withdrawEth(struct ConsumerLib.State self, uint256 amount) -> bool success`
 withdrawEth allows the Consumer contract's owner to withdraw any ETH
-     that has been sent to the Contract, either accidentally or via the
-     withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
-     is automatically called as part of that function. ETH is sent to the
-     Consumer contract's current owner's wallet.
+that has been sent to the Contract, either accidentally or via the
+withdrawTopUpGas function. In the case of the withdrawTopUpGas function, this
+is automatically called as part of that function. ETH is sent to the
+Consumer contract's current owner's wallet.
 
-     NOTE: This function is called by the Consumer's withdrawEth function
+NOTE: This function is called by the Consumer's withdrawEth function
 
 
 #### Parameters:
@@ -119,7 +121,7 @@ withdrawEth allows the Consumer contract's owner to withdraw any ETH
 <a name="ConsumerLib-withdrawAllTokens-struct-ConsumerLib-State-"></a>
 ### Function `withdrawAllTokens(struct ConsumerLib.State self) -> bool success`
 withdrawAllTokens allows the token holder (contract owner) to withdraw all
-     Tokens held by this contract back to themselves.
+Tokens held by this contract back to themselves.
 
 
 #### Parameters:
@@ -128,8 +130,8 @@ withdrawAllTokens allows the token holder (contract owner) to withdraw all
 <a name="ConsumerLib-setRouterAllowance-struct-ConsumerLib-State-uint256-bool-"></a>
 ### Function `setRouterAllowance(struct ConsumerLib.State self, uint256 _routerAllowance, bool _increase) -> bool success`
 setRouterAllowance allows the token holder (contract owner) to
-     increase/decrease the token allowance for the Router, in order for the Router to
-     pay fees for data requests
+increase/decrease the token allowance for the Router, in order for the Router to
+pay fees for data requests
 
 
 #### Parameters:
@@ -142,12 +144,12 @@ setRouterAllowance allows the token holder (contract owner) to
 <a name="ConsumerLib-setRequestVar-struct-ConsumerLib-State-uint8-uint256-"></a>
 ### Function `setRequestVar(struct ConsumerLib.State self, uint8 _var, uint256 _value) -> bool success`
 setRequestVar set the specified variable. Request variables are used
-     when initialising a request, and are common settings for requests.
+when initialising a request, and are common settings for requests.
 
-     The variable to be set can be one of:
-     1 - gas price limit in gwei the consumer is willing to pay for data processing
-     2 - max ETH that can be sent in a gas top up Tx
-     3 - request timeout in seconds
+The variable to be set can be one of:
+1 - gas price limit in gwei the consumer is willing to pay for data processing
+2 - max ETH that can be sent in a gas top up Tx
+3 - request timeout in seconds
 
 
 #### Parameters:
@@ -170,7 +172,7 @@ setRouter set the address of the Router smart contract
 <a name="ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint256-bytes4-"></a>
 ### Function `submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature) -> bytes32 requestId`
 submitDataRequest submit a new data request to the Router. The router will
-     verify the data request, and route it to the data provider
+verify the data request, and route it to the data provider
 
 
 #### Parameters:
@@ -218,7 +220,7 @@ RouterSet - emitted when the owner updates the Router smart contract address
 <a name="ConsumerLib-OwnershipTransferred-address-address-address-"></a>
 ### Event `OwnershipTransferred(address sender, address previousOwner, address newOwner)`
 OwnershipTransferred - emitted when the owner transfers ownership of the Consumer contract to
-     a new address
+a new address
 
 #### Parameters:
 - `sender`: address of the owner
