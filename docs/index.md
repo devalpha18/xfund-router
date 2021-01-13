@@ -8,14 +8,18 @@ library (required for interacting with the xFUND Router network) into your own s
 contract and how to interact with the network in order to request and receive data 
 in your smart contract from the Finchains OoO API.
 
-## Guides
+#### Contract addresses
+
+See [Contract Addresses](./contracts.md).
+
+#### Guides
 
 1. [Quickstart](./guide/quickstart.md) - a quick introduction to getting set up
 2. [Implementation Guide](./guide/index.md) - a complete guide to integration and interaction
 3. [Finchains OoO Data API Guide](./guide/ooo_api.md) - a guide to requesting data from the Finchains
    OoO API.
 
-## Contract Docs
+#### Contract Docs
 
 API documentation covering the functions and events within each of the three main
 smart contracts used by the xFUND Router network.

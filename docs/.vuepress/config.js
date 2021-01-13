@@ -25,14 +25,9 @@ module.exports = {
                 path: "/guide",
                 children: [
                     "/guide/quickstart",
-                    {
-                        title: "Complete Deployment Guide",
-                        children: [
-                            "/guide/implementation",
-                            "/guide/interaction",
-                            "/guide/ooo_api"
-                        ]
-                    }
+                    "/guide/implementation",
+                    "/guide/interaction",
+                    "/guide/ooo_api"
                 ]
             },
             {
