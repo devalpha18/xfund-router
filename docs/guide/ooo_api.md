@@ -7,15 +7,15 @@ as a data request via the xFUND Router network.
 
 The following addresses supply data from the Finchains OoO API:
 
-### Rinkeby TestNet
-
-**Provider Address**: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)  
-**Fee**: 0.1 xFUNDMOCK
-
 ### Mainnet
 
 **Provider Address**: TBD  
 **Fee**: TBD xFUND
+
+### Rinkeby TestNet
+
+**Provider Address**: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)  
+**Fee**: 0.1 xFUNDMOCK
 
 ## Introduction
 

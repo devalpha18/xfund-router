@@ -15,6 +15,12 @@ Run the `truffle` development console, and connect to the Rinkeby testnet:
 npx truffle console --network=rinkeby
 ```
 
+::: tip Note
+See [OoO Data API Guide](ooo_api.md) for the latest **Rinkeby** OoO Finchains data
+provider address, used for the `provider` variable below
+:::
+
+
 Within the `truffle` console, load the contract instances, and accounts
 ready for interaction
 
