@@ -14,8 +14,11 @@ module.exports = {
         logo: '/assets/img/unification_logoblack.png',
         sidebar: [
             {
-                title: "Home",
-                children: ["/"],
+                title: "Introduction",
+                path: "/"
+            },{
+                title: "Contract Addresses",
+                path: "/contracts"
             },
             {
                 title: "Guides",
@@ -33,7 +36,7 @@ module.exports = {
                 ]
             },
             {
-                title: "Contract APIs",
+                title: "Contract Docs",
                 children: [
                     "/api/Router",
                     "/api/lib/ConsumerLib",
