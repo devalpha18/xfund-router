@@ -43,6 +43,10 @@ function receiveData(uint256 _price, bytes32 _requestId) internal override {
 
 6. Link our deployed `ConsumerLib` library contract to your contract
 
+::: tip Note
+See [Contract Addresses](../contracts.md) for the latest contract addresses
+:::
+
 For example, using `truffle`, a very simple migration script for `Rinkeby` testnet
 may look like:
 
@@ -54,7 +58,7 @@ const ConsumerLib = artifacts.require("ConsumerLib")
 const MyContract = artifacts.require("MyContract")
 
 module.exports = function(deployer) {
-  // Link my contract to the deployed ConsumerLib contract
+  // Link MyContract to the deployed ConsumerLib contract
   // Note: below is the Rinkeby Testnet address
   MyContract.link("ConsumerLib", "0xD64127b18F8280F0528Cf5b77402a358cC21612E")
   // deploy, passing the Router smart contract address

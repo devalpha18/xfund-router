@@ -104,7 +104,7 @@ you only need to define a couple of simple functions in your own smart contract 
 use the OoO system.
 
 ::: tip Note
-You can view the functions implemented by `ConsumerBase.sol` in the [Data Consumer smaert contract
+You can view the functions implemented by `ConsumerBase.sol` in the [Data Consumer smart contract
 API documentation](../api/lib/ConsumerBase.md). These functions are also callable from your
 smart contract.
 :::
@@ -226,9 +226,13 @@ Ensure that you have:
 
 ### 4.1 .env
 
-Create a `.env` file in the root of your project, with the following. The `ROUTER_ADDRESS`
-and `CONSUMER_LIB_ADDRESS` have been pre-filled for you with the current Ribkeby testnet 
-values:
+::: tip Note
+See [Contract Addresses](../contracts.md) for the latest **Rinkeby** contract addresses
+required for the `ROUTER_ADDRESS` and `CONSUMER_LIB_ADDRESS` variables
+:::
+
+Create a `.env` file in the root of your project with the following and set each value
+accordingly:
 
 ```dotenv
 # Private key for wallet used to deploy. This will be the contract owner
@@ -237,9 +241,9 @@ ETH_PKEY=
 # Infura API key - used for deployment
 INFURA_PROJECT_ID=
 # Contract address of the xFUND Router
-ROUTER_ADDRESS=0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B
+ROUTER_ADDRESS=
 # Contract address of the deployed ConsumerLib
-CONSUMER_LIB_ADDRESS=0xD64127b18F8280F0528Cf5b77402a358cC21612E
+CONSUMER_LIB_ADDRESS=
 ```
 
 ### 4.2 truffle-config.js

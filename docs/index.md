@@ -1,4 +1,4 @@
-# Documentation
+# Introduction
 
 This documentation covers the both the xFUND Router and Finchains' OoO (Oracle of Oracles) 
 functionality.
@@ -15,7 +15,7 @@ in your smart contract from the Finchains OoO API.
 3. [Finchains OoO Data API Guide](./guide/ooo_api.md) - a guide to requesting data from the Finchains
    OoO API.
 
-## Contract APIs
+## Contract Docs
 
 API documentation covering the functions and events within each of the three main
 smart contracts used by the xFUND Router network.
@@ -31,21 +31,3 @@ smart contracts used by the xFUND Router network.
    to import into their own smart contract in order to interact with the system. Contains the
    proxy functions required to utilise the `ConsumerLib.sol` library smart contract, which 
    must be linked to the this contract during deployment
-
-## Deployed Contract Addresses
-
-Addresses for the currently deployed contracts, required for interaction and integration
-
-### Testnet (Rinkeby)
-
-xFUND Mock Token: [`0x81366aF400cf3050eA04B1BcB8592C3203C84dFb`](https://rinkeby.etherscan.io/address/0x81366aF400cf3050eA04B1BcB8592C3203C84dFb#code)  
-Router: [`0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B`](https://rinkeby.etherscan.io/address/0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B#code)  
-ConsumerLib: [`0xD64127b18F8280F0528Cf5b77402a358cC21612E`](https://rinkeby.etherscan.io/address/0xD64127b18F8280F0528Cf5b77402a358cC21612E#code)  
-Finchains Data Provider Oracle Address: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)
-
-### Mainnet
-
-xFUND Token: [`0x892A6f9dF0147e5f079b0993F486F9acA3c87881`](https://etherscan.io/address/0x892A6f9dF0147e5f079b0993F486F9acA3c87881#code)  
-Router: TBD  
-ConsumerLib: TBD
-Finchains Data Provider Oracle Address: TBD
