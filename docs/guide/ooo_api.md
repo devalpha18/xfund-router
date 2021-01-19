@@ -90,6 +90,15 @@ For Type `EX`, the exchange abbreviation is required in `SUPP1`:
 - `KRK`: Kraken ([supported pairs](https://crypto.finchains.io/api/exchange/kraken/pairs))
 - `PRB`: Probit ([supported pairs](https://crypto.finchains.io/api/exchange/probit/pairs))
 
+A full list of exchanges and their `tla` can be found at
+[https://crypto.finchains.io/api/exchange](https://crypto.finchains.io/api/exchange)
+
+The exchanges being tracked for a pair can be found via the Finchains API URL
+`https://crypto.finchains.io/api/pairs/[BASE]/[TARGET]/exchanges`. For example:
+
+[https://crypto.finchains.io/api/pairs/ETH/USD/exchanges](https://crypto.finchains.io/api/pairs/ETH/USD/exchanges)
+will return the exchanges being tracked for the `ETH`/`USD` pair.
+
 ### SUBTYPE
 
 The data sub-type, for example `AVG` (mean), `LAT` (latest), `AVI` (mean with outliers
@@ -98,9 +107,11 @@ removed). Some `TYPE`s, for example `EX` _require_ additional
 
 The currently implemented types are as follows:
 
-- `AVG`: Mean price calculated from all available exchange Oracles
-- `AVI`: Mean price using Median and Interquartile Deviation Method to remove outliers
-- `LAT`: Latest price received
+- [AVG](#subtype-avg): Mean price calculated from all available exchange Oracles
+- [AVI](#subtype-avi): Mean price using [Median and Interquartile Deviation Method](http://www.mathwords.com/o/outlier.htm) to remove outliers
+- [AVP](#subtype-avp): Mean price with outliers removed using [Peirce's criterion](https://en.wikipedia.org/wiki/Peirce%27s_criterion)
+- [AVC](#subtype-avc): Mean price with outliers removed using [Chauvenet's criterion](https://en.wikipedia.org/wiki/Chauvenet%27s_criterion)
+- [LAT](#subtype-lat): Latest price received
 
 #### SUBTYPE: `AVG`
 
@@ -122,6 +133,11 @@ in `SUPP1`:
 - `24H`: 24 Hours
 - `48H`: 48 Hours
 
+**Examples**
+
+`BTC.USD.PR.AGV` - Mean BTC/USD price from all available exchanges, using data from the last hour  
+`BTC.USD.PR.AGV.30M` - as above, but data from the last 30 minutes
+
 #### SUBTYPE: `AVI`
 
 **Supported `TYPE`s**: `PR`
@@ -141,6 +157,61 @@ in `SUPP1`:
 - `12H`: 12 Hours
 - `24H`: 24 Hours
 - `48H`: 48 Hours
+
+`BTC.USD.PR.AVI` - Mean BTC/USD price with outliers removed, using data from the last hour  
+`BTC.USD.PR.AVI.30M` - as above, but data from the last 30 minutes
+
+#### SUBTYPE: `AVP`
+
+**Supported `TYPE`s**: `PR`
+
+Mean price with outliers removed using [Peirce's criterion](https://en.wikipedia.org/wiki/Peirce%27s_criterion)
+
+The default timespan is 1 Hour. The following supported timespans can be supplied
+in `SUPP1`:
+
+- `5M`: 5 Minutes
+- `10M`: 10 Minutes
+- `30M`: 30 Minutes
+- `1H`: 1 Hour
+- `2H`: 2 Hours
+- `6H`: 6 Hours
+- `12H`: 12 Hours
+- `24H`: 24 Hours
+- `48H`: 48 Hours
+
+`BTC.USD.PR.AVP` - Mean BTC/USD price with outliers removed, using data from the last hour  
+`BTC.USD.PR.AVP.30M` - as above, but data from the last 30 minutes
+
+#### SUBTYPE: `AVC`
+
+**Supported `TYPE`s**: `PR`
+
+Mean price with outliers removed using [Chauvenet's criterion](https://en.wikipedia.org/wiki/Chauvenet%27s_criterion)
+
+The default timespan is 1 Hour. The following supported timespans can be supplied
+in `SUPP1`:
+
+- `5M`: 5 Minutes
+- `10M`: 10 Minutes
+- `30M`: 30 Minutes
+- `1H`: 1 Hour
+- `2H`: 2 Hours
+- `6H`: 6 Hours
+- `12H`: 12 Hours
+- `24H`: 24 Hours
+- `48H`: 48 Hours
+
+The default value for `dMax` (max standard deviations) is 3. A custom threshold can be
+supplied as an integer value in `SUPP2`.
+
+::: danger Important
+If a custom `dMax` value is required, then **timespan must also be set in `SUPP1`**
+:::
+
+`BTC.USD.PR.AVC` - Mean BTC/USD price with outliers removed, using data from the last hour  
+`BTC.USD.PR.AVC.30M` - as above, but data from the last 30 minutes  
+`BTC.USD.PR.AVC.24H.2` - as above, but data from the last 24 hours, with `dMax` of 2
 
 #### SUBTYPE: `LAT`
 
@@ -167,6 +238,13 @@ For Type `EX`, the exchange abbreviation is required in `SUPP1`:
 - `HUO`: Huobi ([supported pairs](https://crypto.finchains.io/api/exchange/huobi/pairs))
 - `KRK`: Kraken ([supported pairs](https://crypto.finchains.io/api/exchange/kraken/pairs))
 - `PRB`: Probit ([supported pairs](https://crypto.finchains.io/api/exchange/probit/pairs))
+
+A full list of exchanges and their `tla` can be found at 
+[https://crypto.finchains.io/api/exchange](https://crypto.finchains.io/api/exchange)
+
+**Examples**
+
+`BTC.GBP.EX.LAT.GDX` - latest BTC/GBP price from Coinbase
 
 ### SUPP1
 
