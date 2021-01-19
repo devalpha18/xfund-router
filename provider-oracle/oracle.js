@@ -101,16 +101,31 @@ const cleanseTime = (tm) => {
   }
 }
 
-const getPriceSubType = (subtype, supp1) => {
+const cleanseDMax = (_dMax) => {
+  let dMax = parseInt(_dMax, 10) || 3
+  if(isNaN(dMax) || dMax <= 0) dMax = 3
+  return dMax
+}
+
+
+const getPriceSubType = (subtype, supp1, supp2) => {
   let st
   let t = cleanseTime(supp1)
+  let s2
   switch(subtype) {
     case "AVG":
     default:
       st = `avg/${t}`
       break
     case "AVI":
-      st = `avg/outlier/${t}`
+      st = `avg/iqd/${t}`
+      break
+    case "AVP":
+      st = `avg/peirce/${t}`
+      break
+    case "AVC":
+      s2 = cleanseDMax(supp2)
+      st = `avg/chauvenet/${t}/${s2}`
       break
     case "LAT":
       st = "latest_one"
@@ -141,7 +156,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
     case "PR":
     default:
       apiEndpoint = "currency"
-      dataType = getPriceSubType(subtype, supp1)
+      dataType = getPriceSubType(subtype, supp1, supp2)
       break
     case "EX":
       const exchange = getExchange(supp1)
@@ -177,7 +192,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
 // TYPE: data point being requested, e.g. PR (pair price), EX (specific exchange data), DS (discrepancies)
 //       some types, e.g. EXC and DSC require additional SUPPN supplementary data defining Exchanges to query, as defined below
 // SUBTYPE: data sub type, e.g. AVG (average), LAT (latest), HI (hi price), LOW (low price),
-//          AVI Mean with IDQ (Median and Interquartile Deviation Method to remove outliers)
+//          AVI Mean with IQD (Median and Interquartile Deviation Method to remove outliers)
 // SUPP1: any supplementary request data, e.g. GDX (coinbase) etc. required for TYPE queries such as EXC
 // SUPP2: any supplementary request data, e.g. GDX (coinbase) etc. required for comparisons on TYPEs such as DSC
 // SUPP3: any supplementary request data
