@@ -31,7 +31,7 @@ library ConsumerLib {
      */
 
     struct DataProvider {
-        uint256 fee;
+        uint64 fee;
         bool isAuthorised;
     }
 
@@ -113,7 +113,7 @@ library ConsumerLib {
      * @param oldFee old fee to be paid per data request
      * @param newFee new fee to be paid per data request
      */
-    event AddedDataProvider(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
+    event AddedDataProvider(address indexed sender, address indexed provider, uint64 oldFee, uint64 newFee);
 
     /**
      * @dev RemovedDataProvider - emitted when the owner removes a data provider
@@ -187,7 +187,7 @@ library ConsumerLib {
      * @param _remove bool set to true to de-authorise
      * @return success
      */
-    function addRemoveDataProvider(State storage self, address _dataProvider, uint256 _fee, bool _remove)
+    function addRemoveDataProvider(State storage self, address _dataProvider, uint64 _fee, bool _remove)
     external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
@@ -208,7 +208,7 @@ library ConsumerLib {
             require(_fee > 0, "ConsumerLib: fee must be > 0");
         }
 
-        uint256 oldFee = dp.fee;
+        uint64 oldFee = dp.fee;
 
         // only set if the fee is > 0
         if(_fee > 0) {
@@ -400,7 +400,7 @@ library ConsumerLib {
         State storage self,
         address payable _dataProvider,
         bytes32 _data,
-        uint256 _gasPrice
+        uint64 _gasPrice
     ) external
     returns (bytes32 requestId) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
@@ -408,7 +408,7 @@ library ConsumerLib {
         // check gas isn't stupidly high
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
         // get the fee currently set
-        uint256 fee = self.dataProviders[_dataProvider].fee;
+        uint64 fee = self.dataProviders[_dataProvider].fee;
 
         // generate the requestId
         bytes32 reqId = keccak256(
@@ -424,7 +424,7 @@ library ConsumerLib {
 
         self.dataRequests[reqId] = true;
 
-        uint256 expires = now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT];
+        uint64 expires = uint64(now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT]);
 
         // note - router.initialiseRequest will see msg.sender as the address of this contract
         require(

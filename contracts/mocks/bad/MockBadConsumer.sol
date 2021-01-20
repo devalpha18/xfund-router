@@ -28,11 +28,11 @@ contract MockBadConsumer {
     event DataRequested(
         address indexed dataConsumer,
         address indexed dataProvider,
-        uint256 fee,
+        uint64 fee,
         bytes32 data,
         bytes32 indexed requestId,
-        uint256 gasPrice,
-        uint256 expires
+        uint64 gasPrice,
+        uint64 expires
     );
 
     constructor(address _router) public {
@@ -57,8 +57,8 @@ contract MockBadConsumer {
             _dataProvider,
             100,
             nonce,
-            20000000000,
-            now + 300,
+                uint64(20000000000),
+                uint64(now + 300),
             requestId,
             _data
         );
@@ -68,11 +68,11 @@ contract MockBadConsumer {
     // allow sending arbitrary params for testing
     function requestDataWithAllParams(
         address payable _dataProvider,
-        uint256 _fee,
+        uint64 _fee,
         uint256 _nonce,
         bytes32 _data,
-        uint256 _gasPriceGwei,
-        uint256 expires
+        uint64 _gasPriceGwei,
+        uint64 expires
     )
     public returns (bool success) {
         bytes32 requestId = keccak256(
@@ -97,11 +97,11 @@ contract MockBadConsumer {
 
     function requestDataWithAllParamsAndRequestId(
         address payable _dataProvider,
-        uint256 _fee,
+        uint64 _fee,
         uint256 _nonce,
         bytes32 _data,
-        uint256 _gasPriceGwei,
-        uint256 expires,
+        uint64 _gasPriceGwei,
+        uint64 expires,
         bytes32 _requestId
         )
     public returns (bool success) {

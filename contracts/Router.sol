@@ -45,9 +45,9 @@ contract Router is AccessControl {
     struct DataRequest {
         address dataConsumer;
         address payable dataProvider;
-        uint256 expires;
-        uint256 fee;
-        uint256 gasPrice;
+        uint64 expires;
+        uint64 fee;
+        uint64 gasPrice;
         bool isSet;
     }
 
@@ -78,9 +78,6 @@ contract Router is AccessControl {
     // Mapping to hold open data requests
     mapping(bytes32 => DataRequest) public dataRequests;
 
-    // track fees held by this contract
-    mapping(address => mapping(address => uint256)) public feesHeld;
-
     /**
      * @dev DataRequested. Emitted when a data request is sent by a Consumer.
      * @param dataConsumer address of the Consumer's contract
@@ -94,11 +91,11 @@ contract Router is AccessControl {
     event DataRequested(
         address indexed dataConsumer,
         address indexed dataProvider,
-        uint256 fee,
+        uint64 fee,
         bytes32 data,
         bytes32 indexed requestId,
-        uint256 gasPrice,
-        uint256 expires
+        uint64 gasPrice,
+        uint64 expires
     );
 
     /**
@@ -342,10 +339,10 @@ contract Router is AccessControl {
      */
     function initialiseRequest(
         address payable _dataProvider,
-        uint256 _fee,
+        uint64 _fee,
         uint256 _requestNonce,
-        uint256 _gasPrice,
-        uint256 _expires,
+        uint64 _gasPrice,
+        uint64 _expires,
         bytes32 _requestId,
         bytes32 _data
     ) external returns (bool success) {

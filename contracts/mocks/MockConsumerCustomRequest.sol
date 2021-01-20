@@ -27,7 +27,7 @@ contract MockConsumerCustomRequest is ConsumerBase {
     event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
     event IncreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
     event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
-    event AddedDataProvider(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
+    event AddedDataProvider(address indexed sender, address indexed provider, uint64 oldFee, uint64 newFee);
     event RemovedDataProvider(address indexed sender, address indexed provider);
     event SetRequestVar(address indexed sender, uint8 variable, uint256 oldValue, uint256 newValue);
 
@@ -42,11 +42,11 @@ contract MockConsumerCustomRequest is ConsumerBase {
     event DataRequested(
         address indexed dataConsumer,
         address indexed dataProvider,
-        uint256 fee,
+        uint64 fee,
         bytes32 data,
         bytes32 indexed requestId,
-        uint256 gasPrice,
-        uint256 expires
+        uint64 gasPrice,
+        uint64 expires
     );
 
     event CustomDataRequested(
@@ -99,7 +99,7 @@ contract MockConsumerCustomRequest is ConsumerBase {
     function customRequestData(
         address payable _dataProvider,
         bytes32 _data,
-        uint256 _gasPrice)
+        uint64 _gasPrice)
     external {
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
         bytes32 requestId = requestData(_dataProvider, _data, _gasPrice);

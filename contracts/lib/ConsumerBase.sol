@@ -122,7 +122,7 @@ abstract contract ConsumerBase {
      * @param _fee the data provider's fee
      * @param _remove bool set to true to de-authorise
      */
-    function addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove) external {
+    function addRemoveDataProvider(address _dataProvider, uint64 _fee, bool _remove) external {
         require(consumerState.addRemoveDataProvider(_dataProvider, _fee, _remove));
     }
 
@@ -252,7 +252,7 @@ abstract contract ConsumerBase {
     function requestData(
         address payable _dataProvider,
         bytes32 _data,
-        uint256 _gasPrice)
+        uint64 _gasPrice)
     public returns (bytes32 requestId) {
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
         return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice);
