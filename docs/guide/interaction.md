@@ -36,7 +36,7 @@ truffle(rinkeby)> let demoConsumer = await DemoConsumer.deployed()
 The following steps need only be done periodically, to ensure all parties have
 the correct amount of tokens and gas to pay for data.
 
-Go to [xFUNDMOCK](https://rinkeby.etherscan.io/address/0x81366aF400cf3050eA04B1BcB8592C3203C84dFb#writeContract)
+Go to [xFUNDMOCK](https://rinkeby.etherscan.io/address/0x0E68C4A9586b86b08b12a9012Fa69c624f70cbF2#writeContract)
 on Etherscan, and connect MetaMask **with the account used to deploy the `DemoConsumer`
 smart contract**, then run the `gimme()` function. This is a faucet function, and will
 supply your wallet with 10 `xFUNDMOCK` tokens. You may do this once per hour.
