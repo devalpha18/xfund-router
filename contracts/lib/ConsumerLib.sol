@@ -407,8 +407,6 @@ library ConsumerLib {
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // check gas isn't stupidly high
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
-        // get the fee currently set
-        uint64 fee = self.dataProviders[_dataProvider].fee;
 
         // generate the requestId
         bytes32 reqId = keccak256(
@@ -422,23 +420,20 @@ library ConsumerLib {
 
         require(!self.dataRequests[reqId], "ConsumerLib: request id already exists");
 
-        self.dataRequests[reqId] = true;
-
-        uint64 expires = uint64(now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT]);
-
         // note - router.initialiseRequest will see msg.sender as the address of this contract
         require(
             self.router.initialiseRequest(
                 _dataProvider,
-                fee,
+                uint64(self.dataProviders[_dataProvider].fee),
                 self.requestNonce,
                 _gasPrice * (10 ** 9), // gwei to wei
-                expires,
+                uint64(now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT]),
                 reqId, // will be regenerated and cross referenced in Router
                 _data
             ));
 
         self.requestNonce += 1;
+        self.dataRequests[reqId] = true;
 
         // only emitted if the router request is successful.
         emit DataRequestSubmitted(reqId);
