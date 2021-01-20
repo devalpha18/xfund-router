@@ -11,7 +11,7 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 
 ## Functions:
 - [`init(struct ConsumerLib.State self, address _router)`](#ConsumerLib-init-struct-ConsumerLib-State-address-)
-- [`addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee, bool _remove)`](#ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint256-bool-)
+- [`addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint64 _fee, bool _remove)`](#ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint64-bool-)
 - [`transferOwnership(struct ConsumerLib.State self, address payable newOwner)`](#ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-)
 - [`validateTopUpGas(struct ConsumerLib.State self, address _dataProvider, uint256 _amount)`](#ConsumerLib-validateTopUpGas-struct-ConsumerLib-State-address-uint256-)
 - [`withdrawTopUpGas(struct ConsumerLib.State self, address _dataProvider)`](#ConsumerLib-withdrawTopUpGas-struct-ConsumerLib-State-address-)
@@ -20,7 +20,7 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 - [`setRouterAllowance(struct ConsumerLib.State self, uint256 _routerAllowance, bool _increase)`](#ConsumerLib-setRouterAllowance-struct-ConsumerLib-State-uint256-bool-)
 - [`setRequestVar(struct ConsumerLib.State self, uint8 _var, uint256 _value)`](#ConsumerLib-setRequestVar-struct-ConsumerLib-State-uint8-uint256-)
 - [`setRouter(struct ConsumerLib.State self, address _router)`](#ConsumerLib-setRouter-struct-ConsumerLib-State-address-)
-- [`submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature)`](#ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint256-bytes4-)
+- [`submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint64 _gasPrice)`](#ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint64-)
 - [`cancelRequest(struct ConsumerLib.State self, bytes32 _requestId)`](#ConsumerLib-cancelRequest-struct-ConsumerLib-State-bytes32-)
 
 ## Events:
@@ -30,7 +30,7 @@ Most of the functions in this contract are proxied by the Consumer smart contrac
 - [`WithdrawTokensFromContract(address sender, address from, address to, uint256 amount)`](#ConsumerLib-WithdrawTokensFromContract-address-address-address-uint256-)
 - [`IncreasedRouterAllowance(address sender, address router, address contractAddress, uint256 amount)`](#ConsumerLib-IncreasedRouterAllowance-address-address-address-uint256-)
 - [`DecreasedRouterAllowance(address sender, address router, address contractAddress, uint256 amount)`](#ConsumerLib-DecreasedRouterAllowance-address-address-address-uint256-)
-- [`AddedDataProvider(address sender, address provider, uint256 oldFee, uint256 newFee)`](#ConsumerLib-AddedDataProvider-address-address-uint256-uint256-)
+- [`AddedDataProvider(address sender, address provider, uint64 oldFee, uint64 newFee)`](#ConsumerLib-AddedDataProvider-address-address-uint64-uint64-)
 - [`RemovedDataProvider(address sender, address provider)`](#ConsumerLib-RemovedDataProvider-address-address-)
 - [`SetRequestVar(address sender, uint8 variable, uint256 oldValue, uint256 newValue)`](#ConsumerLib-SetRequestVar-address-uint8-uint256-uint256-)
 - [`RequestCancellationSubmitted(address sender, bytes32 requestId)`](#ConsumerLib-RequestCancellationSubmitted-address-bytes32-)
@@ -47,8 +47,8 @@ contract's data storage
 - `self`: the Contract's State object
 
 - `_router`: address of the Router smart contract
-<a name="ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint256-bool-"></a>
-### Function `addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint256 _fee, bool _remove) -> bool success`
+<a name="ConsumerLib-addRemoveDataProvider-struct-ConsumerLib-State-address-uint64-bool-"></a>
+### Function `addRemoveDataProvider(struct ConsumerLib.State self, address _dataProvider, uint64 _fee, bool _remove) -> bool success`
 addRemoveDataProvider add a new authorised data provider to this contract, and
 authorise it to provide data via the Router, or de-authorise an existing provider.
 Can also be used to modify a provider's fee for an existing authorised provider.
@@ -169,8 +169,8 @@ setRouter set the address of the Router smart contract
 
 - `_router`: on chain address of the router smart contract
 
-<a name="ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint256-bytes4-"></a>
-### Function `submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint256 _gasPrice, bytes4 _callbackFunctionSignature) -> bytes32 requestId`
+<a name="ConsumerLib-submitDataRequest-struct-ConsumerLib-State-address-payable-bytes32-uint64-"></a>
+### Function `submitDataRequest(struct ConsumerLib.State self, address payable _dataProvider, bytes32 _data, uint64 _gasPrice) -> bytes32 requestId`
 submitDataRequest submit a new data request to the Router. The router will
 verify the data request, and route it to the data provider
 
@@ -183,8 +183,6 @@ verify the data request, and route it to the data provider
 - `_data`: type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
 
 - `_gasPrice`: the gas price the consumer would like the provider to use for sending data back
-
-- `_callbackFunctionSignature`: the callback function the provider should call to send data back
 
 #### Return Values:
 - requestId - the bytes32 request id
@@ -264,8 +262,8 @@ DecreasedRouterAllowance - emitted when the owner decreases the Router's token a
 - `contractAddress`: address of the Consumer smart contract
 
 - `amount`: amount
-<a name="ConsumerLib-AddedDataProvider-address-address-uint256-uint256-"></a>
-### Event `AddedDataProvider(address sender, address provider, uint256 oldFee, uint256 newFee)`
+<a name="ConsumerLib-AddedDataProvider-address-address-uint64-uint64-"></a>
+### Event `AddedDataProvider(address sender, address provider, uint64 oldFee, uint64 newFee)`
 AddedDataProvider - emitted when the owner adds a new data provider
 
 #### Parameters:
