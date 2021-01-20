@@ -9,119 +9,24 @@ const {
 
 const { expect } = require('chai')
 
+const {
+  signData,
+  generateSigMsg,
+  getReqIdFromReceipt,
+  generateRequestId,
+  calculateCost,
+  dumpReceiptGasInfo,
+  estimateGasDiff,
+  randomPrice,
+  randomGasPrice,
+  sleepFor,
+} = require("./helpers/utils")
+
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
 const MockBadConsumerBigReceive = contract.fromArtifact('MockBadConsumerBigReceive') // Loads a compiled contract
 const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
-
-const signData = async function(reqId, priceToSend, consumerContractAddress, providerPk) {
-  const msg = generateSigMsg(reqId, priceToSend, consumerContractAddress)
-  return web3.eth.accounts.sign(msg, providerPk)
-}
-
-const generateSigMsg = function(requestId, data, consumerAddress) {
-  return web3.utils.soliditySha3(
-    { 'type': 'bytes32', 'value': requestId},
-    { 'type': 'uint256', 'value': data},
-    { 'type': 'address', 'value': consumerAddress}
-  )
-}
-
-const getReqIdFromReceipt = function(receipt) {
-  for(let i = 0; i < receipt.logs.length; i += 1) {
-    const log = receipt.logs[i]
-    if(log.event === "DataRequested") {
-      return log.args.requestId
-    }
-  }
-  return null
-}
-
-function generateRequestId(
-  consumerAddress,
-  requestNonce,
-  dataProvider,
-  routerAddress) {
-  return web3.utils.soliditySha3(
-    { 'type': 'address', 'value': consumerAddress},
-    { 'type': 'address', 'value': dataProvider},
-    { 'type': 'address', 'value': routerAddress},
-    { 'type': 'uint256', 'value': requestNonce.toNumber()}
-  )
-}
-
-const calculateCost = async function(receipts, value) {
-  let totalCost = new BN(value)
-
-  for(let i = 0; i < receipts.length; i += 1) {
-    const r = receipts[i]
-    const gasUsed = r.receipt.gasUsed
-    const tx = await web3.eth.getTransaction(r.tx)
-    const gasPrice = tx.gasPrice
-    const gasCost = new BN(gasPrice).mul(new BN(gasUsed))
-    totalCost = totalCost.add(gasCost)
-  }
-
-  return totalCost
-}
-
-const dumpReceiptGasInfo = async function(receipt, gasPrice) {
-  let refundAmount = new BN(0)
-  const gasPriceGwei = gasPrice * (10 ** 9)
-  console.log("gasPrice", gasPrice)
-  console.log("gasPriceGwei", gasPriceGwei)
-  console.log(receipt.receipt.gasUsed, "(gasUsed)")
-  console.log(receipt.receipt.cumulativeGasUsed, "(cumulativeGasUsed)")
-
-  const actualSpent = await calculateCost([receipt], 0)
-
-  for(let i = 0; i < receipt.receipt.logs.length; i += 1) {
-    const log = receipt.receipt.logs[i]
-    if(log.event === "GasRefundedToProvider") {
-      refundAmount = log.args.amount
-    }
-  }
-  const diff = refundAmount.sub(actualSpent)
-  console.log(refundAmount.toString(), "(refund amount - wei)")
-  console.log(actualSpent.toString(), "(actualSpent - wei)")
-  console.log(diff.toString(), "(diff - wei)")
-
-  console.log(web3.utils.fromWei(refundAmount), "(refund amount - eth)")
-  console.log(web3.utils.fromWei(actualSpent), "(actualSpent - eth)")
-  console.log(web3.utils.fromWei(diff), "(diff - eth)")
-
-  const diffGwei = new BN(diff.toString()).div(new BN(10 ** 9))
-  console.log(diffGwei.toString(), "(diff - gwei)")
-  const gasDiff = diffGwei.div(new BN(String(gasPrice)))
-  console.log(gasDiff.toString(), "(gasDiff)")
-}
-
-const estimateGasDiff = async function(receipt, gasPrice) {
-  let refundAmount = new BN(0)
-  const actualSpent = await calculateCost([receipt], 0)
-
-  for(let i = 0; i < receipt.receipt.logs.length; i += 1) {
-    const log = receipt.receipt.logs[i]
-    if(log.event === "GasRefundedToProvider") {
-      refundAmount = log.args.amount
-    }
-  }
-
-  const diff = refundAmount.sub(actualSpent)
-  const diffGwei = new BN(diff.toString()).div(new BN(10 ** 9))
-  const gasDiff = diffGwei.div(new BN(String(gasPrice)))
-  return gasDiff
-}
-
-const randomPrice = function() {
-  const rand = Math.floor(Math.random() * (999999999)) + 1
-  return web3.utils.toWei(String(rand), "ether")
-}
-
-const randomGasPrice = function(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 describe('Provider - gas refund tests', function () {
   this.timeout(300000)
@@ -136,8 +41,8 @@ describe('Provider - gas refund tests', function () {
   // const priceToSend = new BN("1")
   // const priceToSend = new BN("115792089237316195423570985008687907853269984665640564039457584007913129639935")
   const priceToSend = new BN("2000000000000000000000")
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 1000
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 1000
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 200
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 150
 
   // deploy contracts before every test
   beforeEach(async function () {
@@ -194,6 +99,7 @@ describe('Provider - gas refund tests', function () {
       it( 'provider balance after >= balance before: compare balance', async function () {
 
         const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
         const reqId = getReqIdFromReceipt(receipt)
 
         const sig = await signData( reqId, priceToSend, this.MockConsumerContract.address, dataProviderPk )
@@ -205,6 +111,8 @@ describe('Provider - gas refund tests', function () {
           from: dataProvider,
           gasPrice: gasPriceGwei
         } )
+
+        // await dumpReceiptGasInfo(fr, gasPrice)
 
         const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
 
@@ -319,7 +227,7 @@ describe('Provider - gas refund tests', function () {
         expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
       } )
 
-      it( 'gas consumed diff <= acceptable threshold', async function () {
+      it( 'gas consumed diff <= acceptable threshold - first time', async function () {
 
         const gasPriceGwei = gasPrice * ( 10 ** 9 )
 
@@ -338,6 +246,34 @@ describe('Provider - gas refund tests', function () {
         // console.log("gasDiff", gasDiff.toString())
 
         expect( gasDiff ).to.be.bignumber.lte( new BN( MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO ) )
+
+      } )
+
+      it( 'gas consumed diff <= acceptable threshold - second time', async function () {
+
+        const gasPriceGwei = gasPrice * ( 10 ** 9 )
+
+        const receipt1 = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId1 = getReqIdFromReceipt(receipt1)
+        const sig1 = await signData( reqId1, priceToSend, this.MockConsumerContract.address, dataProviderPk )
+
+        await this.RouterContract.fulfillRequest( reqId1, priceToSend, sig1.signature, {
+          from: dataProvider,
+          gasPrice: gasPriceGwei
+        } )
+
+        const receipt2 = await this.MockConsumerContract.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+        const reqId2 = getReqIdFromReceipt(receipt2)
+        const sig2 = await signData( reqId2, priceToSend, this.MockConsumerContract.address, dataProviderPk )
+
+        const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId2, priceToSend, sig2.signature, {
+          from: dataProvider,
+          gasPrice: gasPriceGwei
+        } )
+
+        const gasDiff = await estimateGasDiff(fulfullReceipt, gasPrice)
+
+        expect( gasDiff ).to.be.bignumber.lte( new BN( MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO ) )
 
       } )
 
@@ -411,6 +347,7 @@ describe('Provider - gas refund tests', function () {
             gasPrice: gasPriceGwei
           } )
 
+          // await dumpReceiptGasInfo(fulfullReceipt, randGas)
           const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
           // console.log("gasDiff OUT", gasDiff.toString())
 
@@ -453,7 +390,8 @@ describe('Provider - gas refund tests', function () {
             const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
             const diff = refundAmount.sub( actualSpent )
 
-            // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+            // await dumpReceiptGasInfo(fulfullReceipt, randGas)
+            const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
             // console.log("gasDiff OUT", gasDiff.toString())
 
             expect( diff ).to.be.bignumber.gte( new BN( 0 ) )

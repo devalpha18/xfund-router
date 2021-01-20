@@ -10,8 +10,8 @@ ConsumerLib: TBD
 
 ## Testnet (Rinkeby)
 
-xFUND Mock Token: [`0x81366aF400cf3050eA04B1BcB8592C3203C84dFb`](https://rinkeby.etherscan.io/address/0x81366aF400cf3050eA04B1BcB8592C3203C84dFb#code)  
-Router: [`0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B`](https://rinkeby.etherscan.io/address/0x3c0973B8Bf9bCafaa5e748aC2617b1C19b15dD8B#code)  
-ConsumerLib: [`0xD64127b18F8280F0528Cf5b77402a358cC21612E`](https://rinkeby.etherscan.io/address/0xD64127b18F8280F0528Cf5b77402a358cC21612E#code)  
+xFUND Mock Token: [`0x0E68C4A9586b86b08b12a9012Fa69c624f70cbF2`](https://rinkeby.etherscan.io/address/0x0E68C4A9586b86b08b12a9012Fa69c624f70cbF2#code)  
+Router: [`0x386a4e4E5347ad80486baEAd6EE9922C03F328FA`](https://rinkeby.etherscan.io/address/0x386a4e4E5347ad80486baEAd6EE9922C03F328FA#code)  
+ConsumerLib: [`0xeB11a442B3911A3051470403EdECF0FC5e779bB2`](https://rinkeby.etherscan.io/address/0xeB11a442B3911A3051470403EdECF0FC5e779bB2#code)  
 
 See [OoO Data API Guide](guide/ooo_api.md) for the OoO Data Provider address

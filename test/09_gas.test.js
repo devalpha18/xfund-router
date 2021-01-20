@@ -9,6 +9,19 @@ const {
 
 const { expect } = require('chai')
 
+const {
+  signData,
+  generateSigMsg,
+  getReqIdFromReceipt,
+  generateRequestId,
+  calculateCost,
+  dumpReceiptGasInfo,
+  estimateGasDiff,
+  randomPrice,
+  randomGasPrice,
+  sleepFor,
+} = require("./helpers/utils")
+
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
@@ -17,21 +30,6 @@ const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled con
 const REQUEST_VAR_GAS_PRICE_LIMIT = 1; // gas price limit in gwei the consumer is willing to pay for data processing
 const REQUEST_VAR_TOP_UP_LIMIT = 2; // max ETH that can be sent in a gas top up Tx
 const REQUEST_VAR_REQUEST_TIMEOUT = 3; // request timeout in seconds
-
-const calculateCost = async function(receipts, value) {
-  let totalCost = new BN(value)
-
-  for(let i = 0; i < receipts.length; i += 1) {
-    const r = receipts[i]
-    const gasUsed = r.receipt.gasUsed
-    const tx = await web3.eth.getTransaction(r.tx)
-    const gasPrice = tx.gasPrice
-    const gasCost = new BN(gasPrice).mul(new BN(gasUsed))
-    totalCost = totalCost.add(gasCost)
-  }
-
-  return totalCost
-}
 
 describe('Consumer - Gas top up and withdraw', function () {
   this.timeout(300000)

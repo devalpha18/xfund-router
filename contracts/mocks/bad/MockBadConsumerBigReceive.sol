@@ -24,11 +24,11 @@ contract MockBadConsumerBigReceive is ConsumerBase {
     event DataRequested(
         address indexed dataConsumer,
         address indexed dataProvider,
-        uint256 fee,
+        uint64 fee,
         bytes32 data,
         bytes32 indexed requestId,
-        uint256 gasPrice,
-        uint256 expires
+        uint64 gasPrice,
+        uint64 expires
     );
 
     constructor(address _router)

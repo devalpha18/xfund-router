@@ -29,12 +29,18 @@ contract Router is AccessControl {
     /*
      * CONSTANTS
      */
-    // The expected amount of gas that a small fulfillRequest will consume.
+    // The expected base amount of gas that a small fulfillRequest will consume,
+    // without the actual gas used to call the underlying Consumer contract's
+    // function. This will be added in the fulfillRequest function.
     // Used to calculate the refund to the provider, if the
     // provider expects the consumer to pay for the gas.
-    // Note: This is increased during fulfillRequest if the actual cost
-    // is more.
-    uint256 public constant EXPECTED_GAS = 73500;
+    // Note: First time fulfillments are usually more expensive
+    // since they will be setting a zero value in the Consumer's contract
+    // Subsequent calls will be cheaper.
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 82500;
+    uint256 public constant EXPECTED_GAS = 48300;
+
+    bytes4 public constant FULFILL_FUNCTION_SIG = 0x7c9766d3;
 
     /*
      * STRUCTURES
@@ -43,10 +49,9 @@ contract Router is AccessControl {
     struct DataRequest {
         address dataConsumer;
         address payable dataProvider;
-        uint256 expires;
-        uint256 fee;
-        uint256 gasPrice;
-        bytes4 callbackFunction;
+        uint64 expires;
+        uint64 fee;
+        uint64 gasPrice;
         bool isSet;
     }
 
@@ -77,8 +82,7 @@ contract Router is AccessControl {
     // Mapping to hold open data requests
     mapping(bytes32 => DataRequest) public dataRequests;
 
-    // track fees held by this contract
-    mapping(address => mapping(address => uint256)) public feesHeld;
+    mapping(address => bool) public consumerPreviousFulfillment;
 
     /**
      * @dev DataRequested. Emitted when a data request is sent by a Consumer.
@@ -93,11 +97,11 @@ contract Router is AccessControl {
     event DataRequested(
         address indexed dataConsumer,
         address indexed dataProvider,
-        uint256 fee,
+        uint64 fee,
         bytes32 data,
         bytes32 indexed requestId,
-        uint256 gasPrice,
-        uint256 expires
+        uint64 gasPrice,
+        uint64 expires
     );
 
     /**
@@ -337,23 +341,20 @@ contract Router is AccessControl {
      * @param _gasPrice gas price Consumer is willing to pay for data return. Converted to gwei (10 ** 9) in this method
      * @param _expires unix epoch for fulfillment expiration, after which cancelRequest can be called for refund
      * @param _requestId the generated ID for this request - used to double check request is coming from the Consumer
-     * @param _callbackFunctionSignature signature of function to call in the Consumer's contract to send the data
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
     function initialiseRequest(
         address payable _dataProvider,
-        uint256 _fee,
+        uint64 _fee,
         uint256 _requestNonce,
-        uint256 _gasPrice,
-        uint256 _expires,
+        uint64 _gasPrice,
+        uint64 _expires,
         bytes32 _requestId,
-        bytes32 _data,
-        bytes4 _callbackFunctionSignature
+        bytes32 _data
     ) external returns (bool success) {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
-        require(_expires > now, "Router: expiration must be > now");
         require(token.balanceOf(dataConsumer) >= _fee, "Router: contract does not have enough tokens to pay fee");
         require(token.allowance(dataConsumer, address(this)) >= _fee, "Router: not enough allowance to pay fee");
 
@@ -374,7 +375,6 @@ contract Router is AccessControl {
 
         dr.dataConsumer = dataConsumer;
         dr.dataProvider = _dataProvider;
-        dr.callbackFunction = _callbackFunctionSignature;
         dr.expires = _expires;
         dr.fee = _fee;
         dr.gasPrice = _gasPrice;
@@ -403,15 +403,12 @@ contract Router is AccessControl {
      * @return success if the execution was successful.
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) external returns (bool){
-        uint256 gasLeftStart = gasleft();
-        require(_signature.length > 0, "Router: must include signature");
         require(dataRequests[_requestId].isSet, "Router: request does not exist");
 
         require(tx.gasprice <= dataRequests[_requestId].gasPrice, "Router: tx.gasprice too high");
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address payable dataProvider = dataRequests[_requestId].dataProvider;
-        bytes4 callbackFunction = dataRequests[_requestId].callbackFunction;
         uint256 fee = dataRequests[_requestId].fee;
 
         // msg.sender is the address of the data provider
@@ -420,7 +417,9 @@ contract Router is AccessControl {
 
         // dataConsumer will see msg.sender as the Router's contract address
         // using functionCall from OZ's Address library
-        dataConsumer.functionCall(abi.encodeWithSelector(callbackFunction, _requestedData, _requestId, _signature));
+        uint256 gasLeftStart = gasleft();
+        dataConsumer.functionCall(abi.encodeWithSelector(FULFILL_FUNCTION_SIG, _requestedData, _requestId, _signature));
+        uint256 gasUsedToCall = gasLeftStart - gasleft();
 
         address gasPayer = dataProvider;
         if(!dataProviders[dataProvider].providerPaysGas) {
@@ -441,23 +440,24 @@ contract Router is AccessControl {
         // It must have enough Tokens to pay for the dataProvider's fee.
         // Will return underlying ERC20 error "ERC20: transfer amount exceeds balance"
         // if the Consumer's contract does not have enough tokens to pay
+
         require(token.transferFrom(dataConsumer, msg.sender, fee));
 
-        uint256 gasUsedToCall = gasLeftStart - gasleft();
         if(gasPayer != dataProvider) {
             // calculate how much should be refunded to the provider
-            uint256 totalGasUsed = EXPECTED_GAS;
-            if(gasUsedToCall > EXPECTED_GAS) {
-                uint256 diff = gasUsedToCall.sub(EXPECTED_GAS);
-                totalGasUsed = totalGasUsed.add(diff);
+            uint256 baseGas = EXPECTED_GAS_FIRST_FULFILMENT;
+            if(consumerPreviousFulfillment[dataConsumer]) {
+                baseGas = EXPECTED_GAS;
             }
-
+            uint256 totalGasUsed = baseGas + gasUsedToCall;
             uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
 
             // check there's enough
-            require(totalGasDeposits >= ethRefund, "Router: not enough ETH held by Router to refund gas");
-            require(gasDepositsForConsumer[dataConsumer] >= ethRefund, "Router: dataConsumer does not have enough ETH to refund gas");
-            require(gasDepositsForConsumerProviders[dataConsumer][dataProvider] >= ethRefund, "Router: not have enough ETH for consumer/provider pair to refund gas");
+            require(
+                gasDepositsForConsumerProviders[dataConsumer][dataProvider] >= ethRefund
+                && totalGasDeposits >= ethRefund,
+                "Router: not enough ETH to refund"
+            );
             // update total held by Router contract
             totalGasDeposits = totalGasDeposits.sub(ethRefund);
 
@@ -471,6 +471,8 @@ contract Router is AccessControl {
             // refund the provider
             Address.sendValue(dataProvider, ethRefund);
         }
+
+        consumerPreviousFulfillment[dataConsumer] = true;
 
         delete dataRequests[_requestId];
 

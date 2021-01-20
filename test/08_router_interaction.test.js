@@ -9,6 +9,19 @@ const {
 
 const { expect } = require('chai')
 
+const {
+  signData,
+  generateSigMsg,
+  getReqIdFromReceipt,
+  generateRequestId,
+  calculateCost,
+  dumpReceiptGasInfo,
+  estimateGasDiff,
+  randomPrice,
+  randomGasPrice,
+  sleepFor,
+} = require("./helpers/utils")
+
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
@@ -18,37 +31,6 @@ const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled con
 const REQUEST_VAR_GAS_PRICE_LIMIT = 1; // gas price limit in gwei the consumer is willing to pay for data processing
 const REQUEST_VAR_TOP_UP_LIMIT = 2; // max ETH that can be sent in a gas top up Tx
 const REQUEST_VAR_REQUEST_TIMEOUT = 3; // request timeout in seconds
-
-function generateSigMsg(requestId, data, consumerAddress) {
-  return web3.utils.soliditySha3(
-    { 'type': 'bytes32', 'value': requestId},
-    { 'type': 'uint256', 'value': data.toNumber()},
-    { 'type': 'address', 'value': consumerAddress}
-  )
-}
-
-const getReqIdFromReceipt = function(receipt) {
-  for(let i = 0; i < receipt.logs.length; i += 1) {
-    const log = receipt.logs[i]
-    if(log.event === "DataRequested") {
-      return log.args.requestId
-    }
-  }
-  return null
-}
-
-function generateRequestId(
-  consumerAddress,
-  requestNonce,
-  dataProvider,
-  routerAddress) {
-  return web3.utils.soliditySha3(
-    { 'type': 'address', 'value': consumerAddress},
-    { 'type': 'address', 'value': dataProvider},
-    { 'type': 'address', 'value': routerAddress},
-    { 'type': 'uint256', 'value': requestNonce.toNumber()}
-  )
-}
 
 describe('Router - interaction tests', function () {
   this.timeout(300000)
@@ -334,7 +316,7 @@ describe('Router - interaction tests', function () {
       const reqId = web3.utils.soliditySha3(web3.utils.randomHex(32))
       const cbSig = web3.eth.abi.encodeFunctionSignature('nowt(uint256)')
       await expectRevert(
-        this.RouterContract.initialiseRequest(dataProvider, 100, 0, 20, 200, reqId, web3.utils.asciiToHex("SOME.STUFF"), cbSig, {from: dataConsumerOwner}),
+        this.RouterContract.initialiseRequest(dataProvider, 100, 0, 20, 200, reqId, web3.utils.asciiToHex("SOME.STUFF"), {from: dataConsumerOwner}),
         "Router: only a contract can initialise a request"
       )
     } )
@@ -431,28 +413,6 @@ describe('Router - interaction tests', function () {
           {from: dataConsumerOwner}
           ),
         "Router: reqId != _requestId"
-      )
-    } )
-
-    it( 'expiry must be future date', async function () {
-      await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
-      const rubbishRequestId = web3.utils.soliditySha3(web3.utils.randomHex(32))
-
-      const now = Math.floor(Date.now() / 1000)
-      const expires = now - 86400 // yesterday
-      // request ID being sent will not match reconstructed version in Router
-      await expectRevert(
-        this.BadConsumerContract.requestDataWithAllParamsAndRequestId(
-          dataProvider,
-          100,
-          1,
-          endpoint,
-          200000000000,
-          expires,
-          rubbishRequestId,
-          {from: dataConsumerOwner}
-        ),
-        "Router: expiration must be > now"
       )
     } )
 
@@ -554,15 +514,6 @@ describe('Router - interaction tests', function () {
     // deploy badly implemented consumer contract
     beforeEach(async function () {
       this.BadConsumerContract = await MockBadConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
-    })
-
-    it( 'fulfillRequest - no signature', async function () {
-      const reqId = web3.utils.soliditySha3(web3.utils.randomHex(32))
-
-      await expectRevert(
-        this.RouterContract.fulfillRequest(reqId, 100, [], {from: dataProvider}),
-        "Router: must include signature"
-      )
     })
 
     it( 'fulfillRequest - request id does not exist', async function () {

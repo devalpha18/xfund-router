@@ -31,7 +31,7 @@ library ConsumerLib {
      */
 
     struct DataProvider {
-        uint256 fee;
+        uint64 fee;
         bool isAuthorised;
     }
 
@@ -113,7 +113,7 @@ library ConsumerLib {
      * @param oldFee old fee to be paid per data request
      * @param newFee new fee to be paid per data request
      */
-    event AddedDataProvider(address indexed sender, address indexed provider, uint256 oldFee, uint256 newFee);
+    event AddedDataProvider(address indexed sender, address indexed provider, uint64 oldFee, uint64 newFee);
 
     /**
      * @dev RemovedDataProvider - emitted when the owner removes a data provider
@@ -187,7 +187,7 @@ library ConsumerLib {
      * @param _remove bool set to true to de-authorise
      * @return success
      */
-    function addRemoveDataProvider(State storage self, address _dataProvider, uint256 _fee, bool _remove)
+    function addRemoveDataProvider(State storage self, address _dataProvider, uint64 _fee, bool _remove)
     external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_dataProvider != address(0), "ConsumerLib: dataProvider cannot be the zero address");
@@ -208,7 +208,7 @@ library ConsumerLib {
             require(_fee > 0, "ConsumerLib: fee must be > 0");
         }
 
-        uint256 oldFee = dp.fee;
+        uint64 oldFee = dp.fee;
 
         // only set if the fee is > 0
         if(_fee > 0) {
@@ -394,23 +394,19 @@ library ConsumerLib {
      * @param _dataProvider the address of the data provider to send the request to
      * @param _data type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
      * @param _gasPrice the gas price the consumer would like the provider to use for sending data back
-     * @param _callbackFunctionSignature the callback function the provider should call to send data back
      * @return requestId - the bytes32 request id
      */
     function submitDataRequest(
         State storage self,
         address payable _dataProvider,
         bytes32 _data,
-        uint256 _gasPrice,
-        bytes4 _callbackFunctionSignature
+        uint64 _gasPrice
     ) external
     returns (bytes32 requestId) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
         // check gas isn't stupidly high
         require(_gasPrice <= self.requestVars[REQUEST_VAR_GAS_PRICE_LIMIT], "ConsumerLib: gasPrice > gasPriceLimit");
-        // get the fee currently set
-        uint256 fee = self.dataProviders[_dataProvider].fee;
 
         // generate the requestId
         bytes32 reqId = keccak256(
@@ -424,24 +420,20 @@ library ConsumerLib {
 
         require(!self.dataRequests[reqId], "ConsumerLib: request id already exists");
 
-        self.dataRequests[reqId] = true;
-
-        uint256 expires = now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT];
-
         // note - router.initialiseRequest will see msg.sender as the address of this contract
         require(
             self.router.initialiseRequest(
                 _dataProvider,
-                fee,
+                uint64(self.dataProviders[_dataProvider].fee),
                 self.requestNonce,
                 _gasPrice * (10 ** 9), // gwei to wei
-                expires,
+                uint64(now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT]),
                 reqId, // will be regenerated and cross referenced in Router
-                _data,
-                _callbackFunctionSignature
+                _data
             ));
 
         self.requestNonce += 1;
+        self.dataRequests[reqId] = true;
 
         // only emitted if the router request is successful.
         emit DataRequestSubmitted(reqId);
