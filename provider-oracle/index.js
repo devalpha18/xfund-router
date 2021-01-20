@@ -42,7 +42,7 @@ const run = async () => {
           const dataConsumer = event.returnValues.dataConsumer
           const dataProvider = event.returnValues.dataProvider
           const fee = event.returnValues.fee
-          const dataToGet = Web3.utils.hexToAscii(event.returnValues.data)
+          const dataToGet = Web3.utils.toUtf8(event.returnValues.data)
           const requestId = event.returnValues.requestId
           const gasPriceWei = event.returnValues.gasPrice // already in wei
 
@@ -54,7 +54,7 @@ const run = async () => {
               console.log(new Date(), "data requested", dataToGet, "from", dataConsumer)
               // check fees
               if(parseInt(fee) >= parseInt(MIN_FEE)) {
-                await processRequest( dataToGet, supportedPairs )
+                processRequest( dataToGet, supportedPairs )
                   .then(async (priceToSend) => {
                     if ( priceToSend.gt( new BN( "0" ) ) ) {
                       console.log(new Date(), "fulfillRequest data", priceToSend.toString())
