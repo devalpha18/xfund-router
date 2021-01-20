@@ -255,7 +255,7 @@ abstract contract ConsumerBase {
         uint256 _gasPrice)
     public returns (bytes32 requestId) {
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
-        return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice, this.rawReceiveData.selector);
+        return consumerState.submitDataRequest(_dataProvider, _data, _gasPrice);
     }
 
     /**

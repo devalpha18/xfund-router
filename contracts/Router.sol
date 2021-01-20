@@ -36,6 +36,8 @@ contract Router is AccessControl {
     // is more.
     uint256 public constant EXPECTED_GAS = 73500;
 
+    bytes4 public constant FULFILL_FUNCTION_SIG = 0x7c9766d3;
+
     /*
      * STRUCTURES
      */
@@ -46,7 +48,6 @@ contract Router is AccessControl {
         uint256 expires;
         uint256 fee;
         uint256 gasPrice;
-        bytes4 callbackFunction;
         bool isSet;
     }
 
@@ -337,7 +338,6 @@ contract Router is AccessControl {
      * @param _gasPrice gas price Consumer is willing to pay for data return. Converted to gwei (10 ** 9) in this method
      * @param _expires unix epoch for fulfillment expiration, after which cancelRequest can be called for refund
      * @param _requestId the generated ID for this request - used to double check request is coming from the Consumer
-     * @param _callbackFunctionSignature signature of function to call in the Consumer's contract to send the data
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
     function initialiseRequest(
@@ -347,8 +347,7 @@ contract Router is AccessControl {
         uint256 _gasPrice,
         uint256 _expires,
         bytes32 _requestId,
-        bytes32 _data,
-        bytes4 _callbackFunctionSignature
+        bytes32 _data
     ) external returns (bool success) {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
@@ -374,7 +373,6 @@ contract Router is AccessControl {
 
         dr.dataConsumer = dataConsumer;
         dr.dataProvider = _dataProvider;
-        dr.callbackFunction = _callbackFunctionSignature;
         dr.expires = _expires;
         dr.fee = _fee;
         dr.gasPrice = _gasPrice;
@@ -411,7 +409,6 @@ contract Router is AccessControl {
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address payable dataProvider = dataRequests[_requestId].dataProvider;
-        bytes4 callbackFunction = dataRequests[_requestId].callbackFunction;
         uint256 fee = dataRequests[_requestId].fee;
 
         // msg.sender is the address of the data provider
@@ -420,7 +417,7 @@ contract Router is AccessControl {
 
         // dataConsumer will see msg.sender as the Router's contract address
         // using functionCall from OZ's Address library
-        dataConsumer.functionCall(abi.encodeWithSelector(callbackFunction, _requestedData, _requestId, _signature));
+        dataConsumer.functionCall(abi.encodeWithSelector(FULFILL_FUNCTION_SIG, _requestedData, _requestId, _signature));
 
         address gasPayer = dataProvider;
         if(!dataProviders[dataProvider].providerPaysGas) {

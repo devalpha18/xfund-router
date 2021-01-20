@@ -3,7 +3,7 @@
 pragma solidity ^0.6.0;
 
 interface IRouter {
-    function initialiseRequest(address, uint256, uint256, uint256, uint256, bytes32, bytes32, bytes4) external returns (bool);
+    function initialiseRequest(address, uint256, uint256, uint256, uint256, bytes32, bytes32) external returns (bool);
     function getTokenAddress() external returns (address);
     function getGasTopUpLimit() external returns (uint256);
     function grantProviderPermission(address) external returns (bool);

@@ -60,8 +60,7 @@ contract MockBadConsumer {
             20000000000,
             now + 300,
             requestId,
-            _data,
-            this.badReceiveData.selector
+            _data
         );
     }
 
@@ -92,8 +91,7 @@ contract MockBadConsumer {
             _gasPriceGwei,
             expires,
             requestId,
-            _data,
-            this.badReceiveData.selector
+            _data
         );
     }
 
@@ -114,8 +112,7 @@ contract MockBadConsumer {
             _gasPriceGwei,
             expires,
             _requestId,
-            _data,
-            this.badReceiveData.selector
+            _data
         );
     }
 
@@ -146,7 +143,7 @@ contract MockBadConsumer {
         return router.withDrawGasTopUpForProvider(_dataProvider);
     }
 
-    function badReceiveData(
+    function rawReceiveData(
         uint256 _price,
         bytes32 _requestId,
         bytes memory _signature
