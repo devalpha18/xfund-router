@@ -20,7 +20,7 @@ different roles.
 - [`setProviderMinFee(uint256 _minFee)`](#Router-setProviderMinFee-uint256-)
 - [`topUpGas(address _dataProvider)`](#Router-topUpGas-address-)
 - [`withDrawGasTopUpForProvider(address _dataProvider)`](#Router-withDrawGasTopUpForProvider-address-)
-- [`initialiseRequest(address payable _dataProvider, uint256 _fee, uint256 _requestNonce, uint256 _gasPrice, uint256 _expires, bytes32 _requestId, bytes32 _data, bytes4 _callbackFunctionSignature)`](#Router-initialiseRequest-address-payable-uint256-uint256-uint256-uint256-bytes32-bytes32-bytes4-)
+- [`initialiseRequest(address payable _dataProvider, uint64 _fee, uint256 _requestNonce, uint64 _gasPrice, uint64 _expires, bytes32 _requestId, bytes32 _data)`](#Router-initialiseRequest-address-payable-uint64-uint256-uint64-uint64-bytes32-bytes32-)
 - [`fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes _signature)`](#Router-fulfillRequest-bytes32-uint256-bytes-)
 - [`cancelRequest(bytes32 _requestId)`](#Router-cancelRequest-bytes32-)
 - [`grantProviderPermission(address _dataProvider)`](#Router-grantProviderPermission-address-)
@@ -40,7 +40,7 @@ different roles.
 - [`getProviderMinFee(address _dataProvider)`](#Router-getProviderMinFee-address-)
 
 ## Events:
-- [`DataRequested(address dataConsumer, address dataProvider, uint256 fee, bytes32 data, bytes32 requestId, uint256 gasPrice, uint256 expires)`](#Router-DataRequested-address-address-uint256-bytes32-bytes32-uint256-uint256-)
+- [`DataRequested(address dataConsumer, address dataProvider, uint64 fee, bytes32 data, bytes32 requestId, uint64 gasPrice, uint64 expires)`](#Router-DataRequested-address-address-uint64-bytes32-bytes32-uint64-uint64-)
 - [`GrantProviderPermission(address dataConsumer, address dataProvider)`](#Router-GrantProviderPermission-address-address-)
 - [`RevokeProviderPermission(address dataConsumer, address dataProvider)`](#Router-RevokeProviderPermission-address-address-)
 - [`RequestFulfilled(address dataConsumer, address dataProvider, bytes32 requestId, uint256 requestedData, address gasPayer)`](#Router-RequestFulfilled-address-address-bytes32-uint256-address-)
@@ -118,8 +118,8 @@ be able to withdraw for a data provide that has been revoked.
 #### Parameters:
 - `_dataProvider`: address of data provider
 
-<a name="Router-initialiseRequest-address-payable-uint256-uint256-uint256-uint256-bytes32-bytes32-bytes4-"></a>
-### Function `initialiseRequest(address payable _dataProvider, uint256 _fee, uint256 _requestNonce, uint256 _gasPrice, uint256 _expires, bytes32 _requestId, bytes32 _data, bytes4 _callbackFunctionSignature) -> bool success`
+<a name="Router-initialiseRequest-address-payable-uint64-uint256-uint64-uint64-bytes32-bytes32-"></a>
+### Function `initialiseRequest(address payable _dataProvider, uint64 _fee, uint256 _requestNonce, uint64 _gasPrice, uint64 _expires, bytes32 _requestId, bytes32 _data) -> bool success`
 initialiseRequest - called by Consumer contract to initialise a data request. Can only be called by
 a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
 for the provider. Only the provider specified in the reqyest may fulfil the request.
@@ -138,8 +138,6 @@ for the provider. Only the provider specified in the reqyest may fulfil the requ
 - `_expires`: unix epoch for fulfillment expiration, after which cancelRequest can be called for refund
 
 - `_requestId`: the generated ID for this request - used to double check request is coming from the Consumer
-
-- `_callbackFunctionSignature`: signature of function to call in the Consumer's contract to send the data
 
 #### Return Values:
 - success if the execution was successful. Status is checked in the Consumer contract
@@ -290,8 +288,8 @@ getProviderMinFee - returns minimum fee provider will accept to fulfill data req
 - `_dataProvider`: address of data provider
 
 
-<a name="Router-DataRequested-address-address-uint256-bytes32-bytes32-uint256-uint256-"></a>
-### Event `DataRequested(address dataConsumer, address dataProvider, uint256 fee, bytes32 data, bytes32 requestId, uint256 gasPrice, uint256 expires)`
+<a name="Router-DataRequested-address-address-uint64-bytes32-bytes32-uint64-uint64-"></a>
+### Event `DataRequested(address dataConsumer, address dataProvider, uint64 fee, bytes32 data, bytes32 requestId, uint64 gasPrice, uint64 expires)`
 DataRequested. Emitted when a data request is sent by a Consumer.
 
 #### Parameters:

@@ -17,13 +17,13 @@ smart contract
 - [`withdrawAllTokens()`](#ConsumerBase-withdrawAllTokens--)
 - [`transferOwnership(address payable _newOwner)`](#ConsumerBase-transferOwnership-address-payable-)
 - [`setRouterAllowance(uint256 _routerAllowance, bool _increase)`](#ConsumerBase-setRouterAllowance-uint256-bool-)
-- [`addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`](#ConsumerBase-addRemoveDataProvider-address-uint256-bool-)
+- [`addRemoveDataProvider(address _dataProvider, uint64 _fee, bool _remove)`](#ConsumerBase-addRemoveDataProvider-address-uint64-bool-)
 - [`setRequestVar(uint8 _var, uint256 _value)`](#ConsumerBase-setRequestVar-uint8-uint256-)
 - [`setRouter(address _router)`](#ConsumerBase-setRouter-address-)
 - [`topUpGas(address _dataProvider)`](#ConsumerBase-topUpGas-address-)
 - [`withdrawTopUpGas(address _dataProvider)`](#ConsumerBase-withdrawTopUpGas-address-)
 - [`withdrawEth(uint256 _amount)`](#ConsumerBase-withdrawEth-uint256-)
-- [`requestData(address payable _dataProvider, bytes32 _data, uint256 _gasPrice)`](#ConsumerBase-requestData-address-payable-bytes32-uint256-)
+- [`requestData(address payable _dataProvider, bytes32 _data, uint64 _gasPrice)`](#ConsumerBase-requestData-address-payable-bytes32-uint64-)
 - [`rawReceiveData(uint256 _price, bytes32 _requestId, bytes _signature)`](#ConsumerBase-rawReceiveData-uint256-bytes32-bytes-)
 - [`cancelRequest(bytes32 _requestId)`](#ConsumerBase-cancelRequest-bytes32-)
 - [`getRouterAddress()`](#ConsumerBase-getRouterAddress--)
@@ -86,8 +86,8 @@ Note: Contract ownership is checked in the underlying ConsumerLib function
 - `_routerAllowance`: the amount of tokens the owner would like to increase/decrease allocation by
 
 - `_increase`: bool true to increase, false to decrease
-<a name="ConsumerBase-addRemoveDataProvider-address-uint256-bool-"></a>
-### Function `addRemoveDataProvider(address _dataProvider, uint256 _fee, bool _remove)`
+<a name="ConsumerBase-addRemoveDataProvider-address-uint64-bool-"></a>
+### Function `addRemoveDataProvider(address _dataProvider, uint64 _fee, bool _remove)`
 addRemoveDataProvider add a new authorised data provider to this contract, and
 authorise it to provide data via the Router, set new fees, or remove
 a currently authorised provider. Fees are set here to reduce gas costs when
@@ -190,8 +190,8 @@ NOTE: This function calls the ConsumerLib's underlying withdrawEth function
 
 #### Parameters:
 - `_amount`: amount (in wei) of ETH to be withdrawn
-<a name="ConsumerBase-requestData-address-payable-bytes32-uint256-"></a>
-### Function `requestData(address payable _dataProvider, bytes32 _data, uint256 _gasPrice) -> bytes32 requestId`
+<a name="ConsumerBase-requestData-address-payable-bytes32-uint64-"></a>
+### Function `requestData(address payable _dataProvider, bytes32 _data, uint64 _gasPrice) -> bytes32 requestId`
 requestData - initialises a data request.
 Kicks off the ConsumerLib.sol lib's submitDataRequest function which
 forwards the request to the deployed Router smart contract.
