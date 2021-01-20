@@ -8,56 +8,24 @@ const {
 
 const { expect } = require('chai')
 
+const {
+  signData,
+  generateSigMsg,
+  getReqIdFromReceipt,
+  generateRequestId,
+  calculateCost,
+  dumpReceiptGasInfo,
+  estimateGasDiff,
+  randomPrice,
+  randomGasPrice,
+  sleepFor,
+} = require("./helpers/utils")
+
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
 const MockConsumerCustomRequest = contract.fromArtifact("MockConsumerCustomRequest") // Loads a compiled contract
 const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
-
-const signData = async function(reqId, priceToSend, consumerContractAddress, providerPk) {
-  const msg = generateSigMsg(reqId, priceToSend, consumerContractAddress)
-  return web3.eth.accounts.sign(msg, providerPk)
-}
-
-function generateSigMsg(requestId, data, consumerAddress) {
-  return web3.utils.soliditySha3(
-    { 'type': 'bytes32', 'value': requestId},
-    { 'type': 'uint256', 'value': data},
-    { 'type': 'address', 'value': consumerAddress}
-  )
-}
-
-const getReqIdFromReceipt = function(receipt) {
-  for(let i = 0; i < receipt.logs.length; i += 1) {
-    const log = receipt.logs[i]
-    if(log.event === "DataRequested") {
-      return log.args.requestId
-    }
-  }
-  return null
-}
-
-function generateRequestId(
-  consumerAddress,
-  requestNonce,
-  dataProvider,
-  routerAddress) {
-  return web3.utils.soliditySha3(
-    { 'type': 'address', 'value': consumerAddress},
-    { 'type': 'address', 'value': dataProvider},
-    { 'type': 'address', 'value': routerAddress},
-    { 'type': 'uint256', 'value': requestNonce.toNumber()}
-  )
-}
-
-const randomPrice = function() {
-  const rand = Math.floor(Math.random() * (999999999)) + 1
-  return web3.utils.toWei(String(rand), "ether")
-}
-
-const randomGasPrice = function(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 describe('Provider - fulfillment tests', function () {
   this.timeout(300000)
