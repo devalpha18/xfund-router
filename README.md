@@ -192,6 +192,12 @@ WALLET_ADDRESS=
 
 In a separate terminal, run:
 
+```bash
+npx sequelize-cli db:migrate
+```
+
+to initialise the oracle's database, followed by:
+
 ``` 
 node provider-oracle/index.js --run=run-oracle
 ```

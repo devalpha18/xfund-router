@@ -2,8 +2,10 @@ require("dotenv").config()
 const arg = require("arg")
 const BN = require("bn.js")
 const Web3 = require("web3")
-const { watchEvent, fulfillRequest, setProviderPaysGas, getRequestExists } = require("./ethereum")
-const { processRequest } = require("./oracle")
+const { watchEvent, fulfillRequest } = require("./ethereum")
+const { isValidDataRequest, processRequest } = require("./oracle")
+const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
+const { FulfilledRequests, LastGethBlock } = require("./db/models")
 
 const args = arg({
   // Types
@@ -20,14 +22,22 @@ const run = async () => {
   const runWhat = args["--run"]
   const eventToGet = args["--event"] || "DataRequested"
 
-  const { WATCH_FROM_BLOCK, FINCHAINS_API_URL, MIN_FEE } = process.env
+  const { WATCH_FROM_BLOCK } = process.env
 
-  const fromBlock = WATCH_FROM_BLOCK || 0
+  let fromBlock = WATCH_FROM_BLOCK || 0
+  const fromBlockRes = await LastGethBlock.findOne({ where: { event: eventToGet } })
 
-  const supportedPairsRes = await fetch(`${FINCHAINS_API_URL}/pairs`)
-  const supportedPairs = await supportedPairsRes.json()
+  if (fromBlockRes) {
+    fromBlock = parseInt( fromBlockRes.height, 10 )
+  }
+
+  let supportedPairs
 
   switch (runWhat) {
+    case "update-supported-pairs":
+      await updateSupportedPairs()
+      process.exit(0)
+      break
     case "run-oracle":
       console.log(new Date(), "watching", eventToGet, "from block", fromBlock)
       console.log(new Date(), "get supported pairs")
@@ -36,44 +46,69 @@ const run = async () => {
           console.error(new Date(), "ERROR:")
           console.error(err)
         }
-        if (event) {
+        const requestValid = await isValidDataRequest(event)
+        if(requestValid) {
+          supportedPairs = await getSupportedPairs()
           const height = event.blockNumber
-          const txHash = event.transactionHash
+          const requestTxHash = event.transactionHash
           const dataConsumer = event.returnValues.dataConsumer
-          const dataProvider = event.returnValues.dataProvider
-          const fee = event.returnValues.fee
-          const dataToGet = Web3.utils.toUtf8(event.returnValues.data)
+          const endpoint = Web3.utils.toUtf8(event.returnValues.data)
           const requestId = event.returnValues.requestId
           const gasPriceWei = event.returnValues.gasPrice // already in wei
+          const fee = event.returnValues.fee
+          console.log(new Date(), "data requested", endpoint, "from", dataConsumer)
 
-          // check it's for us
-          if(Web3.utils.toChecksumAddress(dataProvider) === Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)) {
-            // check request ID exists (has not been fulfiled, cancelled etc.)
-            const requestExists = await getRequestExists(requestId)
-            if(requestExists) {
-              console.log(new Date(), "data requested", dataToGet, "from", dataConsumer)
-              // check fees
-              if(parseInt(fee) >= parseInt(MIN_FEE)) {
-                processRequest( dataToGet, supportedPairs )
-                  .then(async (priceToSend) => {
-                    if ( priceToSend.gt( new BN( "0" ) ) ) {
-                      console.log(new Date(), "fulfillRequest data", priceToSend.toString())
-                      const txHash = await fulfillRequest(requestId, priceToSend, dataConsumer, gasPriceWei)
-                      console.log(new Date(), "fulfillRequest txHash", txHash)
+          // check db
+          const fulfilledRequest = await FulfilledRequests.findOne({ where: { requestId }})
+
+          if(!fulfilledRequest) {
+            processRequest( endpoint, supportedPairs )
+              .then( async ( price ) => {
+                if ( price.gt( new BN( "0" ) ) ) {
+                  console.log( new Date(), "fulfillRequest data requestId", requestId, "data", price.toString() )
+                  const fulfillTxHash = await fulfillRequest( requestId, price, dataConsumer, gasPriceWei )
+                  console.log( new Date(), "fulfillRequest requestId", requestId, "txHash", fulfillTxHash )
+                  // update db
+                  await FulfilledRequests.findOrCreate( {
+                    where: {
+                      requestId,
+                    },
+                    defaults: {
+                      requestId,
+                      requestTxHash,
+                      fulfillTxHash,
+                      endpoint,
+                      price: price.toString(),
+                      dataConsumer,
+                      gas: gasPriceWei.toString(),
+                      fee: fee.toString(),
+                    },
+                  } )
+
+                  const [l, lCreated] = await LastGethBlock.findOrCreate({
+                    where: {
+                      event: eventToGet,
+                    },
+                    defaults: {
+                      event: eventToGet,
+                      height,
+                    },
+                  })
+
+                  if (!lCreated) {
+                    if (height > l.height) {
+                      await l.update({ height })
                     }
-                  })
-                  .catch((err) => {
-                    console.error(new Date(), "ERROR:")
-                    console.error(err.toString())
-                  })
-              } else {
-                console.log(new Date(), "fee", fee, "for requestId", requestId, "not enough. MIN_FEE=", MIN_FEE)
-              }
-            } else {
-              console.log(new Date(), "request", requestId, "does not exist. Perhaps already processed or cancelled")
-            }
-          } else {
-            console.log(new Date(), "request", requestId, "not for me (for ", dataProvider, ")")
+                  }
+
+                } else {
+                  console.log( new Date(), "error getting price for requestId", requestId, "price === 0." )
+                }
+              } )
+              .catch( ( err ) => {
+                console.error( new Date(), "ERROR:" )
+                console.error( err.toString() )
+              } )
           }
         }
       })
@@ -90,9 +125,11 @@ const run = async () => {
           console.error(new Date(), "ERROR:")
           console.error(err.toString())
         })
+      process.exit(0)
       break
     default:
       console.log(new Date(), "nothing to do")
+      process.exit(0)
       break
   }
 }
