@@ -245,7 +245,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
 // ETH.USD.EX.LAT.BNC - latest ETH/USD price from Binance
 // ETH.USD.EX.HI.DGX.24H - highest ETH/USD price from Coinbase in last 24 hours
 // ETH.USD.EX.LOW.DGX.24H - highest ETH/USD price from Coinbase in last 24 hours
-const processRequest = (dataToGet, supportedPairs) => {
+const processRequest = async (dataToGet, supportedPairs) => {
   return new Promise((resolve, reject) => {
     apiBuilder(dataToGet, supportedPairs)
       .then((d) => fetch(d.url))
