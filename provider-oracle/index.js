@@ -62,7 +62,7 @@ const run = async () => {
           const fulfilledRequest = await FulfilledRequests.findOne({ where: { requestId }})
 
           if(!fulfilledRequest) {
-            processRequest( endpoint, supportedPairs )
+            await processRequest( endpoint, supportedPairs )
               .then( async ( price ) => {
                 if ( price.gt( new BN( "0" ) ) ) {
                   console.log( new Date(), "fulfillRequest data requestId", requestId, "data", price.toString() )
@@ -114,10 +114,11 @@ const run = async () => {
       })
       break
     case "test-oracle":
+      supportedPairs = await getSupportedPairs()
       const testString = args["--test"] || "BTC.USD.PRC.AVG"
       console.log("test-oracle")
       console.log("Data requested", testString)
-      processRequest( testString, supportedPairs )
+      await processRequest( testString, supportedPairs )
         .then(async (priceToSend) => {
           console.log(new Date(), "priceToSend", priceToSend.toString())
         })
