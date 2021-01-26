@@ -37,10 +37,14 @@ contract Router is AccessControl {
     // Note: First time fulfillments are usually more expensive
     // since they will be setting a zero value in the Consumer's contract
     // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 82500;
-    uint256 public constant EXPECTED_GAS = 48300;
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 83350;
+    uint256 public constant EXPECTED_GAS = 49150;
 
     bytes4 public constant FULFILL_FUNCTION_SIG = 0x7c9766d3;
+
+    uint8 public constant REQUEST_STATUS_NOT_SET = 0;
+    uint8 public constant REQUEST_STATUS_REQUESTED = 1;
+    uint8 public constant REQUEST_STATUS_FULFILLING = 2;
 
     /*
      * STRUCTURES
@@ -52,7 +56,7 @@ contract Router is AccessControl {
         uint64 expires;
         uint64 fee;
         uint64 gasPrice;
-        bool isSet;
+        uint8 status;
     }
 
     struct DataProvider {
@@ -369,7 +373,7 @@ contract Router is AccessControl {
         );
 
         require(reqId == _requestId, "Router: reqId != _requestId");
-        require(!dataRequests[reqId].isSet, "Router: request id already initialised");
+        require(dataRequests[reqId].status == REQUEST_STATUS_NOT_SET, "Router: request id already initialised");
 
         DataRequest storage dr = dataRequests[reqId];
 
@@ -378,7 +382,7 @@ contract Router is AccessControl {
         dr.expires = _expires;
         dr.fee = _fee;
         dr.gasPrice = _gasPrice;
-        dr.isSet = true;
+        dr.status = REQUEST_STATUS_REQUESTED;
 
         // Transfer successful - emit the DataRequested event
         emit DataRequested(
@@ -403,7 +407,9 @@ contract Router is AccessControl {
      * @return success if the execution was successful.
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) external returns (bool){
-        require(dataRequests[_requestId].isSet, "Router: request does not exist");
+        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request does not exist");
+        // prevent reentrancy
+        dataRequests[_requestId].status = REQUEST_STATUS_FULFILLING;
 
         require(tx.gasprice <= dataRequests[_requestId].gasPrice, "Router: tx.gasprice too high");
 
@@ -487,7 +493,7 @@ contract Router is AccessControl {
      */
     function cancelRequest(bytes32 _requestId) external returns (bool) {
         require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
-        require(dataRequests[_requestId].isSet, "Router: request id does not exist");
+        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request id does not exist");
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
@@ -602,7 +608,19 @@ contract Router is AccessControl {
      * @return bool
      */
     function requestExists(bytes32 _requestId) external view returns (bool) {
-        return dataRequests[_requestId].isSet;
+        return dataRequests[_requestId].status != REQUEST_STATUS_NOT_SET;
+    }
+
+    /**
+     * @dev getRequestStatus - check a request status
+     * 0 = does not exist/not yet initialised
+     * 1 = Request initialised
+     * 2 = fulfillment processing
+     * @param _requestId bytes32 request id
+     * @return bool
+     */
+    function getRequestStatus(bytes32 _requestId) external view returns (uint8) {
+        return dataRequests[_requestId].status;
     }
 
     /**
