@@ -178,8 +178,15 @@ library ConsumerLib {
      * authorise it to provide data via the Router, or de-authorise an existing provider.
      * Can also be used to modify a provider's fee for an existing authorised provider.
      *
+     * The provider address supplied must already be registered on the Router
+     * as a Data Provider. The Router's getProviderMinFee(address _dataProvider)
+     * function can be used to find the Provider's current minimum fee
+     *
      * If the provider is currently authorised when setting the fee, the Router's
      * grantProviderPermission is not called to conserve gas.
+     *
+     * The fee is set so that it is not required to explicitly send the fee amount with
+     * each call to the submitDataRequest function.
      *
      * @param self the Contract's State object
      * @param _dataProvider the address of the data provider

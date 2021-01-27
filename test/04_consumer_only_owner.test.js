@@ -359,6 +359,11 @@ describe('Consumer - only owner function tests', function () {
    * Data provider tests
    */
   describe('data providers', function () {
+
+    beforeEach(async function () {
+      await this.RouterContract.registerAsProvider(100, false, {from: dataProvider })
+    })
+
     it( 'owner can add a data provider - emits AddedDataProvider event', async function () {
       const fee = 100
 
@@ -426,6 +431,13 @@ describe('Consumer - only owner function tests', function () {
       await expectRevert(
         this.MockConsumerContract.addRemoveDataProvider(dataProvider, 0, false, { from: dataConsumerOwner } ),
         "ConsumerLib: fee must be > 0"
+      )
+    } )
+
+    it( 'addRemoveDataProvider - must be a registered provider on the Router', async function () {
+      await expectRevert(
+        this.MockConsumerContract.addRemoveDataProvider(rando, 100, false, { from: dataConsumerOwner } ),
+        "Router: provider not registered"
       )
     } )
 

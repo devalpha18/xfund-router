@@ -16,8 +16,9 @@ different roles.
 ## Functions:
 - [`constructor(address _token)`](#Router-constructor-address-)
 - [`setGasTopUpLimit(uint256 _gasTopUpLimit)`](#Router-setGasTopUpLimit-uint256-)
+- [`registerAsProvider(uint64 _minFee, bool _providerPaysGas)`](#Router-registerAsProvider-uint64-bool-)
 - [`setProviderPaysGas(bool _providerPays)`](#Router-setProviderPaysGas-bool-)
-- [`setProviderMinFee(uint256 _minFee)`](#Router-setProviderMinFee-uint256-)
+- [`setProviderMinFee(uint64 _minFee)`](#Router-setProviderMinFee-uint64-)
 - [`topUpGas(address _dataProvider)`](#Router-topUpGas-address-)
 - [`withDrawGasTopUpForProvider(address _dataProvider)`](#Router-withDrawGasTopUpForProvider-address-)
 - [`initialiseRequest(address payable _dataProvider, uint64 _fee, uint256 _requestNonce, uint64 _gasPrice, uint64 _expires, bytes32 _requestId, bytes32 _data)`](#Router-initialiseRequest-address-payable-uint64-uint256-uint64-uint64-bytes32-bytes32-)
@@ -33,6 +34,7 @@ different roles.
 - [`getDataRequestGasPrice(bytes32 _requestId)`](#Router-getDataRequestGasPrice-bytes32-)
 - [`getGasTopUpLimit()`](#Router-getGasTopUpLimit--)
 - [`requestExists(bytes32 _requestId)`](#Router-requestExists-bytes32-)
+- [`getRequestStatus(bytes32 _requestId)`](#Router-getRequestStatus-bytes32-)
 - [`getTotalGasDeposits()`](#Router-getTotalGasDeposits--)
 - [`getGasDepositsForConsumer(address _dataConsumer)`](#Router-getGasDepositsForConsumer-address-)
 - [`getGasDepositsForConsumerProviders(address _dataConsumer, address _dataProvider)`](#Router-getGasDepositsForConsumerProviders-address-address-)
@@ -47,8 +49,9 @@ different roles.
 - [`RequestCancelled(address dataConsumer, address dataProvider, bytes32 requestId)`](#Router-RequestCancelled-address-address-bytes32-)
 - [`TokenSet(address tokenAddress)`](#Router-TokenSet-address-)
 - [`SetGasTopUpLimit(address sender, uint256 oldLimit, uint256 newLimit)`](#Router-SetGasTopUpLimit-address-uint256-uint256-)
+- [`ProviderRegistered(address dataProvider, uint64 minFee, bool providerPays)`](#Router-ProviderRegistered-address-uint64-bool-)
 - [`SetProviderPaysGas(address dataProvider, bool providerPays)`](#Router-SetProviderPaysGas-address-bool-)
-- [`SetProviderMinFee(address dataProvider, uint256 minFee)`](#Router-SetProviderMinFee-address-uint256-)
+- [`SetProviderMinFee(address dataProvider, uint64 minFee)`](#Router-SetProviderMinFee-address-uint64-)
 - [`GasToppedUp(address dataConsumer, address dataProvider, uint256 amount)`](#Router-GasToppedUp-address-address-uint256-)
 - [`GasWithdrawnByConsumer(address dataConsumer, address dataProvider, uint256 amount)`](#Router-GasWithdrawnByConsumer-address-address-uint256-)
 - [`GasRefundedToProvider(address dataConsumer, address dataProvider, uint256 amount)`](#Router-GasRefundedToProvider-address-address-uint256-)
@@ -73,6 +76,15 @@ being sent.
 #### Parameters:
 - `_gasTopUpLimit`: amount in wei
 
+<a name="Router-registerAsProvider-uint64-bool-"></a>
+### Function `registerAsProvider(uint64 _minFee, bool _providerPaysGas) -> bool success`
+registerAsProvider - register as a provider
+
+#### Parameters:
+- `_minFee`: uint256 - minimum fee provider will accept to fulfill request
+
+- `_providerPaysGas`: bool - true if provider will pay gas
+
 <a name="Router-setProviderPaysGas-bool-"></a>
 ### Function `setProviderPaysGas(bool _providerPays) -> bool success`
 setProviderPaysGas - provider calls for setting who pays gas
@@ -81,8 +93,8 @@ for sending the fulfillRequest Tx
 #### Parameters:
 - `_providerPays`: bool - true if provider will pay gas
 
-<a name="Router-setProviderMinFee-uint256-"></a>
-### Function `setProviderMinFee(uint256 _minFee) -> bool success`
+<a name="Router-setProviderMinFee-uint64-"></a>
+### Function `setProviderMinFee(uint64 _minFee) -> bool success`
 setProviderMinFee - provider calls for setting its minimum fee
 
 #### Parameters:
@@ -250,6 +262,16 @@ requestExists - check a request ID exists
 #### Parameters:
 - `_requestId`: bytes32 request id
 
+<a name="Router-getRequestStatus-bytes32-"></a>
+### Function `getRequestStatus(bytes32 _requestId) -> uint8`
+getRequestStatus - check a request status
+0 = does not exist/not yet initialised
+1 = Request initialised
+2 = fulfillment processing
+
+#### Parameters:
+- `_requestId`: bytes32 request id
+
 <a name="Router-getTotalGasDeposits--"></a>
 ### Function `getTotalGasDeposits() -> uint256`
 getTotalGasDeposits - get total gas deposited in Router
@@ -281,7 +303,7 @@ for sending the fulfillRequest Tx
 - `_dataProvider`: address of data provider
 
 <a name="Router-getProviderMinFee-address-"></a>
-### Function `getProviderMinFee(address _dataProvider) -> uint256`
+### Function `getProviderMinFee(address _dataProvider) -> uint64`
 getProviderMinFee - returns minimum fee provider will accept to fulfill data request
 
 #### Parameters:
@@ -365,6 +387,16 @@ with the setGasTopUpLimit function
 - `oldLimit`: old limit
 
 - `newLimit`: new limit
+<a name="Router-ProviderRegistered-address-uint64-bool-"></a>
+### Event `ProviderRegistered(address dataProvider, uint64 minFee, bool providerPays)`
+ProviderRegistered. Emitted when a provider registers
+
+#### Parameters:
+- `dataProvider`: address of the provider
+
+- `minFee`: new fee value
+
+- `providerPays`: true/false
 <a name="Router-SetProviderPaysGas-address-bool-"></a>
 ### Event `SetProviderPaysGas(address dataProvider, bool providerPays)`
 SetProviderPaysGas. Emitted when a provider changes their params
@@ -373,8 +405,8 @@ SetProviderPaysGas. Emitted when a provider changes their params
 - `dataProvider`: address of the provider
 
 - `providerPays`: true/false
-<a name="Router-SetProviderMinFee-address-uint256-"></a>
-### Event `SetProviderMinFee(address dataProvider, uint256 minFee)`
+<a name="Router-SetProviderMinFee-address-uint64-"></a>
+### Event `SetProviderMinFee(address dataProvider, uint64 minFee)`
 SetProviderMinFee. Emitted when a provider changes their minimum token fee for providing data
 
 #### Parameters:

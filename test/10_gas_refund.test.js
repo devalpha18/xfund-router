@@ -41,8 +41,8 @@ describe('Provider - gas refund tests', function () {
   // const priceToSend = new BN("1")
   // const priceToSend = new BN("115792089237316195423570985008687907853269984665640564039457584007913129639935")
   const priceToSend = new BN("2000000000000000000000")
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 200
-  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 150
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO = 150
+  const MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO = 100
 
   // deploy contracts before every test
   beforeEach(async function () {
@@ -65,6 +65,8 @@ describe('Provider - gas refund tests', function () {
     // dataConsumerOwner deploy bad Consumer contract
     this.MockBadConsumerBigReceiveContract = await MockBadConsumerBigReceive.new(this.RouterContract.address, {from: dataConsumerOwner})
 
+    // dataProvider registers on Router
+    await this.RouterContract.registerAsProvider(fee, false, {from: dataProvider })
   })
 
   /*
@@ -227,7 +229,7 @@ describe('Provider - gas refund tests', function () {
         expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
       } )
 
-      it( 'gas consumed diff <= acceptable threshold - first time', async function () {
+      it( `gas consumed diff <= acceptable threshold (<= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}) - first time`, async function () {
 
         const gasPriceGwei = gasPrice * ( 10 ** 9 )
 
@@ -249,7 +251,7 @@ describe('Provider - gas refund tests', function () {
 
       } )
 
-      it( 'gas consumed diff <= acceptable threshold - second time', async function () {
+      it( `gas consumed diff <= acceptable threshold (<= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO}) - second time`, async function () {
 
         const gasPriceGwei = gasPrice * ( 10 ** 9 )
 
@@ -331,7 +333,7 @@ describe('Provider - gas refund tests', function () {
         }
       })
 
-      it( 'gas diff is acceptable under normal conditions: 50 iterations', async function () {
+      it( `gas diff is acceptable (1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}, after 1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO})under normal conditions: 50 iterations`, async function () {
         for(let i = 0; i < 50; i += 1) {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)

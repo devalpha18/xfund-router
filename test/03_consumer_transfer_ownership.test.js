@@ -33,7 +33,6 @@ describe('Consumer - transfer ownership tests', function () {
 
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
-
   })
 
   it('initial owner should be deployer address', async function () {

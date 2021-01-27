@@ -37,10 +37,14 @@ contract Router is AccessControl {
     // Note: First time fulfillments are usually more expensive
     // since they will be setting a zero value in the Consumer's contract
     // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 82500;
-    uint256 public constant EXPECTED_GAS = 48300;
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 83350;
+    uint256 public constant EXPECTED_GAS = 49150;
 
     bytes4 public constant FULFILL_FUNCTION_SIG = 0x7c9766d3;
+
+    uint8 public constant REQUEST_STATUS_NOT_SET = 0;
+    uint8 public constant REQUEST_STATUS_REQUESTED = 1;
+    uint8 public constant REQUEST_STATUS_FULFILLING = 2;
 
     /*
      * STRUCTURES
@@ -52,12 +56,12 @@ contract Router is AccessControl {
         uint64 expires;
         uint64 fee;
         uint64 gasPrice;
-        bool isSet;
+        uint8 status;
     }
 
     struct DataProvider {
         bool providerPaysGas;
-        uint256 minFee;
+        uint64 minFee;
     }
 
     uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
@@ -164,6 +168,14 @@ contract Router is AccessControl {
     event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
 
     /**
+     * @dev ProviderRegistered. Emitted when a provider registers
+     * @param dataProvider address of the provider
+     * @param minFee new fee value
+     * @param providerPays true/false
+     */
+    event ProviderRegistered(address indexed dataProvider, uint64 minFee, bool providerPays);
+
+    /**
      * @dev SetProviderPaysGas. Emitted when a provider changes their params
      * @param dataProvider address of the provider
      * @param providerPays true/false
@@ -175,7 +187,7 @@ contract Router is AccessControl {
      * @param dataProvider address of the provider
      * @param minFee new fee value
      */
-    event SetProviderMinFee(address indexed dataProvider, uint256 minFee);
+    event SetProviderMinFee(address indexed dataProvider, uint64 minFee);
 
     /**
      * @dev GasToppedUp. Emitted when a Consumer calls the topUpGas function to send ETH to top up gas
@@ -234,6 +246,20 @@ contract Router is AccessControl {
     }
 
     /**
+     * @dev registerAsProvider - register as a provider
+     * @param _minFee uint256 - minimum fee provider will accept to fulfill request
+     * @param _providerPaysGas bool - true if provider will pay gas
+     * @return success
+     */
+    function registerAsProvider(uint64 _minFee, bool _providerPaysGas) external returns (bool success) {
+        require(_minFee > 0, "Router: fee must be > 0");
+        dataProviders[msg.sender].providerPaysGas = _providerPaysGas;
+        dataProviders[msg.sender].minFee = _minFee;
+        emit ProviderRegistered(msg.sender, _minFee, _providerPaysGas);
+        return true;
+    }
+
+    /**
      * @dev setProviderPaysGas - provider calls for setting who pays gas
      * for sending the fulfillRequest Tx
      * @param _providerPays bool - true if provider will pay gas
@@ -250,7 +276,8 @@ contract Router is AccessControl {
      * @param _minFee uint256 - minimum fee provider will accept to fulfill request
      * @return success
      */
-    function setProviderMinFee(uint256 _minFee) external returns (bool success) {
+    function setProviderMinFee(uint64 _minFee) external returns (bool success) {
+        require(_minFee > 0, "Router: fee must be > 0");
         dataProviders[msg.sender].minFee = _minFee;
         emit SetProviderMinFee(msg.sender, _minFee);
         return true;
@@ -355,6 +382,7 @@ contract Router is AccessControl {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        require(_fee >= dataProviders[_dataProvider].minFee, "Router: not enough fee");
         require(token.balanceOf(dataConsumer) >= _fee, "Router: contract does not have enough tokens to pay fee");
         require(token.allowance(dataConsumer, address(this)) >= _fee, "Router: not enough allowance to pay fee");
 
@@ -369,7 +397,7 @@ contract Router is AccessControl {
         );
 
         require(reqId == _requestId, "Router: reqId != _requestId");
-        require(!dataRequests[reqId].isSet, "Router: request id already initialised");
+        require(dataRequests[reqId].status == REQUEST_STATUS_NOT_SET, "Router: request id already initialised");
 
         DataRequest storage dr = dataRequests[reqId];
 
@@ -378,7 +406,7 @@ contract Router is AccessControl {
         dr.expires = _expires;
         dr.fee = _fee;
         dr.gasPrice = _gasPrice;
-        dr.isSet = true;
+        dr.status = REQUEST_STATUS_REQUESTED;
 
         // Transfer successful - emit the DataRequested event
         emit DataRequested(
@@ -403,7 +431,9 @@ contract Router is AccessControl {
      * @return success if the execution was successful.
      */
     function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) external returns (bool){
-        require(dataRequests[_requestId].isSet, "Router: request does not exist");
+        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request does not exist");
+        // prevent reentrancy
+        dataRequests[_requestId].status = REQUEST_STATUS_FULFILLING;
 
         require(tx.gasprice <= dataRequests[_requestId].gasPrice, "Router: tx.gasprice too high");
 
@@ -487,7 +517,7 @@ contract Router is AccessControl {
      */
     function cancelRequest(bytes32 _requestId) external returns (bool) {
         require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
-        require(dataRequests[_requestId].isSet, "Router: request id does not exist");
+        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request id does not exist");
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address dataProvider = dataRequests[_requestId].dataProvider;
@@ -516,6 +546,7 @@ contract Router is AccessControl {
     function grantProviderPermission(address _dataProvider) external returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can grant a provider permission");
+        require(dataProviders[_dataProvider].minFee > 0, "Router: provider not registered");
         consumerAuthorisedProviders[msg.sender][_dataProvider] = true;
         emit GrantProviderPermission(msg.sender, _dataProvider);
         return true;
@@ -602,7 +633,19 @@ contract Router is AccessControl {
      * @return bool
      */
     function requestExists(bytes32 _requestId) external view returns (bool) {
-        return dataRequests[_requestId].isSet;
+        return dataRequests[_requestId].status != REQUEST_STATUS_NOT_SET;
+    }
+
+    /**
+     * @dev getRequestStatus - check a request status
+     * 0 = does not exist/not yet initialised
+     * 1 = Request initialised
+     * 2 = fulfillment processing
+     * @param _requestId bytes32 request id
+     * @return bool
+     */
+    function getRequestStatus(bytes32 _requestId) external view returns (uint8) {
+        return dataRequests[_requestId].status;
     }
 
     /**
@@ -647,9 +690,9 @@ contract Router is AccessControl {
     /**
      * @dev getProviderMinFee - returns minimum fee provider will accept to fulfill data request
      * @param _dataProvider address of data provider
-     * @return uint256
+     * @return uint64
      */
-    function getProviderMinFee(address _dataProvider) external view returns (uint256) {
+    function getProviderMinFee(address _dataProvider) external view returns (uint64) {
         return dataProviders[_dataProvider].minFee;
     }
 
