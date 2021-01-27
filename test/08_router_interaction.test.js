@@ -89,6 +89,7 @@ describe('Router - interaction tests', function () {
       const mockToken = await MockToken.new("MockToken", "MockToken", initSupply, decimals, {from: admin})
       const mockRouter = await Router.new(mockToken.address, {from: admin})
       const mockConsumer = await MockConsumer.new(mockRouter.address, {from: dataConsumerOwner})
+      await mockRouter.registerAsProvider(100, true, {from: dataProvider })
       await mockConsumer.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
 
       const isNotAuthorised = await mockRouter.providerIsAuthorised(rando, dataProvider)
@@ -108,6 +109,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'requestExists - request does exist', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -128,6 +130,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestConsumer - request does exist, consumer is contract address', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -148,6 +151,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestProvider - request does exist, provider is contract address', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -169,6 +173,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestExpires - request does exist, expires > now', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -193,6 +198,7 @@ describe('Router - interaction tests', function () {
       })
 
       it( 'getDataRequestGasPrice - request does exist, gas price is same as gasPrice sent in request', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
         // Admin Transfer 10 Tokens to dataConsumerOwner
         await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -380,7 +386,7 @@ describe('Router - interaction tests', function () {
       this.BadConsumerContract = await MockBadConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
     })
 
-    it( 'dataProvider not registered on router', async function () {
+    it( 'dataProvider not authorised for consumer on router', async function () {
       // Consumer's contract has not used the Consumer lib to authorise providers
       await expectRevert(
         this.BadConsumerContract.requestData(dataProvider, endpoint, {from: dataConsumerOwner}),
@@ -395,6 +401,7 @@ describe('Router - interaction tests', function () {
       await this.MockTokenContract.transfer(this.BadConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner})
       // increase Router allowance
       await this.BadConsumerContract.increaseRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), {from: dataConsumerOwner})
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
       await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
       const rubbishRequestId = web3.utils.soliditySha3(web3.utils.randomHex(32))
 
@@ -417,6 +424,7 @@ describe('Router - interaction tests', function () {
     } )
 
     it( 'request id already exists', async function () {
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
       await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
@@ -465,6 +473,7 @@ describe('Router - interaction tests', function () {
       } )
 
       it( 'gas topup - provider cannot be zero amount - no value sent', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
         await expectRevert(
           this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner}),
@@ -473,6 +482,7 @@ describe('Router - interaction tests', function () {
       } )
 
       it( 'gas topup - provider cannot be zero amount - zero value sent', async function () {
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
         await expectRevert(
           this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: 0}),
@@ -482,6 +492,7 @@ describe('Router - interaction tests', function () {
 
       it( 'gas topup - cannot top up more than router limit', async function () {
         const topupValue = web3.utils.toWei("10", "ether")
+        await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
         await this.BadConsumerContract.addDataProviderToRouter(dataProvider, {from: dataConsumerOwner})
         await expectRevert(
           this.BadConsumerContract.topUpGas(dataProvider, {from: dataConsumerOwner, value: topupValue}),
@@ -514,6 +525,7 @@ describe('Router - interaction tests', function () {
     // deploy badly implemented consumer contract
     beforeEach(async function () {
       this.BadConsumerContract = await MockBadConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
     })
 
     it( 'fulfillRequest - request id does not exist', async function () {
@@ -609,6 +621,7 @@ describe('Router - interaction tests', function () {
     })
 
     it( 'cancelRequest - must come from dataConsumer who submitted the request', async function () {
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
       await this.MockConsumerContract.addRemoveDataProvider(dataProvider, 100, false, {from: dataConsumerOwner})
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})

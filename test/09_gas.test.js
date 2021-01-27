@@ -59,6 +59,11 @@ describe('Consumer - Gas top up and withdraw', function () {
 
     // dataConsumerOwner1 Transfer Tokens to MockConsumerContract
     await this.MockTokenContract.transfer( this.MockConsumerContract1.address, amountForContract, { from: dataConsumerOwner1 } )
+
+    // dataProvider1 registers on Router
+    await this.RouterContract.registerAsProvider(100, false, {from: dataProvider1 })
+    // dataProvider2 registers on Router
+    await this.RouterContract.registerAsProvider(100, false, {from: dataProvider2 })
   })
 
   /*

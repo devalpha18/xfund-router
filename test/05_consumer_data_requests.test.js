@@ -67,6 +67,7 @@ describe('Consumer - data request tests', function () {
   describe('ideal scenario - enough tokens and allowance, dataProvider authorised', function () {
     // set up ideal scenario for these tests
     beforeEach(async function () {
+      await this.RouterContract.registerAsProvider(fee, false, {from: dataProvider })
       // increase Router allowance
       await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
       await this.MockConsumerCustomRequestContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
@@ -162,6 +163,7 @@ describe('Consumer - data request tests', function () {
 
       it( 'dataConsumer (owner) can add rando as new data provider and initialise a request', async function () {
         // add rando as new provider
+        await this.RouterContract.registerAsProvider(fee, true, {from: rando })
         await this.MockConsumerContract.addRemoveDataProvider( rando, fee, false, { from: dataConsumerOwner } );
 
         const reciept = await this.MockConsumerContract.requestData( rando, endpoint, gasPrice, { from: dataConsumerOwner } )
@@ -192,11 +194,12 @@ describe('Consumer - data request tests', function () {
     beforeEach(async function () {
       // Admin Transfer 10 Tokens to dataConsumerOwner
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
-      // add Data provider
-      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
 
       // set provider to pay gas for data fulfilment - not testing this here
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider })
+
+      // add Data provider
+      await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner})
 
     })
 
@@ -254,8 +257,8 @@ describe('Consumer - data request tests', function () {
       await this.MockTokenContract.transfer( dataConsumerOwner2, new BN( 10 * ( 10 ** decimals ) ), { from: admin } )
 
       // set provider to pay gas for data fulfilment - not testing this here
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider2 })
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider })
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider2 })
 
     } )
     describe('single data provider', function () {

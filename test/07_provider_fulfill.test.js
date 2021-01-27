@@ -13,12 +13,8 @@ const {
   generateSigMsg,
   getReqIdFromReceipt,
   generateRequestId,
-  calculateCost,
-  dumpReceiptGasInfo,
-  estimateGasDiff,
   randomPrice,
   randomGasPrice,
-  sleepFor,
 } = require("./helpers/utils")
 
 const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contract
@@ -71,6 +67,9 @@ describe('Provider - fulfillment tests', function () {
       // increase Router allowance
       await this.MockConsumerContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
       await this.MockConsumerCustomRequestContract.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, {from: dataConsumerOwner})
+
+      // dataProvider registers on Router
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider })
 
       // add a dataProvider
       await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner});
@@ -305,6 +304,9 @@ describe('Provider - fulfillment tests', function () {
   describe('should fail', function () {
     // set up ideal scenario for these tests
     beforeEach( async function () {
+      // dataProvider registers on Router
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider })
+
       // add a dataProvider
       await this.MockConsumerContract.addRemoveDataProvider( dataProvider, fee, false, { from: dataConsumerOwner } );
 

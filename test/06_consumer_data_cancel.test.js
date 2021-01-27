@@ -10,14 +10,8 @@ const { expect } = require('chai')
 
 const {
   signData,
-  generateSigMsg,
   getReqIdFromReceipt,
   generateRequestId,
-  calculateCost,
-  dumpReceiptGasInfo,
-  estimateGasDiff,
-  randomPrice,
-  randomGasPrice,
   sleepFor,
 } = require("./helpers/utils")
 
@@ -64,6 +58,11 @@ describe('Consumer - request cancellation tests', function () {
       // increase Router allowance
       await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner1})
 
+      // dataProvider1 registers on Router
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider1 })
+      // dataProvider2 registers on Router
+      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider2 })
+
       // add a dataProvider1
       await this.MockConsumerContract.addRemoveDataProvider(dataProvider1, fee, false, {from: dataConsumerOwner1});
 
@@ -73,9 +72,6 @@ describe('Consumer - request cancellation tests', function () {
       // Transfer 1 Tokens to MockConsumerContract from dataConsumerOwner1
       await this.MockTokenContract.transfer(this.MockConsumerContract.address, new BN((10 ** decimals)), {from: dataConsumerOwner1})
 
-      // set provider to pay gas for data fulfilment - not testing this here
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider1 })
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider2 })
     })
 
     /*
@@ -189,6 +185,11 @@ describe('Consumer - request cancellation tests', function () {
       await this.MockConsumerContract1.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner1})
       await this.MockConsumerContract2.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner2})
 
+      // dataProvider1 registers on Router
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider1 })
+      // dataProvider2 registers on Router
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider2 })
+
       // add dataProvider1
       await this.MockConsumerContract1.addRemoveDataProvider(dataProvider1, c1p1Fee, false, {from: dataConsumerOwner1});
       await this.MockConsumerContract2.addRemoveDataProvider(dataProvider1, c2p1Fee, false, {from: dataConsumerOwner2});
@@ -208,9 +209,6 @@ describe('Consumer - request cancellation tests', function () {
       await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner1 })
       await this.MockConsumerContract2.setRequestVar(REQUEST_VAR_REQUEST_TIMEOUT, 1, { from: dataConsumerOwner2 })
 
-      // set provider to pay gas for data fulfilment - not testing this here
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider1 })
-      await this.RouterContract.setProviderPaysGas(true, { from: dataProvider2 })
     })
 
     describe('basic tests', function () {
