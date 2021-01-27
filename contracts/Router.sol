@@ -61,7 +61,7 @@ contract Router is AccessControl {
 
     struct DataProvider {
         bool providerPaysGas;
-        uint256 minFee;
+        uint64 minFee;
     }
 
     uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
@@ -168,6 +168,14 @@ contract Router is AccessControl {
     event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
 
     /**
+     * @dev ProviderRegistered. Emitted when a provider registers
+     * @param dataProvider address of the provider
+     * @param minFee new fee value
+     * @param providerPays true/false
+     */
+    event ProviderRegistered(address indexed dataProvider, uint64 minFee, bool providerPays);
+
+    /**
      * @dev SetProviderPaysGas. Emitted when a provider changes their params
      * @param dataProvider address of the provider
      * @param providerPays true/false
@@ -179,7 +187,7 @@ contract Router is AccessControl {
      * @param dataProvider address of the provider
      * @param minFee new fee value
      */
-    event SetProviderMinFee(address indexed dataProvider, uint256 minFee);
+    event SetProviderMinFee(address indexed dataProvider, uint64 minFee);
 
     /**
      * @dev GasToppedUp. Emitted when a Consumer calls the topUpGas function to send ETH to top up gas
@@ -238,6 +246,20 @@ contract Router is AccessControl {
     }
 
     /**
+     * @dev registerAsProvider - register as a provider
+     * @param _minFee uint256 - minimum fee provider will accept to fulfill request
+     * @param _providerPaysGas bool - true if provider will pay gas
+     * @return success
+     */
+    function registerAsProvider(uint64 _minFee, bool _providerPaysGas) external returns (bool success) {
+        require(_minFee > 0, "Router: fee must be > 0");
+        dataProviders[msg.sender].providerPaysGas = _providerPaysGas;
+        dataProviders[msg.sender].minFee = _minFee;
+        emit ProviderRegistered(msg.sender, _minFee, _providerPaysGas);
+        return true;
+    }
+
+    /**
      * @dev setProviderPaysGas - provider calls for setting who pays gas
      * for sending the fulfillRequest Tx
      * @param _providerPays bool - true if provider will pay gas
@@ -254,7 +276,8 @@ contract Router is AccessControl {
      * @param _minFee uint256 - minimum fee provider will accept to fulfill request
      * @return success
      */
-    function setProviderMinFee(uint256 _minFee) external returns (bool success) {
+    function setProviderMinFee(uint64 _minFee) external returns (bool success) {
+        require(_minFee > 0, "Router: fee must be > 0");
         dataProviders[msg.sender].minFee = _minFee;
         emit SetProviderMinFee(msg.sender, _minFee);
         return true;
@@ -359,6 +382,7 @@ contract Router is AccessControl {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
+        require(_fee >= dataProviders[_dataProvider].minFee, "Router: not enough fee");
         require(token.balanceOf(dataConsumer) >= _fee, "Router: contract does not have enough tokens to pay fee");
         require(token.allowance(dataConsumer, address(this)) >= _fee, "Router: not enough allowance to pay fee");
 
@@ -522,6 +546,7 @@ contract Router is AccessControl {
     function grantProviderPermission(address _dataProvider) external returns (bool) {
         // msg.sender is the address of the Consumer's smart contract
         require(address(msg.sender).isContract(), "Router: only a contract can grant a provider permission");
+        require(dataProviders[_dataProvider].minFee > 0, "Router: provider not registered");
         consumerAuthorisedProviders[msg.sender][_dataProvider] = true;
         emit GrantProviderPermission(msg.sender, _dataProvider);
         return true;
@@ -665,9 +690,9 @@ contract Router is AccessControl {
     /**
      * @dev getProviderMinFee - returns minimum fee provider will accept to fulfill data request
      * @param _dataProvider address of data provider
-     * @return uint256
+     * @return uint64
      */
-    function getProviderMinFee(address _dataProvider) external view returns (uint256) {
+    function getProviderMinFee(address _dataProvider) external view returns (uint64) {
         return dataProviders[_dataProvider].minFee;
     }
 
