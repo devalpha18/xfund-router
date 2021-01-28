@@ -39,6 +39,7 @@ const run = async () => {
       process.exit(0)
       break
     case "run-oracle":
+      await updateSupportedPairs()
       console.log(new Date(), "watching", eventToGet, "from block", fromBlock)
       console.log(new Date(), "get supported pairs")
       watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
@@ -62,53 +63,59 @@ const run = async () => {
           const fulfilledRequest = await FulfilledRequests.findOne({ where: { requestId }})
 
           if(!fulfilledRequest) {
-            await processRequest( endpoint, supportedPairs )
-              .then( async ( price ) => {
-                if ( price.gt( new BN( "0" ) ) ) {
-                  console.log( new Date(), "fulfillRequest data requestId", requestId, "data", price.toString() )
-                  const fulfillTxHash = await fulfillRequest( requestId, price, dataConsumer, gasPriceWei )
-                  console.log( new Date(), "fulfillRequest requestId", requestId, "txHash", fulfillTxHash )
-                  // update db
-                  await FulfilledRequests.findOrCreate( {
-                    where: {
-                      requestId,
-                    },
-                    defaults: {
-                      requestId,
-                      requestTxHash,
-                      fulfillTxHash,
-                      endpoint,
-                      price: price.toString(),
-                      dataConsumer,
-                      gas: gasPriceWei.toString(),
-                      fee: fee.toString(),
-                    },
-                  } )
+            let price = new BN(0)
+            try {
+              price = await processRequest( endpoint, supportedPairs )
+            } catch (err) {
+              console.error( new Date(), "ERROR getting price:" )
+              console.error( err.toString() )
+            }
+            if ( price.gt( new BN( "0" ) ) ) {
+              console.log( new Date(), "attempt fulfillRequest data requestId", requestId, "data", price.toString() )
+              let fulfillTxHash
+              try {
+                fulfillTxHash = await fulfillRequest( requestId, price, dataConsumer, gasPriceWei )
+                console.log( new Date(), "fulfillRequest success: requestId", requestId, "txHash", fulfillTxHash )
+                // update db
+                await FulfilledRequests.findOrCreate( {
+                  where: {
+                    requestId,
+                  },
+                  defaults: {
+                    requestId,
+                    requestTxHash,
+                    fulfillTxHash,
+                    endpoint,
+                    price: price.toString(),
+                    dataConsumer,
+                    gas: gasPriceWei.toString(),
+                    fee: fee.toString(),
+                  },
+                } )
 
-                  const [l, lCreated] = await LastGethBlock.findOrCreate({
-                    where: {
-                      event: eventToGet,
-                    },
-                    defaults: {
-                      event: eventToGet,
-                      height,
-                    },
-                  })
+                const [ l, lCreated ] = await LastGethBlock.findOrCreate( {
+                  where: {
+                    event: eventToGet,
+                  },
+                  defaults: {
+                    event: eventToGet,
+                    height,
+                  },
+                } )
 
-                  if (!lCreated) {
-                    if (height > l.height) {
-                      await l.update({ height })
-                    }
+                if ( !lCreated ) {
+                  if ( height > l.height ) {
+                    await l.update( { height } )
                   }
-
-                } else {
-                  console.log( new Date(), "error getting price for requestId", requestId, "price === 0." )
                 }
-              } )
-              .catch( ( err ) => {
-                console.error( new Date(), "ERROR:" )
+              } catch (err) {
+                console.error( new Date(), "ERROR submitting tx:" )
                 console.error( err.toString() )
-              } )
+              }
+            } else {
+              console.log( new Date(), "error getting price for requestId", requestId, "price === 0." )
+            }
+
           }
         }
       })

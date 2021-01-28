@@ -47,18 +47,26 @@ const fulfillRequest = async (requestId, priceToSend, consumerContractAddress, g
 
   const sig = await signData( requestId, priceToSend, consumerContractAddress, web3 )
 
-  // wrap in Promise and return
-  return new Promise((resolve, reject) => {
+  return new Promise( ( resolve, reject ) => {
     contract.methods
-      .fulfillRequest(requestId, priceToSend, sig.signature)
-      .send({ from: WALLET_ADDRESS, gasPrice: gasPriceWei })
-      .on("transactionHash", function (txHash) {
-        resolve(txHash)
+      .fulfillRequest( requestId, priceToSend, sig.signature )
+      .estimateGas( { from: WALLET_ADDRESS, gasPrice: gasPriceWei } )
+      .then(function(gasAmount){
+        console.log("gas estimate:", gasAmount)
+        contract.methods
+          .fulfillRequest( requestId, priceToSend, sig.signature )
+          .send( { from: WALLET_ADDRESS, gasPrice: gasPriceWei } )
+          .on( "transactionHash", function ( txHash ) {
+            resolve( txHash )
+          } )
+          .on( "error", function ( err ) {
+            reject( err )
+          } )
       })
-      .on("error", function (err) {
-        reject(err)
+      .catch(function(err){
+        reject( err )
       })
-  })
+  } )
 }
 
 const getRequestExists = async (requestId) => {
