@@ -67,7 +67,7 @@ describe('Consumer - data request tests', function () {
   describe('ideal scenario - enough tokens and allowance, dataProvider authorised', function () {
     // set up ideal scenario for these tests
     beforeEach(async function () {
-      await this.RouterContract.registerAsProvider(fee, false, {from: dataProvider })
+      await this.RouterContract.registerAsProvider(100, false, {from: dataProvider })
       // increase Router allowance
       await this.MockConsumerContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
       await this.MockConsumerCustomRequestContract.setRouterAllowance(new BN(999999 * ( 10 ** 9 )), true, {from: dataConsumerOwner})
@@ -196,7 +196,7 @@ describe('Consumer - data request tests', function () {
       await this.MockTokenContract.transfer(dataConsumerOwner, new BN(10 * (10 ** decimals)), {from: admin})
 
       // set provider to pay gas for data fulfilment - not testing this here
-      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider })
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
 
       // add Data provider
       await this.MockConsumerContract.addRemoveDataProvider(dataProvider, fee, false, {from: dataConsumerOwner})
@@ -257,8 +257,8 @@ describe('Consumer - data request tests', function () {
       await this.MockTokenContract.transfer( dataConsumerOwner2, new BN( 10 * ( 10 ** decimals ) ), { from: admin } )
 
       // set provider to pay gas for data fulfilment - not testing this here
-      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider })
-      await this.RouterContract.registerAsProvider(fee, true, {from: dataProvider2 })
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider })
+      await this.RouterContract.registerAsProvider(100, true, {from: dataProvider2 })
 
     } )
     describe('single data provider', function () {

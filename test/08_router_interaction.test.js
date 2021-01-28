@@ -557,7 +557,7 @@ describe('Router - interaction tests', function () {
 
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, priceToSend, sig.signature, {from: rando}),
-        "Router: msg.sender != requested dataProvider"
+        "Router: dataProvider not authorised for this dataConsumer"
       )
     })
 
@@ -603,11 +603,11 @@ describe('Router - interaction tests', function () {
       const msg = generateSigMsg(reqId, priceToSend, this.MockConsumerContract.address)
       const sig = await web3.eth.accounts.sign(msg, dataProviderPk)
 
-      // signed priceToSend is 1000. Send 200 in fulfillRequest call. ECRevover function when validating in Consumer
-      // lib will return a difference address, hence the "does not have DATA_PROVIDER" error
+      // signed priceToSend is 1000. Send 200 in fulfillRequest call. ECRevover function when validating in Router
+      // will return a difference address, hence the "dataProvider not authorised" error
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, 200, sig.signature, {from: dataProvider}),
-        "Consumer: provider is not authorised"
+        "Router: dataProvider not authorised for this dataConsumer"
       )
     })
   })
