@@ -494,21 +494,30 @@ contract Router is AccessControl {
         return true;
     }
 
-    function refundGas(address dataConsumer, address payable dataProvider, uint256 gasUsedToCall) internal returns (bool){
+    /**
+     * @dev refundGas - private function called by fulfillRequest, when Consumer is expected to pay
+     * the gas for fulfilling a request.
+     *
+     * @param _dataConsumer address of the consumer contract
+     * @param _dataProvider address of the data provider
+     * @param _gasUsedToCall amount of gas consumed calling the Consumer's rawReceiveData function
+     * @return success if the execution was successful.
+     */
+    function refundGas(address _dataConsumer, address payable _dataProvider, uint256 _gasUsedToCall) private returns (bool){
         // calculate how much should be refunded to the provider
         uint256 baseGas = EXPECTED_GAS_FIRST_FULFILMENT;
-        if(consumerPreviousFulfillment[dataConsumer]) {
+        if(consumerPreviousFulfillment[_dataConsumer]) {
             baseGas = EXPECTED_GAS;
         }
 
-        consumerPreviousFulfillment[dataConsumer] = true;
+        consumerPreviousFulfillment[_dataConsumer] = true;
 
-        uint256 totalGasUsed = baseGas + gasUsedToCall;
+        uint256 totalGasUsed = baseGas + _gasUsedToCall;
         uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
 
         // check there's enough
         require(
-            gasDepositsForConsumerProviders[dataConsumer][dataProvider] >= ethRefund
+            gasDepositsForConsumerProviders[_dataConsumer][_dataProvider] >= ethRefund
             && totalGasDeposits >= ethRefund,
             "Router: not enough ETH to refund"
         );
@@ -516,14 +525,14 @@ contract Router is AccessControl {
         totalGasDeposits = totalGasDeposits.sub(ethRefund);
 
         // update total held for dataConsumer contract
-        gasDepositsForConsumer[dataConsumer] = gasDepositsForConsumer[dataConsumer].sub(ethRefund);
+        gasDepositsForConsumer[_dataConsumer] = gasDepositsForConsumer[_dataConsumer].sub(ethRefund);
 
         // update total held for dataConsumer contract/provider pair
-        gasDepositsForConsumerProviders[dataConsumer][dataProvider] = gasDepositsForConsumerProviders[dataConsumer][dataProvider].sub(ethRefund);
+        gasDepositsForConsumerProviders[_dataConsumer][_dataProvider] = gasDepositsForConsumerProviders[_dataConsumer][_dataProvider].sub(ethRefund);
 
-        emit GasRefundedToProvider(dataConsumer, dataProvider, ethRefund);
+        emit GasRefundedToProvider(_dataConsumer, _dataProvider, ethRefund);
         // refund the provider
-        Address.sendValue(dataProvider, ethRefund);
+        Address.sendValue(_dataProvider, ethRefund);
         return true;
     }
 

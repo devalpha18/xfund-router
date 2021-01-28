@@ -260,12 +260,11 @@ abstract contract ConsumerBase {
     /**
      * @dev rawReceiveData - Called by the Router's fulfillRequest function
      * in order to fulfil a data request. Data providers call the Router's fulfillRequest function
-     * The request  is validated to ensure it has indeed
-     * been sent by the authorised data provider, via the Router.
+     * The request is validated to ensure it has indeed been sent via the Router.
      *
-     * Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
-     * defined receiveData function to finalise the flfilment. Contract developers will need to
-     * override the abstract receiveData function defined below.
+     * The Router will only call rawReceiveData once it has validated the origin of the data fulfillment.
+     * rawReceiveData then calls the user defined receiveData function to finalise the flfilment.
+     * Contract developers will need to override the abstract receiveData function defined below.
      *
      * Finally, rawReceiveData will delete the Request ID to clean up storage.
      *
