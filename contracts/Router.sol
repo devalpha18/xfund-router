@@ -40,8 +40,8 @@ contract Router is AccessControl {
     // Note: First time fulfillments are usually more expensive
     // since they will be setting a zero value in the Consumer's contract
     // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 89260;
-    uint256 public constant EXPECTED_GAS = 55060;
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 89130;
+    uint256 public constant EXPECTED_GAS = 54940;
 
     uint8 public constant REQUEST_STATUS_NOT_SET = 0;
     uint8 public constant REQUEST_STATUS_REQUESTED = 1;
@@ -69,9 +69,6 @@ contract Router is AccessControl {
 
     // Eth held for provider gas payments
     uint256 private totalGasDeposits;
-
-    // track fees held by this contract
-    uint256 public totalFees = 0;
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
 
@@ -420,14 +417,6 @@ contract Router is AccessControl {
             _expires
         );
 
-        // Pay dataProvider (msg.sender) from tokens held by the consumer's contract
-        // dataConsumer (msg.sender) is the address of the Consumer smart contract
-        // for which the provider is fulfilling the request.
-        // It must have enough Tokens to pay for the dataProvider's fee.
-        // Will return underlying ERC20 error "ERC20: transfer amount exceeds balance"
-        // if the Consumer's contract does not have enough tokens to pay
-        require(token.transferFrom(dataConsumer, _dataProvider, _fee));
-
         return true;
     }
 
@@ -449,6 +438,7 @@ contract Router is AccessControl {
 
         address dataConsumer = dataRequests[_requestId].dataConsumer;
         address payable dataProvider = dataRequests[_requestId].dataProvider;
+        uint256 fee = dataRequests[_requestId].fee;
 
         // signature must be valid. msg.sender must match
         // 1. the dataProvider in the request
@@ -478,9 +468,15 @@ contract Router is AccessControl {
             gasPayer
         );
 
-        consumerPreviousFulfillment[dataConsumer] = true;
-
         delete dataRequests[_requestId];
+
+        // Pay dataProvider (msg.sender) from tokens held by the consumer's contract
+        // dataConsumer (msg.sender) is the address of the Consumer smart contract
+        // for which the provider is fulfilling the request.
+        // It must have enough Tokens to pay for the dataProvider's fee.
+        // Will return underlying ERC20 error "ERC20: transfer amount exceeds balance"
+        // if the Consumer's contract does not have enough tokens to pay
+        require(token.transferFrom(dataConsumer, dataProvider, fee));
 
         // All checks have passed - send the data to the consumer contract
         // dataConsumer will see msg.sender as the Router's contract address
@@ -504,6 +500,9 @@ contract Router is AccessControl {
         if(consumerPreviousFulfillment[dataConsumer]) {
             baseGas = EXPECTED_GAS;
         }
+
+        consumerPreviousFulfillment[dataConsumer] = true;
+
         uint256 totalGasUsed = baseGas + gasUsedToCall;
         uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
 
