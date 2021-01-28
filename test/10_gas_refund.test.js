@@ -369,7 +369,7 @@ describe('Provider - gas refund tests', function () {
         }
       })
 
-      it( `gas diff is acceptable (1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}, after 1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO})under normal conditions: 50 iterations`, async function () {
+      it( `gas diff is acceptable (1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}, after 1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO}) under normal conditions: 50 iterations`, async function () {
         for(let i = 0; i < 50; i += 1) {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)
