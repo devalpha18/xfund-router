@@ -315,4 +315,8 @@ No description
 <a name="ConsumerLib-EthWithdrawn-address-uint256-"></a>
 ### Event `EthWithdrawn(address receiver, uint256 amount)`
 No description
+#### Parameters:
+- `receiver`: address of receiver
+
+- `amount`: amount being withdrawn
 

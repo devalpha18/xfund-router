@@ -3,7 +3,6 @@
 pragma solidity ^0.6.0;
 
 import "./ConsumerLib.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 /**
  * @title Data Consumer smart contract
@@ -261,31 +260,25 @@ abstract contract ConsumerBase {
     /**
      * @dev rawReceiveData - Called by the Router's fulfillRequest function
      * in order to fulfil a data request. Data providers call the Router's fulfillRequest function
-     * The request  is validated to ensure it has indeed
-     * been sent by the authorised data provider, via the Router.
+     * The request is validated to ensure it has indeed been sent via the Router.
      *
-     * Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
-     * defined receiveData function to finalise the flfilment. Contract developers will need to
-     * override the abstract receiveData function defined below.
+     * The Router will only call rawReceiveData once it has validated the origin of the data fulfillment.
+     * rawReceiveData then calls the user defined receiveData function to finalise the flfilment.
+     * Contract developers will need to override the abstract receiveData function defined below.
      *
      * Finally, rawReceiveData will delete the Request ID to clean up storage.
      *
      * @param _price uint256 result being sent
      * @param _requestId bytes32 request ID of the request being fulfilled
-     * @param _signature bytes signature of the data and request info. Signed by provider to ensure only the provider
      * has sent the data
      */
     function rawReceiveData(
         uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature) external
+        bytes32 _requestId) external
     {
         // validate
         require(msg.sender == address(consumerState.router), "Consumer: data did not originate from Router");
         require(consumerState.dataRequests[_requestId], "Consumer: _requestId does not exist");
-        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _price, address(this))));
-        address provider = ECDSA.recover(message, _signature);
-        require(consumerState.dataProviders[provider].isAuthorised, "Consumer: provider is not authorised");
 
         // call override function in end-user's contract
         receiveData(_price, _requestId);

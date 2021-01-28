@@ -122,6 +122,7 @@ truffle(develop)> mockConsumer.setRouterAllowance("11579208923731619542357098500
    `MockConsumer` smart contract. Run:
    
 ```bash
+truffle(develop)> router.registerAsProvider(100000000, false, {from: provider})
 truffle(develop)> mockConsumer.addRemoveDataProvider(provider, 100000000, false, {from: consumerOwner})
 ```
 
@@ -162,7 +163,7 @@ The result should be 0.
 Next, request some data from the provider. Run:
 
 ```bash
-truffle(develop)> let endpoint = web3.utils.asciiToHex("BTC.GBP.PR.AVI")
+truffle(develop)> let endpoint = web3.utils.asciiToHex("BTC.GBP.PR.AVC.24H")
 truffle(develop)> mockConsumer.requestData(provider, endpoint, 80, {from: consumerOwner})
 ```
 
@@ -193,6 +194,7 @@ WALLET_ADDRESS=
 In a separate terminal, run:
 
 ```bash
+npx sequelize-cli db:migrate:undo:all
 npx sequelize-cli db:migrate
 ```
 

@@ -21,6 +21,7 @@ const MockToken = contract.fromArtifact('MockToken') // Loads a compiled contrac
 const Router = contract.fromArtifact('Router') // Loads a compiled contract
 const MockConsumer = contract.fromArtifact('MockConsumer') // Loads a compiled contract
 const MockConsumerCustomRequest = contract.fromArtifact("MockConsumerCustomRequest") // Loads a compiled contract
+const MockBadConsumerInfiniteGas = contract.fromArtifact("MockBadConsumerInfiniteGas")
 const ConsumerLib = contract.fromArtifact('ConsumerLib') // Loads a compiled contract
 
 describe('Provider - fulfillment tests', function () {
@@ -51,6 +52,8 @@ describe('Provider - fulfillment tests', function () {
     await MockConsumer.link("ConsumerLib", this.ConsumerLib.address)
     await MockConsumerCustomRequest.detectNetwork();
     await MockConsumerCustomRequest.link("ConsumerLib", this.ConsumerLib.address)
+    await MockBadConsumerInfiniteGas.detectNetwork();
+    await MockBadConsumerInfiniteGas.link("ConsumerLib", this.ConsumerLib.address)
 
     // dataConsumerOwner deploy Consumer contract
     this.MockConsumerContract = await MockConsumer.new(this.RouterContract.address, {from: dataConsumerOwner})
@@ -243,7 +246,7 @@ describe('Provider - fulfillment tests', function () {
 
       await expectRevert(
         this.RouterContract.fulfillRequest(reqId, priceToSend, sig.signature, {from: rando}),
-        "Router: msg.sender != requested dataProvider"
+        "Router: dataProvider not authorised for this dataConsumer"
       )
 
       // should still be zero
@@ -315,6 +318,14 @@ describe('Provider - fulfillment tests', function () {
 
       // set provider to pay gas for data fulfilment - not testing this here
       await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
+
+      this.MockBadConsumerInfiniteGas = await MockBadConsumerInfiniteGas.new(this.RouterContract.address, {from: dataConsumerOwner})
+
+      await this.MockTokenContract.transfer( this.MockBadConsumerInfiniteGas.address, new BN( 10 * ( 10 ** decimals ) ), { from: dataConsumerOwner } )
+      // increase Router allowance
+      await this.MockBadConsumerInfiniteGas.setRouterAllowance( new BN( 999999 * ( 10 ** 9 ) ), true, { from: dataConsumerOwner } )
+      // add a dataProvider
+      await this.MockBadConsumerInfiniteGas.addRemoveDataProvider( dataProvider, fee, false, { from: dataConsumerOwner } );
     } )
 
     it( 'consumer contract does not have enough tokens to pay fee - cannot request', async function () {
@@ -373,6 +384,19 @@ describe('Provider - fulfillment tests', function () {
       )
     })
 
+    it( 'huge gas consumer will fail with revert', async function () {
+      const receipt = await this.MockBadConsumerInfiniteGas.requestData( dataProvider, endpoint, gasPrice, { from: dataConsumerOwner } )
+
+      const reqId = getReqIdFromReceipt(receipt)
+      const price = randomPrice()
+
+      const sig = await signData( reqId, price, this.MockBadConsumerInfiniteGas.address, dataProviderPk )
+
+      await expectRevert(
+        this.RouterContract.fulfillRequest(reqId, price, sig.signature, {from: dataProvider}),
+        "Address: low-level call failed"
+      )
+    })
   })
 
 })

@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+
+import "./lib/ConsumerBase.sol";
 
 /**
  * @title Data Request routing smart contract.
@@ -37,10 +40,8 @@ contract Router is AccessControl {
     // Note: First time fulfillments are usually more expensive
     // since they will be setting a zero value in the Consumer's contract
     // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 83350;
-    uint256 public constant EXPECTED_GAS = 49150;
-
-    bytes4 public constant FULFILL_FUNCTION_SIG = 0x7c9766d3;
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 89130;
+    uint256 public constant EXPECTED_GAS = 54940;
 
     uint8 public constant REQUEST_STATUS_NOT_SET = 0;
     uint8 public constant REQUEST_STATUS_REQUESTED = 1;
@@ -68,9 +69,6 @@ contract Router is AccessControl {
 
     // Eth held for provider gas payments
     uint256 private totalGasDeposits;
-
-    // track fees held by this contract
-    uint256 public totalFees = 0;
 
     IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
 
@@ -418,6 +416,7 @@ contract Router is AccessControl {
             _gasPrice,
             _expires
         );
+
         return true;
     }
 
@@ -441,20 +440,25 @@ contract Router is AccessControl {
         address payable dataProvider = dataRequests[_requestId].dataProvider;
         uint256 fee = dataRequests[_requestId].fee;
 
+        // signature must be valid. msg.sender must match
+        // 1. the dataProvider in the request
+        // 2. the address recovered from the signature
+        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _requestedData, dataConsumer)));
+        address recoveredProvider = ECDSA.recover(message, _signature);
+        require(
+            consumerAuthorisedProviders[dataConsumer][recoveredProvider] &&
+            consumerAuthorisedProviders[dataConsumer][msg.sender],
+            "Router: dataProvider not authorised for this dataConsumer"
+        );
+
         // msg.sender is the address of the data provider
-        require(msg.sender == dataProvider, "Router: msg.sender != requested dataProvider");
-        require(consumerAuthorisedProviders[dataConsumer][msg.sender], "Router: dataProvider not authorised for this dataConsumer");
+        require(msg.sender == dataProvider &&
+            msg.sender == recoveredProvider &&
+            recoveredProvider == dataProvider,
+            "Router: msg.sender != dataProvider || recoveredProvider"
+        );
 
-        // dataConsumer will see msg.sender as the Router's contract address
-        // using functionCall from OZ's Address library
-        uint256 gasLeftStart = gasleft();
-        dataConsumer.functionCall(abi.encodeWithSelector(FULFILL_FUNCTION_SIG, _requestedData, _requestId, _signature));
-        uint256 gasUsedToCall = gasLeftStart - gasleft();
-
-        address gasPayer = dataProvider;
-        if(!dataProviders[dataProvider].providerPaysGas) {
-            gasPayer = dataConsumer;
-        }
+        address gasPayer = (dataProviders[dataProvider].providerPaysGas) ? dataProvider : dataConsumer;
 
         emit RequestFulfilled(
             dataConsumer,
@@ -464,48 +468,71 @@ contract Router is AccessControl {
             gasPayer
         );
 
+        delete dataRequests[_requestId];
+
         // Pay dataProvider (msg.sender) from tokens held by the consumer's contract
         // dataConsumer (msg.sender) is the address of the Consumer smart contract
         // for which the provider is fulfilling the request.
         // It must have enough Tokens to pay for the dataProvider's fee.
         // Will return underlying ERC20 error "ERC20: transfer amount exceeds balance"
         // if the Consumer's contract does not have enough tokens to pay
+        require(token.transferFrom(dataConsumer, dataProvider, fee));
 
-        require(token.transferFrom(dataConsumer, msg.sender, fee));
+        // All checks have passed - send the data to the consumer contract
+        // dataConsumer will see msg.sender as the Router's contract address
+        // using functionCall from OZ's Address library
+        ConsumerBase cb; // just used to get the rawReceiveData function's selector
+        uint256 gasLeftStart = gasleft();
+        require(gasleft() >= 400000, "not enough gas");
+        dataConsumer.functionCall(abi.encodeWithSelector(cb.rawReceiveData.selector, _requestedData, _requestId));
+        uint256 gasUsedToCall = gasLeftStart - gasleft();
 
         if(gasPayer != dataProvider) {
-            // calculate how much should be refunded to the provider
-            uint256 baseGas = EXPECTED_GAS_FIRST_FULFILMENT;
-            if(consumerPreviousFulfillment[dataConsumer]) {
-                baseGas = EXPECTED_GAS;
-            }
-            uint256 totalGasUsed = baseGas + gasUsedToCall;
-            uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
-
-            // check there's enough
-            require(
-                gasDepositsForConsumerProviders[dataConsumer][dataProvider] >= ethRefund
-                && totalGasDeposits >= ethRefund,
-                "Router: not enough ETH to refund"
-            );
-            // update total held by Router contract
-            totalGasDeposits = totalGasDeposits.sub(ethRefund);
-
-            // update total held for dataConsumer contract
-            gasDepositsForConsumer[dataConsumer] = gasDepositsForConsumer[dataConsumer].sub(ethRefund);
-
-            // update total held for dataConsumer contract/provider pair
-            gasDepositsForConsumerProviders[dataConsumer][dataProvider] = gasDepositsForConsumerProviders[dataConsumer][dataProvider].sub(ethRefund);
-
-            emit GasRefundedToProvider(dataConsumer, dataProvider, ethRefund);
-            // refund the provider
-            Address.sendValue(dataProvider, ethRefund);
+            require(refundGas(dataConsumer, dataProvider, gasUsedToCall));
         }
 
-        consumerPreviousFulfillment[dataConsumer] = true;
+        return true;
+    }
 
-        delete dataRequests[_requestId];
+    /**
+     * @dev refundGas - private function called by fulfillRequest, when Consumer is expected to pay
+     * the gas for fulfilling a request.
+     *
+     * @param _dataConsumer address of the consumer contract
+     * @param _dataProvider address of the data provider
+     * @param _gasUsedToCall amount of gas consumed calling the Consumer's rawReceiveData function
+     * @return success if the execution was successful.
+     */
+    function refundGas(address _dataConsumer, address payable _dataProvider, uint256 _gasUsedToCall) private returns (bool){
+        // calculate how much should be refunded to the provider
+        uint256 baseGas = EXPECTED_GAS_FIRST_FULFILMENT;
+        if(consumerPreviousFulfillment[_dataConsumer]) {
+            baseGas = EXPECTED_GAS;
+        }
 
+        consumerPreviousFulfillment[_dataConsumer] = true;
+
+        uint256 totalGasUsed = baseGas + _gasUsedToCall;
+        uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
+
+        // check there's enough
+        require(
+            gasDepositsForConsumerProviders[_dataConsumer][_dataProvider] >= ethRefund
+            && totalGasDeposits >= ethRefund,
+            "Router: not enough ETH to refund"
+        );
+        // update total held by Router contract
+        totalGasDeposits = totalGasDeposits.sub(ethRefund);
+
+        // update total held for dataConsumer contract
+        gasDepositsForConsumer[_dataConsumer] = gasDepositsForConsumer[_dataConsumer].sub(ethRefund);
+
+        // update total held for dataConsumer contract/provider pair
+        gasDepositsForConsumerProviders[_dataConsumer][_dataProvider] = gasDepositsForConsumerProviders[_dataConsumer][_dataProvider].sub(ethRefund);
+
+        emit GasRefundedToProvider(_dataConsumer, _dataProvider, ethRefund);
+        // refund the provider
+        Address.sendValue(_dataProvider, ethRefund);
         return true;
     }
 

@@ -2,6 +2,9 @@ const MockToken = artifacts.require("MockToken")
 const Router = artifacts.require("Router")
 const ConsumerLib = artifacts.require("ConsumerLib")
 const MockConsumer = artifacts.require("MockConsumer")
+const MockBadConsumerInfiniteGas = artifacts.require("MockBadConsumerInfiniteGas")
+const MockBadConsumerBigReceive = artifacts.require("MockBadConsumerBigReceive")
+const MockConsumerCustomRequest = artifacts.require("MockConsumerCustomRequest")
 
 module.exports = function(deployer, network) {
   // deployment steps
@@ -19,6 +22,15 @@ module.exports = function(deployer, network) {
         // 4. MockConsumer
         deployer.link(ConsumerLib, MockConsumer)
         return deployer.deploy(MockConsumer, Router.address)
+      }).then(function() {
+        deployer.link(ConsumerLib, MockBadConsumerBigReceive)
+        return deployer.deploy(MockBadConsumerBigReceive, Router.address)
+      }).then(function() {
+        deployer.link(ConsumerLib, MockConsumerCustomRequest)
+        return deployer.deploy(MockConsumerCustomRequest, Router.address)
+      }).then(function() {
+        deployer.link(ConsumerLib, MockBadConsumerInfiniteGas)
+        return deployer.deploy(MockBadConsumerInfiniteGas, Router.address)
       })
       break
     case "rinkeby":

@@ -132,14 +132,19 @@ library ConsumerLib {
     event SetRequestVar(address indexed sender, uint8 variable, uint256 oldValue, uint256 newValue);
 
     /**
-    * @dev RequestCancellationSubmitted - emitted when the owner cancels a data request
-    * @param sender address of the owner
-    * @param requestId ID of request being cancelled
-    */
+     * @dev RequestCancellationSubmitted - emitted when the owner cancels a data request
+     * @param sender address of the owner
+     * @param requestId ID of request being cancelled
+     */
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
 
     event PaymentRecieved(address sender, uint256 amount);
 
+    /**
+     * EthWithdrawn - emitted suring withdrawEth function
+     * @param receiver address of receiver
+     * @param amount amount being withdrawn
+     */
     event EthWithdrawn(address receiver, uint256 amount);
 
     /*

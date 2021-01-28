@@ -273,6 +273,8 @@ describe('Provider - gas refund tests', function () {
           gasPrice: gasPriceGwei
         } )
 
+        // await dumpReceiptGasInfo(fulfullReceipt, gasPrice)
+
         const gasDiff = await estimateGasDiff(fulfullReceipt, gasPrice)
 
         expect( gasDiff ).to.be.bignumber.lte( new BN( MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO ) )
@@ -296,6 +298,9 @@ describe('Provider - gas refund tests', function () {
             from: dataProvider,
             gasPrice: gasPriceGwei
           } )
+
+          // const gasDiff = await estimateGasDiff(fulfullReceipt, gasPrice)
+          // console.log("gasDiff", gasDiff.toString())
 
           const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
           expect( providerBalanceAfter ).to.be.bignumber.gte( providerBalanceStart );
@@ -321,6 +326,9 @@ describe('Provider - gas refund tests', function () {
             gasPrice: gasPriceGwei
           } )
 
+          // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+          // console.log("gasDiff OUT", gasDiff.toString())
+
           const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
           const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
           const diff = refundAmount.sub( actualSpent )
@@ -333,7 +341,35 @@ describe('Provider - gas refund tests', function () {
         }
       })
 
-      it( `gas diff is acceptable (1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}, after 1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO})under normal conditions: 50 iterations`, async function () {
+      it( `gas diff is >= 0 under normal conditions: 50 iterations`, async function () {
+        for(let i = 0; i < 50; i += 1) {
+          // simulate gas price fluctuation
+          const randGas = randomGasPrice(10, 20)
+          const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+          const reqId = getReqIdFromReceipt(receipt)
+
+          const price = randomPrice()
+          const gasPriceGwei = randGas * ( 10 ** 9 )
+
+          const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+          const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+            from: dataProvider,
+            gasPrice: gasPriceGwei
+          } )
+
+          // await dumpReceiptGasInfo(fulfullReceipt, randGas)
+          const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+          // console.log("gasDiff OUT", gasDiff.toString())
+
+          expect( gasDiff ).to.be.bignumber.gte( new BN( 0 ) )
+
+          // check price
+          const retPrice = await this.MockConsumerContract.price()
+          expect(retPrice).to.be.bignumber.equal(price)
+        }
+      })
+
+      it( `gas diff is acceptable (1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}, after 1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO}) under normal conditions: 50 iterations`, async function () {
         for(let i = 0; i < 50; i += 1) {
           // simulate gas price fluctuation
           const randGas = randomGasPrice(10, 20)
@@ -370,7 +406,7 @@ describe('Provider - gas refund tests', function () {
       })
 
       describe('bad consumer implementation', function () {
-        it( 'requestData spend/refund diff always >= 0 when receiveData func is big: 50 iterations', async function () {
+        it( 'fulfillRequest spend/refund diff always >= 0 when receiveData func is big: 50 iterations', async function () {
           for(let i = 0; i < 50; i += 1) {
             // simulate gas price fluctuation
             const randGas = randomGasPrice(10, 20)
@@ -393,7 +429,7 @@ describe('Provider - gas refund tests', function () {
             const diff = refundAmount.sub( actualSpent )
 
             // await dumpReceiptGasInfo(fulfullReceipt, randGas)
-            const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+            // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
             // console.log("gasDiff OUT", gasDiff.toString())
 
             expect( diff ).to.be.bignumber.gte( new BN( 0 ) )

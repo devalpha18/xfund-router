@@ -19,8 +19,7 @@ contract MockBadConsumer {
 
     event ReceivedData(
         bytes32 requestId,
-        uint256 price,
-        bytes signature
+        uint256 price
     );
 
     // Mirrored Router events for web3 client decoding & testing
@@ -145,12 +144,11 @@ contract MockBadConsumer {
 
     function rawReceiveData(
         uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature
+        bytes32 _requestId
     )
     public returns (bool success) {
         price = _price;
-        emit ReceivedData(_requestId, _price, _signature);
+        emit ReceivedData(_requestId, _price);
         return true;
     }
 

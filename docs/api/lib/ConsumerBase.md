@@ -24,7 +24,7 @@ smart contract
 - [`withdrawTopUpGas(address _dataProvider)`](#ConsumerBase-withdrawTopUpGas-address-)
 - [`withdrawEth(uint256 _amount)`](#ConsumerBase-withdrawEth-uint256-)
 - [`requestData(address payable _dataProvider, bytes32 _data, uint64 _gasPrice)`](#ConsumerBase-requestData-address-payable-bytes32-uint64-)
-- [`rawReceiveData(uint256 _price, bytes32 _requestId, bytes _signature)`](#ConsumerBase-rawReceiveData-uint256-bytes32-bytes-)
+- [`rawReceiveData(uint256 _price, bytes32 _requestId)`](#ConsumerBase-rawReceiveData-uint256-bytes32-)
 - [`cancelRequest(bytes32 _requestId)`](#ConsumerBase-cancelRequest-bytes32-)
 - [`getRouterAddress()`](#ConsumerBase-getRouterAddress--)
 - [`getDataProviderFee(address _dataProvider)`](#ConsumerBase-getDataProviderFee-address-)
@@ -218,16 +218,15 @@ submitDataRequest function before forwarding it to the Router.
 
 #### Return Values:
 - requestId bytes32 request ID which can be used to track or cancel the request
-<a name="ConsumerBase-rawReceiveData-uint256-bytes32-bytes-"></a>
-### Function `rawReceiveData(uint256 _price, bytes32 _requestId, bytes _signature)`
+<a name="ConsumerBase-rawReceiveData-uint256-bytes32-"></a>
+### Function `rawReceiveData(uint256 _price, bytes32 _requestId)`
 rawReceiveData - Called by the Router's fulfillRequest function
 in order to fulfil a data request. Data providers call the Router's fulfillRequest function
-The request  is validated to ensure it has indeed
-been sent by the authorised data provider, via the Router.
+The request is validated to ensure it has indeed been sent via the Router.
 
-Once rawReceiveData has validated the origin of the data fulfillment, it calls the user
-defined receiveData function to finalise the flfilment. Contract developers will need to
-override the abstract receiveData function defined below.
+The Router will only call rawReceiveData once it has validated the origin of the data fulfillment.
+rawReceiveData then calls the user defined receiveData function to finalise the flfilment.
+Contract developers will need to override the abstract receiveData function defined below.
 
 Finally, rawReceiveData will delete the Request ID to clean up storage.
 
@@ -236,8 +235,6 @@ Finally, rawReceiveData will delete the Request ID to clean up storage.
 - `_price`: uint256 result being sent
 
 - `_requestId`: bytes32 request ID of the request being fulfilled
-
-- `_signature`: bytes signature of the data and request info. Signed by provider to ensure only the provider
 has sent the data
 <a name="ConsumerBase-cancelRequest-bytes32-"></a>
 ### Function `cancelRequest(bytes32 _requestId)`
