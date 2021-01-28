@@ -3,7 +3,6 @@
 pragma solidity ^0.6.0;
 
 import "./ConsumerLib.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 /**
  * @title Data Consumer smart contract
@@ -272,20 +271,15 @@ abstract contract ConsumerBase {
      *
      * @param _price uint256 result being sent
      * @param _requestId bytes32 request ID of the request being fulfilled
-     * @param _signature bytes signature of the data and request info. Signed by provider to ensure only the provider
      * has sent the data
      */
     function rawReceiveData(
         uint256 _price,
-        bytes32 _requestId,
-        bytes memory _signature) external
+        bytes32 _requestId) external
     {
         // validate
         require(msg.sender == address(consumerState.router), "Consumer: data did not originate from Router");
         require(consumerState.dataRequests[_requestId], "Consumer: _requestId does not exist");
-        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _price, address(this))));
-        address provider = ECDSA.recover(message, _signature);
-        require(consumerState.dataProviders[provider].isAuthorised, "Consumer: provider is not authorised");
 
         // call override function in end-user's contract
         receiveData(_price, _requestId);
