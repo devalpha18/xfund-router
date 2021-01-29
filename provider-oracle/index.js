@@ -1,11 +1,10 @@
 require("dotenv").config()
 const arg = require("arg")
-const BN = require("bn.js")
-const Web3 = require("web3")
-const { watchEvent, fulfillRequest } = require("./ethereum")
-const { isValidDataRequest, processRequest } = require("./oracle")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
-const { FulfilledRequests, LastGethBlock } = require("./db/models")
+const { LastGethBlock } = require("./db/models")
+const { runOracle } = require("./core")
+
+const env = process.env.NODE_ENV || 'development'
 
 const args = arg({
   // Types
@@ -18,18 +17,10 @@ const args = arg({
   "-e": "--event",
 })
 
+console.log( new Date(), "running in", env)
+
 const run = async () => {
   const runWhat = args["--run"]
-  const eventToGet = args["--event"] || "DataRequested"
-
-  const { WATCH_FROM_BLOCK } = process.env
-
-  let fromBlock = WATCH_FROM_BLOCK || 0
-  const fromBlockRes = await LastGethBlock.findOne({ where: { event: eventToGet } })
-
-  if (fromBlockRes) {
-    fromBlock = parseInt( fromBlockRes.height, 10 )
-  }
 
   let supportedPairs
 
@@ -39,86 +30,7 @@ const run = async () => {
       process.exit(0)
       break
     case "run-oracle":
-      await updateSupportedPairs()
-      console.log(new Date(), "watching", eventToGet, "from block", fromBlock)
-      console.log(new Date(), "get supported pairs")
-      watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
-        if (err) {
-          console.error(new Date(), "ERROR:")
-          console.error(err)
-        }
-        const requestValid = await isValidDataRequest(event)
-        if(requestValid) {
-          supportedPairs = await getSupportedPairs()
-          const height = event.blockNumber
-          const requestTxHash = event.transactionHash
-          const dataConsumer = event.returnValues.dataConsumer
-          const endpoint = Web3.utils.toUtf8(event.returnValues.data)
-          const requestId = event.returnValues.requestId
-          const gasPriceWei = event.returnValues.gasPrice // already in wei
-          const fee = event.returnValues.fee
-          console.log(new Date(), "data requested", endpoint, "from", dataConsumer)
-
-          // check db
-          const fulfilledRequest = await FulfilledRequests.findOne({ where: { requestId }})
-
-          if(!fulfilledRequest) {
-            let price = new BN(0)
-            try {
-              price = await processRequest( endpoint, supportedPairs )
-            } catch (err) {
-              console.error( new Date(), "ERROR getting price:" )
-              console.error( err.toString() )
-            }
-            if ( price.gt( new BN( "0" ) ) ) {
-              console.log( new Date(), "attempt fulfillRequest data requestId", requestId, "data", price.toString() )
-              let fulfillTxHash
-              try {
-                fulfillTxHash = await fulfillRequest( requestId, price, dataConsumer, gasPriceWei )
-                console.log( new Date(), "fulfillRequest success: requestId", requestId, "txHash", fulfillTxHash )
-                // update db
-                await FulfilledRequests.findOrCreate( {
-                  where: {
-                    requestId,
-                  },
-                  defaults: {
-                    requestId,
-                    requestTxHash,
-                    fulfillTxHash,
-                    endpoint,
-                    price: price.toString(),
-                    dataConsumer,
-                    gas: gasPriceWei.toString(),
-                    fee: fee.toString(),
-                  },
-                } )
-
-                const [ l, lCreated ] = await LastGethBlock.findOrCreate( {
-                  where: {
-                    event: eventToGet,
-                  },
-                  defaults: {
-                    event: eventToGet,
-                    height,
-                  },
-                } )
-
-                if ( !lCreated ) {
-                  if ( height > l.height ) {
-                    await l.update( { height } )
-                  }
-                }
-              } catch (err) {
-                console.error( new Date(), "ERROR submitting tx:" )
-                console.error( err.toString() )
-              }
-            } else {
-              console.log( new Date(), "error getting price for requestId", requestId, "price === 0." )
-            }
-
-          }
-        }
-      })
+      runOracle()
       break
     case "test-oracle":
       supportedPairs = await getSupportedPairs()
