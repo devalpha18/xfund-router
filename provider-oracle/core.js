@@ -20,7 +20,7 @@ const { Jobs, LastGethBlock } = require("./db/models")
 const { WATCH_FROM_BLOCK, WAIT_CONFIRMATIONS } = process.env
 
 const watchIncommingRequests = async (eventToGet, fromBlock) => {
-  console.error(new Date(), "BEGIN watchIncommingRequests")
+  console.log(new Date(), "BEGIN watchIncommingRequests")
   const waitConfirmations = parseInt(WAIT_CONFIRMATIONS, 10) || 1
   watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
     if (err) {
@@ -68,7 +68,7 @@ const watchIncommingRequests = async (eventToGet, fromBlock) => {
 }
 
 const watchIncommingFulfillments = async (eventToGet, fromBlock) => {
-  console.error(new Date(), "BEGIN watchIncommingFulfillments")
+  console.log(new Date(), "BEGIN watchIncommingFulfillments")
   watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
     if (err) {
       console.error(new Date(), "ERROR watchIncommingFulfillments.processEvent:")
@@ -92,7 +92,7 @@ const watchIncommingFulfillments = async (eventToGet, fromBlock) => {
 }
 
 const watchIncommingCancellations = async (eventToGet, fromBlock) => {
-  console.error(new Date(), "BEGIN watchIncommingCancellations")
+  console.log(new Date(), "BEGIN watchIncommingCancellations")
   watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
     if (err) {
       console.error(new Date(), "ERROR watchIncommingCancellations.processEvent:")
@@ -115,7 +115,7 @@ const watchIncommingCancellations = async (eventToGet, fromBlock) => {
 
 
 const fulfillRequests = async (eventToGet) => {
-  console.error(new Date(), "BEGIN fulfillRequests")
+  console.log(new Date(), "BEGIN fulfillRequests")
   const supportedPairs = await getSupportedPairs()
   watchBlocks(async function processBock(blockHeader, err) {
     if (err) {
