@@ -129,6 +129,7 @@ const watchEvent = async (eventName, fromBlock = 0, cb = function () {}) => {
     .on("connected", function newBlockHeadersConnected(subscriptionId) {
       console.log(new Date(), "watchEvent newBlockHeaders connected", subscriptionId)
     })
+    .on("data", function newBlockHeadersRecieved(blockHeader) { })
     .on("error", function newBlockHeadersError(error) {
       console.error(new Date(), "ERROR watchEvent:")
       console.error(error)
