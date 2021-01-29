@@ -1,7 +1,7 @@
 const BN = require("bn.js")
 const Web3 = require("web3")
 const { Op } = require("sequelize")
-const { watchEvent, fulfillRequest, watchBlocks } = require("./ethereum")
+const { watchEvent, fulfillRequest, watchBlocks, getRequestExists } = require("./ethereum")
 const { isValidDataRequest, getPriceFromApi } = require("./OoO")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
 const {
@@ -144,29 +144,37 @@ const fulfillRequests = async (eventToGet) => {
         const fee = jobsToProcess[i].fee // todo - check fee is enough
         const gasPriceWei = jobsToProcess[i].gas
 
-        let price = new BN(0)
-        try {
-          price = await getPriceFromApi( endpoint, supportedPairs )
-        } catch (err) {
-          await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR, err.toString())
-          console.error( new Date(), "ERROR getPriceFromApi:" )
-          console.error(err.toString())
-        }
-        if ( price.gt( new BN( "0" ) ) ) {
-          console.log( new Date(), "attempt fulfillRequest data requestId", requestId, "data", price.toString() )
-          let fulfillTxHash
+        // check the request still exists and hasn't been cancelled
+        const requestExists = await getRequestExists(requestId)
+        if(requestExists) {
+          let price = new BN(0)
           try {
-            fulfillTxHash = await fulfillRequest( requestId, price, dataConsumer, gasPriceWei )
-            console.log( new Date(), "fulfillRequest submitted: requestId", requestId, "txHash", fulfillTxHash )
-
-            // update database
-            await updateJobFulfilling(id, price, fulfillTxHash)
-
+            price = await getPriceFromApi( endpoint, supportedPairs )
           } catch (err) {
+            // todo - handle this to retry getting the data
             await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR, err.toString())
-            console.error( new Date(), "ERROR fulfillRequest:" )
+            console.error( new Date(), "ERROR getPriceFromApi:" )
             console.error(err.toString())
           }
+          if ( price.gt( new BN( "0" ) ) ) {
+            console.log( new Date(), "attempt fulfillRequest data requestId", requestId, "data", price.toString() )
+            let fulfillTxHash
+            try {
+              fulfillTxHash = await fulfillRequest( requestId, price, dataConsumer, gasPriceWei )
+              console.log( new Date(), "fulfillRequest submitted: requestId", requestId, "txHash", fulfillTxHash )
+
+              // update database
+              await updateJobFulfilling(id, price, fulfillTxHash)
+
+            } catch (err) {
+              await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR, err.toString())
+              console.error( new Date(), "ERROR fulfillRequest:" )
+              console.error(err.toString())
+            }
+          }
+        } else {
+          console.log(new Date(), "fulfillRequests - request", requestId, "does not exist. Perhaps cancelled?")
+          return false
         }
       }
 
@@ -177,7 +185,7 @@ const fulfillRequests = async (eventToGet) => {
   })
 }
 
-const runOracle = async (eventToGet) => {
+const runOracle = async () => {
   const dataRequestEvent = "DataRequested"
   const dataCancelledEvent = "RequestCancelled"
   const dataRequestFulfilledEvent = "RequestFulfilled"
