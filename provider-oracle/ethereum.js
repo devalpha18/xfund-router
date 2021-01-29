@@ -11,6 +11,34 @@ const {
   WEB3_PROVIDER_WS,
 } = process.env
 
+let providerHttp
+let web3Http
+let contractHttp
+let web3Ws
+let contractWs
+
+const initWeb3 = async() => {
+  if(!contractHttp) {
+    console.log(new Date(), "init contractHttp")
+    providerHttp = new HDWalletProvider(WALLET_PKEY, WEB3_PROVIDER_HTTP)
+    web3Http = await new Web3(providerHttp)
+    contractHttp = await new web3Http.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
+  }
+
+  if(!contractWs) {
+    console.log(new Date(), "init contractWs")
+    web3Ws = new Web3(
+      new Web3.providers.WebsocketProvider(WEB3_PROVIDER_WS, {
+        clientOptions: {
+          maxReceivedFrameSize: 100000000,
+          maxReceivedMessageSize: 100000000,
+        },
+      }),
+    )
+    contractWs = await new web3Ws.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
+  }
+}
+
 const signData = async function(reqId, priceToSend, consumerContractAddress, web3) {
   const msg = generateSigMsg(reqId, priceToSend, consumerContractAddress)
   return web3.eth.accounts.sign(msg, WALLET_PKEY)
@@ -25,11 +53,7 @@ const generateSigMsg = function(requestId, data, consumerAddress) {
 }
 
 const setProviderPaysGas = async (providerPays) => {
-  const provider = new HDWalletProvider(WALLET_PKEY, WEB3_PROVIDER_HTTP)
-  const web3 = new Web3(provider)
-  const contract = new web3.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
-
-  await contract.methods
+  await contractHttp.methods
     .setProviderPaysGas(providerPays)
     .send({ from: WALLET_ADDRESS })
     .on("transactionHash", function (txHash) {
@@ -41,19 +65,16 @@ const setProviderPaysGas = async (providerPays) => {
 }
 
 const fulfillRequest = async (requestId, priceToSend, consumerContractAddress, gasPriceWei) => {
-  const provider = new HDWalletProvider(WALLET_PKEY, WEB3_PROVIDER_HTTP)
-  const web3 = new Web3(provider)
-  const contract = new web3.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
-
-  const sig = await signData( requestId, priceToSend, consumerContractAddress, web3 )
+  await initWeb3()
+  const sig = await signData( requestId, priceToSend, consumerContractAddress, web3Http )
 
   return new Promise( ( resolve, reject ) => {
-    contract.methods
+    contractHttp.methods
       .fulfillRequest( requestId, priceToSend, sig.signature )
       .estimateGas( { from: WALLET_ADDRESS, gasPrice: gasPriceWei } )
       .then(function(gasAmount){
         console.log("gas estimate:", gasAmount)
-        contract.methods
+        contractHttp.methods
           .fulfillRequest( requestId, priceToSend, sig.signature )
           .send( { from: WALLET_ADDRESS, gasPrice: gasPriceWei } )
           .on( "transactionHash", function ( txHash ) {
@@ -70,10 +91,9 @@ const fulfillRequest = async (requestId, priceToSend, consumerContractAddress, g
 }
 
 const getRequestExists = async (requestId) => {
-  const web3 = new Web3(WEB3_PROVIDER_HTTP)
-  const contract = new web3.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
+  await initWeb3()
   return new Promise((resolve, reject) => {
-    contract.methods.requestExists(requestId).call(function (error, result) {
+    contractHttp.methods.requestExists(requestId).call(function (error, result) {
       if (!error) {
         resolve(result)
       } else {
@@ -84,15 +104,15 @@ const getRequestExists = async (requestId) => {
 }
 
 const watchBlocks = async (cb = function () {}) => {
-  const web3Ws = new Web3(WEB3_PROVIDER_WS)
-
+  await initWeb3()
   console.log(new Date(), "running block watcher")
   web3Ws.eth
     .subscribe("newBlockHeaders")
     .on("connected", function newBlockHeadersConnected(subscriptionId) {
-      console.log(new Date(), "newBlockHeaders connected", subscriptionId)
+      console.log(new Date(), "watchBlocks newBlockHeaders connected", subscriptionId)
     })
     .on("data", function newBlockHeadersRecieved(blockHeader) {
+      console.log(new Date(), "watchBlocks got block", blockHeader.number)
       cb(blockHeader, null)
     })
     .on("error", function newBlockHeadersError(error) {
@@ -101,32 +121,20 @@ const watchBlocks = async (cb = function () {}) => {
 }
 
 const watchEvent = async (eventName, fromBlock = 0, cb = function () {}) => {
-  const web3Ws = new Web3(
-    new Web3.providers.WebsocketProvider(WEB3_PROVIDER_WS, {
-      clientOptions: {
-        maxReceivedFrameSize: 100000000,
-        maxReceivedMessageSize: 100000000,
-      },
-    }),
-  )
-  const watchContract = await new web3Ws.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
-
+  await initWeb3()
   // keep ws connection alive
   console.log(new Date(), "running watcher")
   web3Ws.eth
     .subscribe("newBlockHeaders")
     .on("connected", function newBlockHeadersConnected(subscriptionId) {
-      console.log(new Date(), "newBlockHeaders connected", subscriptionId)
-    })
-    .on("data", function newBlockHeadersRecieved(blockHeader) {
-      console.log(new Date(), "got block", blockHeader.number)
+      console.log(new Date(), "watchEvent newBlockHeaders connected", subscriptionId)
     })
     .on("error", function newBlockHeadersError(error) {
-      console.error(new Date(), "ERROR:")
+      console.error(new Date(), "ERROR watchEvent:")
       console.error(error)
     })
 
-  watchContract.events[eventName]({
+  contractWs.events[eventName]({
     fromBlock,
   })
     .on("data", async function onCurrencyUpdateEvent(event) {
@@ -138,14 +146,14 @@ const watchEvent = async (eventName, fromBlock = 0, cb = function () {}) => {
 }
 
 const getBlockNumber = async () => {
+  await initWeb3()
   const web3 = new Web3(WEB3_PROVIDER_HTTP)
   return web3.eth.getBlockNumber()
 }
 
 const getPastEvents = async (fromBlock, toBlock, eventName, cb = function () {}) => {
-  const web3 = new Web3(WEB3_PROVIDER_HTTP)
-  const contract = await new web3.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
-  await contract.getPastEvents(
+  await initWeb3()
+  await contractHttp.getPastEvents(
     eventName,
     {
       fromBlock,
