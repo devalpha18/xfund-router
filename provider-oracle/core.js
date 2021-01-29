@@ -152,7 +152,7 @@ const fulfillRequests = async (eventToGet) => {
             price = await getPriceFromApi( endpoint, supportedPairs )
           } catch (err) {
             // todo - handle this to retry getting the data
-            await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR, err.toString())
+            await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS, err.toString())
             console.error( new Date(), "ERROR getPriceFromApi:" )
             console.error(err.toString())
           }
@@ -167,12 +167,13 @@ const fulfillRequests = async (eventToGet) => {
               await updateJobFulfilling(id, price, fulfillTxHash)
 
             } catch (err) {
-              await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR, err.toString())
+              await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS, err.toString())
               console.error( new Date(), "ERROR fulfillRequest:" )
               console.error(err.toString())
             }
           }
         } else {
+          await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR_NOT_EXIST, "request does not exist")
           console.log(new Date(), "fulfillRequests - request", requestId, "does not exist. Perhaps cancelled?")
           return false
         }

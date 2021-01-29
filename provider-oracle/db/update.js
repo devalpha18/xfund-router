@@ -42,6 +42,7 @@ const updateJobCancelled = async (id, cancelTxHash, cancelHeight) => {
       requestStatus: REQUEST_STATUS.REQUEST_STATUS_CANCELLED,
       cancelTxHash,
       cancelHeight,
+      statusReason: "cancelled by consumer",
     },
     {
       where: {
