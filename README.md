@@ -113,22 +113,27 @@ truffle(develop)> mockToken.gimme({from: consumerOwner})
 
 2. Increase the `Router` Token allowance for the `MockConsumer` contract, so that the Router
    can hold and forward fees to the provider. Run:
-   
+
 ```bash
 truffle(develop)> mockConsumer.setRouterAllowance("115792089237316195423570985008687907853269984665640564039457584007913129639935", true, {from: consumerOwner})
 ```
 
-3. Authorise a data provider to fulfil data requests and allow them to send data to your
-   `MockConsumer` smart contract. Run:
-   
+3. Have the `provider` register with `Router`, with a minimum fee of 0.1 `xFUNDMOCK`:
+
 ```bash
 truffle(develop)> router.registerAsProvider(100000000, false, {from: provider})
+```
+
+4. Authorise a data provider to fulfil data requests and allow them to send data to your
+   `MockConsumer` smart contract. Run:
+
+```bash
 truffle(develop)> mockConsumer.addRemoveDataProvider(provider, 100000000, false, {from: consumerOwner})
 ```
 
 This will add the wallet address of the `provider` with a fee of 0.1 MOCKs.
 
-4. Transfer some `MOCK` tokens to your `MockConsumer` smart contract. Run:
+5. Transfer some `MOCK` tokens to your `MockConsumer` smart contract. Run:
 
 ```bash
 truffle(develop)> mockToken.transfer(mockConsumer.address, 10000000000, {from: consumerOwner})
@@ -136,7 +141,7 @@ truffle(develop)> mockToken.transfer(mockConsumer.address, 10000000000, {from: c
 
 This will send 10 MOCKs to the MockConsumer smart contract.
 
-5. Top up gas allowance on the `Router` smart contract. This will send ETH to the
+6. Top up gas allowance on the `Router` smart contract. This will send ETH to the
    the `Router`, allowing it to refund any gas the provider spends sending data 
    to your `MockConsumer` contract. It will be assigned to the provider's wallet, and
    can be fully withdrawn at any time. The source of the ETH is the `MockConsumer` contract
