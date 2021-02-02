@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./lib/ConsumerBase.sol";
 
@@ -25,7 +26,7 @@ import "./lib/ConsumerBase.sol";
  * This contract uses {AccessControl} to lock permissioned functions using the
  * different roles.
  */
-contract Router is AccessControl {
+contract Router is AccessControl, ReentrancyGuard {
     using SafeMath for uint256;
     using Address for address;
 
@@ -40,12 +41,11 @@ contract Router is AccessControl {
     // Note: First time fulfillments are usually more expensive
     // since they will be setting a zero value in the Consumer's contract
     // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 89130;
-    uint256 public constant EXPECTED_GAS = 54940;
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 90750;
+    uint256 public constant EXPECTED_GAS = 56550;
 
     uint8 public constant REQUEST_STATUS_NOT_SET = 0;
     uint8 public constant REQUEST_STATUS_REQUESTED = 1;
-    uint8 public constant REQUEST_STATUS_FULFILLING = 2;
 
     /*
      * STRUCTURES
@@ -293,7 +293,7 @@ contract Router is AccessControl {
      * @param _dataProvider address of data provider
      * @return success
      */
-    function topUpGas(address _dataProvider) external payable returns (bool success) {
+    function topUpGas(address _dataProvider) external payable nonReentrant returns (bool success) {
         uint256 amount = msg.value;
         // msg.sender is the address of the Consumer's smart contract
         address dataConsumer = msg.sender;
@@ -329,7 +329,7 @@ contract Router is AccessControl {
      * @param _dataProvider address of data provider
      * @return amountWithdrawn
      */
-    function withDrawGasTopUpForProvider(address _dataProvider) external returns (uint256 amountWithdrawn) {
+    function withDrawGasTopUpForProvider(address _dataProvider) external nonReentrant returns (uint256 amountWithdrawn) {
         // msg.sender is the consumer's contract
         address payable dataConsumer = msg.sender;
         require(address(dataConsumer).isContract(), "Router: only a contract can withdraw gas");
@@ -376,7 +376,7 @@ contract Router is AccessControl {
         uint64 _expires,
         bytes32 _requestId,
         bytes32 _data
-    ) external returns (bool success) {
+    ) external nonReentrant returns (bool success) {
         address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
         require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
         require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
@@ -429,10 +429,11 @@ contract Router is AccessControl {
      * this will used to validate the data's origin in the Consumer's contract
      * @return success if the execution was successful.
      */
-    function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature) external returns (bool){
+    function fulfillRequest(bytes32 _requestId, uint256 _requestedData, bytes memory _signature)
+    external
+    nonReentrant
+    returns (bool){
         require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request does not exist");
-        // prevent reentrancy
-        dataRequests[_requestId].status = REQUEST_STATUS_FULFILLING;
 
         require(tx.gasprice <= dataRequests[_requestId].gasPrice, "Router: tx.gasprice too high");
 
@@ -542,7 +543,7 @@ contract Router is AccessControl {
      * @param _requestId the request the consumer wishes to cancel
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
-    function cancelRequest(bytes32 _requestId) external returns (bool) {
+    function cancelRequest(bytes32 _requestId) external nonReentrant returns (bool) {
         require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
         require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request id does not exist");
 
