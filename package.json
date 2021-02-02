@@ -1,6 +1,6 @@
 {
   "name": "@unification-com/xfund-router",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "xFUND Router & Data Consumer Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
@@ -10,9 +10,18 @@
     "prepublishOnly": "truffle compile",
     "docs:api:clean": "rimraf docs/api",
     "docs:api:postclean": "rimraf docs/api/Migrations.md && rimraf docs/api/interfaces",
-    "docs:api:build": "npm run docs:api:clean && solidity-docgen -t ./docs/templates -o ./docs/api -e contracts/mocks && npm run docs:api:postclean",
-    "docs:compile": "rimraf docs/.vuepress/dist && npm run docs:api:build && vuepress build docs",
-    "docs:dev": "vuepress dev docs"
+    "docs:api:build": "yarn run docs:api:clean && solidity-docgen -t ./docs/templates -o ./docs/api -e contracts/mocks && yarn run docs:api:postclean",
+    "docs:compile": "rimraf docs/.vuepress/dist && yarn run docs:api:build && vuepress build docs",
+    "docs:dev": "vuepress dev docs",
+    "info:abi:dev": "node scripts/export_abi.js",
+    "info:abi:tn": "node scripts/export_abi.js -n rinkeby",
+    "info:abi:mn": "node scripts/export_abi.js -n mainnet",
+    "info:addr:dev": "node scripts/export_abi.js -w addr",
+    "info:addr:tn": "node scripts/export_abi.js -w addr -n rinkeby",
+    "info:addr:mn": "node scripts/export_abi.js -w addr -n mainnet",
+    "info:dev": "yarn run info:abi:dev && yarn run info:addr:dev",
+    "info:tn": "yarn run info:abi:tn && yarn run info:addr:tn",
+    "info:mn": "yarn run info:abi:mn && yarn run info:addr:mn"
   },
   "repository": {
     "type": "git",
