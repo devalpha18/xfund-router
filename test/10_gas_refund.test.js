@@ -1,5 +1,6 @@
 const { accounts, contract, web3, privateKeys } = require('@openzeppelin/test-environment')
 
+const { IS_COVERAGE } = process.env || 0
 
 const {
   BN,           // Big Number support
@@ -281,93 +282,99 @@ describe('Provider - gas refund tests', function () {
 
       } )
 
-      it( 'provider end balance always >= start balance: 20 iterations', async function () {
-        const providerBalanceStart = await web3.eth.getBalance( dataProvider )
+      if(!IS_COVERAGE) {
+        it( 'provider end balance always >= start balance: 20 iterations', async function () {
+          const providerBalanceStart = await web3.eth.getBalance( dataProvider )
 
-        for(let i = 0; i < 20; i += 1) {
-          // simulate gas price fluctuation
-          const randGas = randomGasPrice(50, 120)
-          const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
-          const reqId = getReqIdFromReceipt(receipt)
+          for ( let i = 0; i < 20; i += 1 ) {
+            // simulate gas price fluctuation
+            const randGas = randomGasPrice( 50, 120 )
+            const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+            const reqId = getReqIdFromReceipt( receipt )
 
-          const price = randomPrice()
-          const gasPriceGwei = randGas * ( 10 ** 9 )
+            const price = randomPrice()
+            const gasPriceGwei = randGas * ( 10 ** 9 )
 
-          const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
-          const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
-            from: dataProvider,
-            gasPrice: gasPriceGwei
-          } )
+            const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+            const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+              from: dataProvider,
+              gasPrice: gasPriceGwei
+            } )
 
-          // const gasDiff = await estimateGasDiff(fulfullReceipt, gasPrice)
-          // console.log("gasDiff", gasDiff.toString())
+            // const gasDiff = await estimateGasDiff(fulfullReceipt, gasPrice)
+            // console.log("gasDiff", gasDiff.toString())
 
-          const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
-          expect( providerBalanceAfter ).to.be.bignumber.gte( providerBalanceStart );
-        }
+            const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
+            expect( providerBalanceAfter ).to.be.bignumber.gte( providerBalanceStart );
+          }
 
-        const providerBalanceEnd = await web3.eth.getBalance( dataProvider )
-        expect( providerBalanceEnd ).to.be.bignumber.gte( providerBalanceStart );
-      })
+          const providerBalanceEnd = await web3.eth.getBalance( dataProvider )
+          expect( providerBalanceEnd ).to.be.bignumber.gte( providerBalanceStart );
+        } )
+      }
 
-      it( 'spend/refund diff always >= 0: 50 iterations', async function () {
-        for(let i = 0; i < 50; i += 1) {
-          // simulate gas price fluctuation
-          const randGas = randomGasPrice(10, 20)
-          const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
-          const reqId = getReqIdFromReceipt(receipt)
+      if(!IS_COVERAGE) {
+        it( 'spend/refund diff always >= 0: 50 iterations', async function () {
+          for ( let i = 0; i < 50; i += 1 ) {
+            // simulate gas price fluctuation
+            const randGas = randomGasPrice( 10, 20 )
+            const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+            const reqId = getReqIdFromReceipt( receipt )
 
-          const price = randomPrice()
-          const gasPriceGwei = randGas * ( 10 ** 9 )
+            const price = randomPrice()
+            const gasPriceGwei = randGas * ( 10 ** 9 )
 
-          const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
-          const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
-            from: dataProvider,
-            gasPrice: gasPriceGwei
-          } )
+            const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+            const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+              from: dataProvider,
+              gasPrice: gasPriceGwei
+            } )
 
-          // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
-          // console.log("gasDiff OUT", gasDiff.toString())
+            // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+            // console.log("gasDiff OUT", gasDiff.toString())
 
-          const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-          const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
-          const diff = refundAmount.sub( actualSpent )
+            const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
+            const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
+            const diff = refundAmount.sub( actualSpent )
 
-          expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
+            expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
 
-          // check price
-          const retPrice = await this.MockConsumerContract.price()
-          expect(retPrice).to.be.bignumber.equal(price)
-        }
-      })
+            // check price
+            const retPrice = await this.MockConsumerContract.price()
+            expect( retPrice ).to.be.bignumber.equal( price )
+          }
+        } )
+      }
 
-      it( `gas diff is >= 0 under normal conditions: 50 iterations`, async function () {
-        for(let i = 0; i < 50; i += 1) {
-          // simulate gas price fluctuation
-          const randGas = randomGasPrice(10, 20)
-          const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
-          const reqId = getReqIdFromReceipt(receipt)
+      if(!IS_COVERAGE) {
+        it( `gas diff is >= 0 under normal conditions: 50 iterations`, async function () {
+          for ( let i = 0; i < 50; i += 1 ) {
+            // simulate gas price fluctuation
+            const randGas = randomGasPrice( 10, 20 )
+            const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+            const reqId = getReqIdFromReceipt( receipt )
 
-          const price = randomPrice()
-          const gasPriceGwei = randGas * ( 10 ** 9 )
+            const price = randomPrice()
+            const gasPriceGwei = randGas * ( 10 ** 9 )
 
-          const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
-          const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
-            from: dataProvider,
-            gasPrice: gasPriceGwei
-          } )
+            const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+            const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+              from: dataProvider,
+              gasPrice: gasPriceGwei
+            } )
 
-          // await dumpReceiptGasInfo(fulfullReceipt, randGas)
-          const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
-          // console.log("gasDiff OUT", gasDiff.toString())
+            // await dumpReceiptGasInfo(fulfullReceipt, randGas)
+            const gasDiff = await estimateGasDiff( fulfullReceipt, randGas )
+            // console.log("gasDiff OUT", gasDiff.toString())
 
-          expect( gasDiff ).to.be.bignumber.gte( new BN( 0 ) )
+            expect( gasDiff ).to.be.bignumber.gte( new BN( 0 ) )
 
-          // check price
-          const retPrice = await this.MockConsumerContract.price()
-          expect(retPrice).to.be.bignumber.equal(price)
-        }
-      })
+            // check price
+            const retPrice = await this.MockConsumerContract.price()
+            expect( retPrice ).to.be.bignumber.equal( price )
+          }
+        } )
+      }
 
       it( `gas diff is acceptable (1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_FROM_ZERO}, after 1st <= ${MAX_ACCEPTABLE_GAS_DIFF_SET_NON_ZERO}) under normal conditions: 50 iterations`, async function () {
         for(let i = 0; i < 50; i += 1) {
@@ -405,105 +412,110 @@ describe('Provider - gas refund tests', function () {
         }
       })
 
-      describe('bad consumer implementation', function () {
-        it( 'fulfillRequest spend/refund diff always >= 0 when receiveData func is big: 50 iterations', async function () {
-          for(let i = 0; i < 50; i += 1) {
+      if(!IS_COVERAGE) {
+        describe( 'bad consumer implementation', function () {
+          it( 'fulfillRequest spend/refund diff always >= 0 when receiveData func is big: 50 iterations', async function () {
+            for ( let i = 0; i < 50; i += 1 ) {
+              // simulate gas price fluctuation
+              const randGas = randomGasPrice( 10, 20 )
+
+              // calling this should cost around 200000 gas
+              const receipt = await this.MockBadConsumerBigReceiveContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+              const reqId = getReqIdFromReceipt( receipt )
+
+              const price = randomPrice()
+              const gasPriceGwei = randGas * ( 10 ** 9 )
+
+              const sig = await signData( reqId, price, this.MockBadConsumerBigReceiveContract.address, dataProviderPk )
+              const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+                from: dataProvider,
+                gasPrice: gasPriceGwei
+              } )
+
+              const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
+              const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
+              const diff = refundAmount.sub( actualSpent )
+
+              // await dumpReceiptGasInfo(fulfullReceipt, randGas)
+              // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
+              // console.log("gasDiff OUT", gasDiff.toString())
+
+              expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
+
+              // check price
+              const retPrice = await this.MockBadConsumerBigReceiveContract.price()
+              expect( retPrice ).to.be.bignumber.equal( price )
+            }
+          } )
+
+        } )
+      }
+    })
+
+    if(!IS_COVERAGE) {
+      describe( 'provider pays gas', function () {
+        it( 'consumer balance on Router never deducted: 20 iterations', async function () {
+          // set provider to pay gas for data fulfilment
+          await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
+
+          for(let i = 0; i < 20; i += 1) {
             // simulate gas price fluctuation
             const randGas = randomGasPrice(10, 20)
-
-            // calling this should cost around 200000 gas
-            const receipt = await this.MockBadConsumerBigReceiveContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+            const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
             const reqId = getReqIdFromReceipt(receipt)
 
             const price = randomPrice()
             const gasPriceGwei = randGas * ( 10 ** 9 )
 
-            const sig = await signData( reqId, price, this.MockBadConsumerBigReceiveContract.address, dataProviderPk )
+            const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+
+            const consumerRouterBalanceBefore = await this.RouterContract.getGasDepositsForConsumer( dataConsumerOwner )
+            const consumerProviderRouterBalanceBefore = await this.RouterContract.getGasDepositsForConsumerProviders( dataConsumerOwner, dataProvider)
             const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
               from: dataProvider,
               gasPrice: gasPriceGwei
             } )
 
-            const actualSpent = await calculateCost( [ fulfullReceipt ], 0 )
-            const refundAmount = fulfullReceipt.receipt.logs[1].args.amount
-            const diff = refundAmount.sub( actualSpent )
+            const consumerRouterBalanceAfter = await this.RouterContract.getGasDepositsForConsumer( dataConsumerOwner )
+            const consumerProviderRouterBalanceAfter = await this.RouterContract.getGasDepositsForConsumerProviders( dataConsumerOwner, dataProvider )
 
-            // await dumpReceiptGasInfo(fulfullReceipt, randGas)
-            // const gasDiff = await estimateGasDiff(fulfullReceipt, randGas)
-            // console.log("gasDiff OUT", gasDiff.toString())
+            expect( consumerRouterBalanceAfter ).to.be.bignumber.equal( consumerRouterBalanceBefore )
+            expect( consumerProviderRouterBalanceAfter ).to.be.bignumber.equal( consumerProviderRouterBalanceBefore )
 
-            expect( diff ).to.be.bignumber.gte( new BN( 0 ) )
-
-            // check price
-            const retPrice = await this.MockBadConsumerBigReceiveContract.price()
-            expect(retPrice).to.be.bignumber.equal(price)
           }
         })
-      })
-    })
 
-    describe('provider pays gas', function () {
-      it( 'consumer balance on Router never deducted: 20 iterations', async function () {
-        // set provider to pay gas for data fulfilment
-        await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
+        it( 'provider balance deducted: 20 iterations', async function () {
+          // set provider to pay gas for data fulfilment
+          await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
 
-        for(let i = 0; i < 20; i += 1) {
-          // simulate gas price fluctuation
-          const randGas = randomGasPrice(10, 20)
-          const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
-          const reqId = getReqIdFromReceipt(receipt)
+          for(let i = 0; i < 20; i += 1) {
+            // simulate gas price fluctuation
+            const randGas = randomGasPrice(10, 20)
 
-          const price = randomPrice()
-          const gasPriceGwei = randGas * ( 10 ** 9 )
+            const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
+            const reqId = getReqIdFromReceipt(receipt)
 
-          const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
+            const price = randomPrice()
+            const gasPriceGwei = randGas * ( 10 ** 9 )
 
-          const consumerRouterBalanceBefore = await this.RouterContract.getGasDepositsForConsumer( dataConsumerOwner )
-          const consumerProviderRouterBalanceBefore = await this.RouterContract.getGasDepositsForConsumerProviders( dataConsumerOwner, dataProvider)
-          const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
-            from: dataProvider,
-            gasPrice: gasPriceGwei
-          } )
+            const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
 
-          const consumerRouterBalanceAfter = await this.RouterContract.getGasDepositsForConsumer( dataConsumerOwner )
-          const consumerProviderRouterBalanceAfter = await this.RouterContract.getGasDepositsForConsumerProviders( dataConsumerOwner, dataProvider )
+            const providerBalanceBefore = await web3.eth.getBalance( dataProvider )
 
-          expect( consumerRouterBalanceAfter ).to.be.bignumber.equal( consumerRouterBalanceBefore )
-          expect( consumerProviderRouterBalanceAfter ).to.be.bignumber.equal( consumerProviderRouterBalanceBefore )
+            const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
+              from: dataProvider,
+              gasPrice: gasPriceGwei
+            } )
 
-        }
-      })
+            const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
 
-      it( 'provider balance deducted: 20 iterations', async function () {
-        // set provider to pay gas for data fulfilment
-        await this.RouterContract.setProviderPaysGas(true, { from: dataProvider })
+            expect( providerBalanceAfter ).to.be.bignumber.lt( providerBalanceBefore )
 
-        for(let i = 0; i < 20; i += 1) {
-          // simulate gas price fluctuation
-          const randGas = randomGasPrice(10, 20)
-
-          const receipt = await this.MockConsumerContract.requestData( dataProvider, endpoint, randGas, { from: dataConsumerOwner } )
-          const reqId = getReqIdFromReceipt(receipt)
-
-          const price = randomPrice()
-          const gasPriceGwei = randGas * ( 10 ** 9 )
-
-          const sig = await signData( reqId, price, this.MockConsumerContract.address, dataProviderPk )
-
-          const providerBalanceBefore = await web3.eth.getBalance( dataProvider )
-
-          const fulfullReceipt = await this.RouterContract.fulfillRequest( reqId, price, sig.signature, {
-            from: dataProvider,
-            gasPrice: gasPriceGwei
-          } )
-
-          const providerBalanceAfter = await web3.eth.getBalance( dataProvider )
-
-          expect( providerBalanceAfter ).to.be.bignumber.lt( providerBalanceBefore )
-
-        }
-      })
-    })
+          }
+        })
+      } )
+    }
 
   })
 
