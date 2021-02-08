@@ -35,18 +35,19 @@ module.exports = function(deployer, network) {
       break
     case "rinkeby":
     case "rinkeby-fork":
-      // 1. MockToken
-      deployer.deploy(MockToken, "xFUND Mock", "xFUNDMOCK", 100000000000, 9).then(function(){
-        // 2. Router
-        return deployer.deploy(Router, MockToken.address)
-      }).then(function(){
-        // 3. ConsumerLib
+      // 1. Router
+      deployer.deploy(Router, "0x245330351344f9301690d5d8de2a07f5f32e1149")
+        .then(function(){
+        // 2. ConsumerLib
         return deployer.deploy(ConsumerLib)
       })
       break
     case "mainnet":
       deployer.deploy(Router, "0x892A6f9dF0147e5f079b0993F486F9acA3c87881")
-      deployer.deploy(ConsumerLib)
+        .then(function(){
+          // 2. ConsumerLib
+          return deployer.deploy(ConsumerLib)
+        })
       break
   }
 }
