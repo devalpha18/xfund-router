@@ -33,6 +33,12 @@ const initWeb3 = async() => {
           maxReceivedFrameSize: 100000000,
           maxReceivedMessageSize: 100000000,
         },
+        reconnect: {
+          auto: true,
+          delay: 5000, // ms
+          maxAttempts: 5,
+          onTimeout: false,
+        },
       }),
     )
     contractWs = await new web3Ws.eth.Contract(JSON.parse(CONTRACT_ABI), CONTRACT_ADDRESS)
