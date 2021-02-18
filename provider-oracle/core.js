@@ -206,17 +206,17 @@ const runOracle = async () => {
   }
   if (fromBlockFulfillmentsRes) {
     fromBlockFulfillments = parseInt( fromBlockFulfillmentsRes.height, 10 ) + 1
-    const diff2 = currentBlock - fromBlockFulfillments
-    if(diff2 > 10) {
-      fromBlockFulfillments = currentBlock - 10
-    }
+  }
+  const diff1 = currentBlock - fromBlockFulfillments
+  if(diff1 > 10) {
+    fromBlockFulfillments = currentBlock - 10
   }
   if (fromBlockCancellationsRes) {
     fromBlockCancellations = parseInt( fromBlockCancellationsRes.height, 10 ) + 1
-    const diff3 = currentBlock - fromBlockCancellations
-    if(diff3 > 10) {
-      fromBlockCancellations = currentBlock - 10
-    }
+  }
+  const diff2 = currentBlock - fromBlockCancellations
+  if(diff2 > 10) {
+    fromBlockCancellations = currentBlock - 10
   }
   console.log(new Date(), "watching", dataRequestEvent, "from block", fromBlockRequests)
   console.log(new Date(), "watching", dataRequestFulfilledEvent, "from block", fromBlockFulfillments)
