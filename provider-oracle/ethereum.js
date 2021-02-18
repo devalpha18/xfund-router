@@ -128,18 +128,7 @@ const watchBlocks = async (cb = function () {}) => {
 
 const watchEvent = async (eventName, fromBlock = 0, cb = function () {}) => {
   await initWeb3()
-  // keep ws connection alive
-  console.log(new Date(), "running watcher")
-  web3Ws.eth
-    .subscribe("newBlockHeaders")
-    .on("connected", function newBlockHeadersConnected(subscriptionId) {
-      console.log(new Date(), "watchEvent newBlockHeaders connected", subscriptionId)
-    })
-    .on("data", function newBlockHeadersRecieved(blockHeader) { })
-    .on("error", function newBlockHeadersError(error) {
-      console.error(new Date(), "ERROR newBlockHeadersError in watchEvent", eventName)
-      console.error(error)
-    })
+  console.log(new Date(), "running watcher for", eventName)
 
   contractWs.events[eventName]({
     fromBlock,
