@@ -137,7 +137,7 @@ const watchEvent = async (eventName, fromBlock = 0, cb = function () {}) => {
     })
     .on("data", function newBlockHeadersRecieved(blockHeader) { })
     .on("error", function newBlockHeadersError(error) {
-      console.error(new Date(), "ERROR watchEvent:")
+      console.error(new Date(), "ERROR newBlockHeadersError in watchEvent", eventName)
       console.error(error)
     })
 

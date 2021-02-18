@@ -1,7 +1,6 @@
 require("dotenv").config()
 const arg = require("arg")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
-const { LastGethBlock } = require("./db/models")
 const { runOracle } = require("./core")
 
 const env = process.env.NODE_ENV || 'development'
