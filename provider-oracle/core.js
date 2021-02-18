@@ -24,12 +24,12 @@ const watchIncommingRequests = async (eventToGet, fromBlock) => {
   const waitConfirmations = parseInt(WAIT_CONFIRMATIONS, 10) || 1
   watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
     if (err) {
-      console.error(new Date(), "ERROR watchIncommingRequests.processEvent:")
+      console.error(new Date(), "ERROR watchIncommingRequests.processEvent for event", eventToGet)
       console.error(err.toString())
     } else {
       const requestValid = await isValidDataRequest( event )
+      const height = parseInt( event.blockNumber, 10 )
       if ( requestValid ) {
-        const height = parseInt( event.blockNumber, 10 )
         const requestTxHash = event.transactionHash
         const dataConsumer = event.returnValues.dataConsumer
         const endpoint = Web3.utils.toUtf8( event.returnValues.data )
@@ -71,7 +71,7 @@ const watchIncommingFulfillments = async (eventToGet, fromBlock) => {
   console.log(new Date(), "BEGIN watchIncommingFulfillments")
   watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
     if (err) {
-      console.error(new Date(), "ERROR watchIncommingFulfillments.processEvent:")
+      console.error(new Date(), "ERROR watchIncommingFulfillments.processEvent for event", eventToGet)
       console.error(err.toString())
     } else {
       const height = parseInt( event.blockNumber, 10 )
@@ -95,7 +95,7 @@ const watchIncommingCancellations = async (eventToGet, fromBlock) => {
   console.log(new Date(), "BEGIN watchIncommingCancellations")
   watchEvent(eventToGet, fromBlock, async function processEvent(event, err) {
     if (err) {
-      console.error(new Date(), "ERROR watchIncommingCancellations.processEvent:")
+      console.error(new Date(), "ERROR watchIncommingCancellations.processEvent for event", eventToGet)
       console.error(err.toString())
     } else {
       const height = parseInt( event.blockNumber, 10 )
@@ -179,9 +179,7 @@ const fulfillRequests = async (eventToGet) => {
         }
       }
 
-      if(jobsToProcess) {
-        await updateLastHeight(eventToGet, height)
-      }
+      await updateLastHeight(eventToGet, height)
     }
   })
 }
@@ -195,6 +193,10 @@ const runOracle = async () => {
   let fromBlockFulfillments = WATCH_FROM_BLOCK || 0
   let fromBlockCancellations = WATCH_FROM_BLOCK || 0
 
+  const currentBlock = await getBlockNumber()
+
+  console.log(new Date(), "current block", currentBlock)
+
   const fromBlockRequestsRes = await LastGethBlock.findOne({ where: { event: dataRequestEvent } })
   const fromBlockFulfillmentsRes = await LastGethBlock.findOne({ where: { event: dataRequestFulfilledEvent } })
   const fromBlockCancellationsRes = await LastGethBlock.findOne({ where: { event: dataCancelledEvent } })
@@ -204,11 +206,21 @@ const runOracle = async () => {
   }
   if (fromBlockFulfillmentsRes) {
     fromBlockFulfillments = parseInt( fromBlockFulfillmentsRes.height, 10 ) + 1
+    const diff2 = currentBlock - fromBlockFulfillments
+    if(diff2 > 10) {
+      fromBlockFulfillments = currentBlock - 10
+    }
   }
   if (fromBlockCancellationsRes) {
     fromBlockCancellations = parseInt( fromBlockCancellationsRes.height, 10 ) + 1
+    const diff3 = currentBlock - fromBlockCancellations
+    if(diff3 > 10) {
+      fromBlockCancellations = currentBlock - 10
+    }
   }
   console.log(new Date(), "watching", dataRequestEvent, "from block", fromBlockRequests)
+  console.log(new Date(), "watching", dataRequestFulfilledEvent, "from block", fromBlockFulfillments)
+  console.log(new Date(), "watching", dataCancelledEvent, "from block", fromBlockCancellations)
   console.log(new Date(), "get supported pairs")
   await updateSupportedPairs()
   watchIncommingRequests(dataRequestEvent, fromBlockRequests)
