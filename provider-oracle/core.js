@@ -1,7 +1,7 @@
 const BN = require("bn.js")
 const Web3 = require("web3")
 const { Op } = require("sequelize")
-const { watchEvent, fulfillRequest, watchBlocks, getRequestExists } = require("./ethereum")
+const { watchEvent, fulfillRequest, watchBlocks, getRequestExists, getBlockNumber } = require("./ethereum")
 const { isValidDataRequest, getPriceFromApi } = require("./OoO")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
 const {
