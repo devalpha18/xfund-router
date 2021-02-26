@@ -1,48 +1,13 @@
 require("dotenv").config()
 const BN = require("bn.js")
 const fetch = require("isomorphic-unfetch")
-const Web3 = require("web3")
 
-const { getRequestExists } = require("./ethereum")
-
-const { FINCHAINS_API_URL, MIN_FEE } = process.env
-
-const isValidDataRequest = async (eventEmitted) => {
-
-  if(!eventEmitted) {
-    console.log(new Date(), "no event...")
-    return false
-  }
-
-  const dataProvider = eventEmitted.returnValues.dataProvider
-  const fee = eventEmitted.returnValues.fee
-  const requestId = eventEmitted.returnValues.requestId
-
-  // check it's for us
-  if(Web3.utils.toChecksumAddress(dataProvider) !== Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)) {
-    console.log(new Date(), "request", requestId, "not for me (for ", dataProvider, ")")
-    return false
-  }
-
-  // check request ID exists (has not been fulfiled, cancelled etc.)
-  const requestExists = await getRequestExists(requestId)
-  if(!requestExists) {
-    console.log(new Date(), "request", requestId, "does not exist. Perhaps already processed or cancelled")
-    return false
-  }
-
-  if(parseInt(fee) < parseInt(MIN_FEE)) {
-    console.log(new Date(), "fee", fee, "for requestId", requestId, "not enough. MIN_FEE=", MIN_FEE)
-    return false
-  }
-
-  return true
-}
+const { FINCHAINS_API_URL } = process.env
 
 const pairIsSupported = (supportedPairs, base, target) => {
-  for(let i = 0; i < supportedPairs.length; i += 1) {
+  for (let i = 0; i < supportedPairs.length; i += 1) {
     const sp = supportedPairs[i]
-    if(sp.base === base && sp.target === target) {
+    if (sp.base === base && sp.target === target) {
       return true
     }
   }
@@ -51,7 +16,7 @@ const pairIsSupported = (supportedPairs, base, target) => {
 
 const exchangePairIsSupported = async (exchange, base, target) => {
   console.log(new Date(), "check pair", base, "/", target, "on", exchange)
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const url = `${FINCHAINS_API_URL}/exchange/${exchange}/pairs`
     console.log(new Date(), "url", url)
     fetch(url)
@@ -68,7 +33,7 @@ const exchangePairIsSupported = async (exchange, base, target) => {
 
 const getExchange = (ex) => {
   let exchangeApi
-  switch(ex) {
+  switch (ex) {
     case "BNC":
       exchangeApi = "binance"
       break
@@ -140,16 +105,15 @@ const cleanseTime = (tm) => {
 
 const cleanseDMax = (_dMax) => {
   let dMax = parseInt(_dMax, 10) || 3
-  if(isNaN(dMax) || dMax <= 0) dMax = 3
+  if (isNaN(dMax) || dMax <= 0) dMax = 3
   return dMax
 }
 
-
 const getPriceSubType = (subtype, supp1, supp2) => {
   let st
-  let t = cleanseTime(supp1)
+  const t = cleanseTime(supp1)
   let s2
-  switch(subtype) {
+  switch (subtype) {
     case "AVG":
     default:
       st = `avg/${t}`
@@ -172,7 +136,7 @@ const getPriceSubType = (subtype, supp1, supp2) => {
 }
 
 const apiBuilder = async (dataToGet, supportedPairs) => {
-  const dataToGetArray = dataToGet.split(".");
+  const dataToGetArray = dataToGet.split(".")
   const base = dataToGetArray[0] // BTC etc
   const target = dataToGetArray[1] // GBP etc
   const type = dataToGetArray[2] // PRC, EXC, DCS,
@@ -181,7 +145,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
   const supp2 = dataToGetArray[5]
   const supp3 = dataToGetArray[6]
 
-  if(!pairIsSupported(supportedPairs, base, target)) {
+  if (!pairIsSupported(supportedPairs, base, target)) {
     throw new Error(`pair ${base}/${target} not currently supported`)
   }
 
@@ -189,7 +153,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
   let apiEndpoint = "currency"
   let dataType = "avg"
 
-  switch(type) {
+  switch (type) {
     case "PR":
     default:
       apiEndpoint = "currency"
@@ -197,7 +161,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
       break
     case "EX":
       const exchange = getExchange(supp1)
-      if(!exchange) {
+      if (!exchange) {
         throw new Error(`exchange ${supp1} in SUPP1 not currently supported`)
       }
 
@@ -207,7 +171,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
       } catch (err) {
         throw err
       }
-      if(!exchangeSupportsPair) {
+      if (!exchangeSupportsPair) {
         throw new Error(`pair ${pair} not currently supported by exchange ${exchange} (${supp1})`)
       }
       apiEndpoint = `exchange/${exchange}`
@@ -245,7 +209,7 @@ const apiBuilder = async (dataToGet, supportedPairs) => {
 // ETH.USD.EX.LAT.BNC - latest ETH/USD price from Binance
 // ETH.USD.EX.HI.DGX.24H - highest ETH/USD price from Coinbase in last 24 hours
 // ETH.USD.EX.LOW.DGX.24H - highest ETH/USD price from Coinbase in last 24 hours
-const getPriceFromApi = async ( dataToGet, supportedPairs) => {
+const getPriceFromApi = async (dataToGet, supportedPairs) => {
   return new Promise((resolve, reject) => {
     apiBuilder(dataToGet, supportedPairs)
       .then((d) => fetch(d.url))
@@ -254,7 +218,7 @@ const getPriceFromApi = async ( dataToGet, supportedPairs) => {
         // Finchains API returns:
         // data.priceRaw: = actual decimal price
         // data.price: priceRaw * (10 ** 18)
-        resolve( new BN( data.price ) )
+        resolve(new BN(data.price))
       })
       .catch((err) => {
         // return error to the caller
@@ -265,5 +229,4 @@ const getPriceFromApi = async ( dataToGet, supportedPairs) => {
 
 module.exports = {
   getPriceFromApi,
-  isValidDataRequest,
 }

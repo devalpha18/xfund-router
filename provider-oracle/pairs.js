@@ -6,25 +6,22 @@ const { FINCHAINS_API_URL } = process.env
 
 const deleteOld = async (newPairs) => {
   const dbPairsRes = await SupportedPairs.findAll()
-  if(dbPairsRes) {
-    for(let i = 0; i < dbPairsRes.length; i += 1) {
+  if (dbPairsRes) {
+    for (let i = 0; i < dbPairsRes.length; i += 1) {
       const dbPair = dbPairsRes[i]
       let pairSupported = false
-      for(let j = 0; j < newPairs.length; j += 1) {
+      for (let j = 0; j < newPairs.length; j += 1) {
         const newPair = newPairs[j]
-        if(newPair.name === dbPair.name) {
+        if (newPair.name === dbPair.name) {
           pairSupported = true
         }
       }
-      if(!pairSupported) {
+      if (!pairSupported) {
         console.log("delete no longer supported pair", dbPair.name, dbPair.id)
-        await sequelize.query(
-          `DELETE FROM "SupportedPairs" WHERE id = '${dbPair.id}'`,
-        )
+        await sequelize.query(`DELETE FROM "SupportedPairs" WHERE id = '${dbPair.id}'`)
       }
     }
   }
-  return
 }
 
 const updateSupportedPairs = async () => {
@@ -33,12 +30,12 @@ const updateSupportedPairs = async () => {
 
   await deleteOld(supportedPairs)
 
-  for(let i = 0; i < supportedPairs.length; i += 1) {
-    const name = supportedPairs[i].name
-    const base = supportedPairs[i].base
-    const target = supportedPairs[i].target
+  for (let i = 0; i < supportedPairs.length; i += 1) {
+    const { name } = supportedPairs[i]
+    const { base } = supportedPairs[i]
+    const { target } = supportedPairs[i]
 
-    await SupportedPairs.findOrCreate( {
+    await SupportedPairs.findOrCreate({
       where: {
         name,
       },
@@ -47,15 +44,15 @@ const updateSupportedPairs = async () => {
         base,
         target,
       },
-    } )
+    })
   }
 }
 
 const getSupportedPairs = async () => {
   const dbPairsRes = await SupportedPairs.findAll()
   const pairs = []
-  if(dbPairsRes) {
-    for(let i = 0; i < dbPairsRes.length; i += 1) {
+  if (dbPairsRes) {
+    for (let i = 0; i < dbPairsRes.length; i += 1) {
       const dbPair = dbPairsRes[i]
       const p = {
         name: dbPair.name,
