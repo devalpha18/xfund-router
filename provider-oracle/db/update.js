@@ -3,7 +3,7 @@ const { Jobs, LastGethBlock } = require("./models")
 const { REQUEST_STATUS } = require("../consts")
 
 const updateLastHeight = async (eventToGet, height) => {
-  const [ l, lCreated ] = await LastGethBlock.findOrCreate( {
+  const [l, lCreated] = await LastGethBlock.findOrCreate({
     where: {
       event: eventToGet,
     },
@@ -11,11 +11,11 @@ const updateLastHeight = async (eventToGet, height) => {
       event: eventToGet,
       height,
     },
-  } )
+  })
 
-  if ( !lCreated ) {
-    if ( height > l.height ) {
-      await l.update( { height } )
+  if (!lCreated) {
+    if (height > l.height) {
+      await l.update({ height })
     }
   }
 }
@@ -27,6 +27,7 @@ const updateJobComplete = async (id, fulfillTxHash, height, gasPayer) => {
       fulfillTxHash,
       requestCompleteHeight: height,
       gasPayer,
+      statusReason: "fulfilled",
     },
     {
       where: {
@@ -56,6 +57,7 @@ const updateJobRecieved = async (id) => {
   await Jobs.update(
     {
       requestStatus: REQUEST_STATUS.REQUEST_STATUS_RECEIVED,
+      statusReason: "recieved",
     },
     {
       where: {
@@ -71,6 +73,7 @@ const updateJobFulfilling = async (id, price, fulfillTxHash) => {
       requestStatus: REQUEST_STATUS.REQUEST_STATUS_FULFILLING,
       price: price.toString(),
       fulfillTxHash,
+      statusReason: "fulfilling",
     },
     {
       where: {
@@ -80,7 +83,7 @@ const updateJobFulfilling = async (id, price, fulfillTxHash) => {
   )
 }
 
-const updateJobWithStatusReason = async(id, requestStatus, statusReason) => {
+const updateJobWithStatusReason = async (id, requestStatus, statusReason) => {
   await Jobs.update(
     {
       requestStatus,
