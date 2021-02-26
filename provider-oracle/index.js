@@ -1,9 +1,10 @@
 require("dotenv").config()
 const arg = require("arg")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
-const { runOracle } = require("./core")
+const { ProviderOracle } = require("./oracle")
+const { getPriceFromApi } = require("./finchains_api")
 
-const env = process.env.NODE_ENV || 'development'
+const env = process.env.NODE_ENV || "development"
 
 const args = arg({
   // Types
@@ -16,10 +17,12 @@ const args = arg({
   "-e": "--event",
 })
 
-console.log( new Date(), "running in", env)
+console.log(new Date(), "running in", env)
 
 const run = async () => {
   const runWhat = args["--run"]
+  const testString = args["--test"] || "BTC.USD.PRC.AVG"
+  const oracle = new ProviderOracle()
 
   let supportedPairs
 
@@ -29,14 +32,14 @@ const run = async () => {
       process.exit(0)
       break
     case "run-oracle":
-      runOracle()
+      await oracle.initOracle()
+      await oracle.runOracle()
       break
     case "test-oracle":
       supportedPairs = await getSupportedPairs()
-      const testString = args["--test"] || "BTC.USD.PRC.AVG"
       console.log("test-oracle")
       console.log("Data requested", testString)
-      await processRequest( testString, supportedPairs )
+      await getPriceFromApi(testString, supportedPairs)
         .then(async (priceToSend) => {
           console.log(new Date(), "priceToSend", priceToSend.toString())
         })

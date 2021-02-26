@@ -1,43 +1,7 @@
 require("dotenv").config()
 const BN = require("bn.js")
 const fetch = require("isomorphic-unfetch")
-const Web3 = require("web3")
-
-const { getRequestExists } = require("./ethereum")
-
-const { FINCHAINS_API_URL, MIN_FEE } = process.env
-
-const isValidDataRequest = async (eventEmitted) => {
-
-  if(!eventEmitted) {
-    console.log(new Date(), "no event...")
-    return false
-  }
-
-  const dataProvider = eventEmitted.returnValues.dataProvider
-  const fee = eventEmitted.returnValues.fee
-  const requestId = eventEmitted.returnValues.requestId
-
-  // check it's for us
-  if(Web3.utils.toChecksumAddress(dataProvider) !== Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)) {
-    console.log(new Date(), "request", requestId, "not for me (for ", dataProvider, ")")
-    return false
-  }
-
-  // check request ID exists (has not been fulfiled, cancelled etc.)
-  const requestExists = await getRequestExists(requestId)
-  if(!requestExists) {
-    console.log(new Date(), "request", requestId, "does not exist. Perhaps already processed or cancelled")
-    return false
-  }
-
-  if(parseInt(fee) < parseInt(MIN_FEE)) {
-    console.log(new Date(), "fee", fee, "for requestId", requestId, "not enough. MIN_FEE=", MIN_FEE)
-    return false
-  }
-
-  return true
-}
+const { FINCHAINS_API_URL } = process.env
 
 const pairIsSupported = (supportedPairs, base, target) => {
   for(let i = 0; i < supportedPairs.length; i += 1) {
@@ -265,5 +229,4 @@ const getPriceFromApi = async ( dataToGet, supportedPairs) => {
 
 module.exports = {
   getPriceFromApi,
-  isValidDataRequest,
 }
