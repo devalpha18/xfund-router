@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import "../interfaces/IRouter.sol";
 import "../interfaces/IERC20_Ex.sol";
@@ -107,7 +107,7 @@ library ConsumerLib {
     event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
 
     /**
-     * @dev AddedDataProvider - emitted when the owner adds a new data provider
+     * @dev AddedDataProvider - emitted when the owner adds a new data provider or updates the fee
      * @param sender address of the owner
      * @param provider address of the provider
      * @param oldFee old fee to be paid per data request
@@ -206,10 +206,11 @@ library ConsumerLib {
 
         if(_remove) {
             require(self.dataProviders[_dataProvider].isAuthorised, "ConsumerLib: _dataProvider is not authorised");
-            // msg.sender to Router will be the address of this contract
-            require(self.router.revokeProviderPermission(_dataProvider));
+
             self.dataProviders[_dataProvider].isAuthorised = false;
             emit RemovedDataProvider(msg.sender, _dataProvider);
+            // msg.sender to Router will be the address of this contract
+            require(self.router.revokeProviderPermission(_dataProvider));
             return true;
         }
 
@@ -227,18 +228,19 @@ library ConsumerLib {
             dp.fee = _fee;
         }
 
+        emit AddedDataProvider(msg.sender, _dataProvider, oldFee, dp.fee);
+
         // only call if provider is not currently authorised, to save gas
         if(!dp.isAuthorised) {
             dp.isAuthorised = true;
             require(self.router.grantProviderPermission(_dataProvider));
         }
-        emit AddedDataProvider(msg.sender, _dataProvider, oldFee, dp.fee);
         return true;
     }
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`),
-     * and withdraws any tokens currentlry held by the contract.
+     * and withdraws any tokens currently held by the contract.
      *
      * Can only be called by the current owner.
      *
@@ -250,8 +252,9 @@ library ConsumerLib {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(newOwner != address(0), "ConsumerLib: new owner cannot be the zero address");
         require(self.router.getGasDepositsForConsumer(address(this)) == 0, "ConsumerLib: owner must withdraw all gas from router first");
-        require(withdrawAllTokens(self));
+
         emit OwnershipTransferred(msg.sender, self.OWNER, newOwner);
+        require(withdrawAllTokens(self));
         self.OWNER = newOwner;
         return true;
     }
@@ -285,7 +288,7 @@ library ConsumerLib {
      * @param _dataProvider address of associated data provider for whom ETH will be withdrawn
      */
     function withdrawTopUpGas(State storage self, address _dataProvider)
-    public
+    external
     returns (bool success){
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         uint256 amount = self.router.withDrawGasTopUpForProvider(_dataProvider);
@@ -311,8 +314,8 @@ library ConsumerLib {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(amount > 0, "ConsumerLib: nothing to withdraw");
         require(address(this).balance >= amount, "ConsumerLib: not enough balance");
-        Address.sendValue(self.OWNER, amount);
         emit EthWithdrawn(self.OWNER, amount);
+        Address.sendValue(self.OWNER, amount);
         return true;
     }
 
@@ -327,8 +330,8 @@ library ConsumerLib {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         uint256 amount = self.token.balanceOf(address(this));
         if(amount > 0) {
-            require(self.token.transfer(self.OWNER, amount), "ConsumerLib: token withdraw failed");
             emit WithdrawTokensFromContract(msg.sender, address(this), self.OWNER, amount);
+            require(self.token.transfer(self.OWNER, amount), "ConsumerLib: token withdraw failed");
         }
         return true;
     }
@@ -346,11 +349,11 @@ library ConsumerLib {
     function setRouterAllowance(State storage self, uint256 _routerAllowance, bool _increase) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         if(_increase) {
-            require(self.token.increaseAllowance(address(self.router), _routerAllowance));
             emit IncreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+            require(self.token.increaseAllowance(address(self.router), _routerAllowance));
         } else {
-            require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
             emit DecreasedRouterAllowance(msg.sender, address(self.router), address(this), _routerAllowance);
+            require(self.token.decreaseAllowance(address(self.router), _routerAllowance));
         }
         return true;
     }
@@ -372,12 +375,14 @@ library ConsumerLib {
     function setRequestVar(State storage self, uint8 _var, uint256 _value) external returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(_value > 0, "ConsumerLib: _value must be > 0");
-        if(_var == REQUEST_VAR_TOP_UP_LIMIT) {
-            require(_value <= self.router.getGasTopUpLimit(), "ConsumerLib: _value must be <= Router gasTopUpLimit");
-        }
+
         uint256 oldValue = self.requestVars[_var];
         self.requestVars[_var] = _value;
         emit SetRequestVar(msg.sender, _var, oldValue, _value);
+
+        if(_var == REQUEST_VAR_TOP_UP_LIMIT) {
+            require(_value <= self.router.getGasTopUpLimit(), "ConsumerLib: _value must be <= Router gasTopUpLimit");
+        }
         return true;
     }
 
@@ -432,6 +437,8 @@ library ConsumerLib {
 
         require(!self.dataRequests[reqId], "ConsumerLib: request id already exists");
 
+        emit DataRequestSubmitted(reqId);
+
         // note - router.initialiseRequest will see msg.sender as the address of this contract
         require(
             self.router.initialiseRequest(
@@ -439,7 +446,7 @@ library ConsumerLib {
                 uint64(self.dataProviders[_dataProvider].fee),
                 self.requestNonce,
                 _gasPrice * (10 ** 9), // gwei to wei
-                uint64(now + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT]),
+                uint64(block.timestamp + self.requestVars[REQUEST_VAR_REQUEST_TIMEOUT]),
                 reqId, // will be regenerated and cross referenced in Router
                 _data
             ));
@@ -447,8 +454,6 @@ library ConsumerLib {
         self.requestNonce += 1;
         self.dataRequests[reqId] = true;
 
-        // only emitted if the router request is successful.
-        emit DataRequestSubmitted(reqId);
         return reqId;
     }
 
@@ -464,8 +469,11 @@ library ConsumerLib {
     returns (bool success) {
         require(msg.sender == self.OWNER, "ConsumerLib: only owner");
         require(self.dataRequests[_requestId], "ConsumerLib: request id does not exist");
-        require(self.router.cancelRequest(_requestId));
+
         emit RequestCancellationSubmitted(msg.sender, _requestId);
+
+        require(self.router.cancelRequest(_requestId));
+
         delete self.dataRequests[_requestId];
         return true;
     }

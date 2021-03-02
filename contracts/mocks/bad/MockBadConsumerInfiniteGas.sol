@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import "../../lib/ConsumerBase.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract MockBadConsumerInfiniteGas is ConsumerBase {
     using SafeMath for uint256;
+
+    uint256 public price;
+    bytes32 public requestId;
 
     // Mirrored Router events for web3 client decoding & testing
     // DataRequested event. Emitted when a data request has been initialised
@@ -21,7 +24,7 @@ contract MockBadConsumerInfiniteGas is ConsumerBase {
     );
 
     constructor(address _router)
-    public ConsumerBase(_router) { }
+    ConsumerBase(_router) { }
 
     function receiveData(
         uint256 _price,
@@ -29,5 +32,8 @@ contract MockBadConsumerInfiniteGas is ConsumerBase {
     )
     internal override {
         while(true){}
+        // will never get here, but stops compiler warnings
+        price = _price;
+        requestId = _requestId;
     }
 }

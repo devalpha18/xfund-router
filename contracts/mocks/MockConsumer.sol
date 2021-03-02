@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import "../lib/ConsumerBase.sol";
 
@@ -33,7 +33,6 @@ contract MockConsumer is ConsumerBase {
 
     event RequestCancellationSubmitted(address sender, bytes32 requestId);
 
-    event PaymentRecieved(address sender, uint256 amount);
     event EthWithdrawn(address receiver, uint256 amount);
 
 
@@ -76,7 +75,7 @@ contract MockConsumer is ConsumerBase {
     event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
     constructor(address _router)
-    public ConsumerBase(_router) {
+    ConsumerBase(_router) {
         price = 0;
     }
 

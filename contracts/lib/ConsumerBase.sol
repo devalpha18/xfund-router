@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import "./ConsumerLib.sol";
 
@@ -52,7 +52,7 @@ abstract contract ConsumerBase {
      *
      * @param _router address of the deployed Router smart contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         consumerState.init(_router);
     }
 
@@ -202,7 +202,7 @@ abstract contract ConsumerBase {
      * @param _dataProvider address of associated data provider for whom ETH will be withdrawn
      */
     function withdrawTopUpGas(address _dataProvider)
-    public {
+    external {
         require(consumerState.withdrawTopUpGas(_dataProvider));
     }
 
@@ -222,7 +222,7 @@ abstract contract ConsumerBase {
      * @param _amount amount (in wei) of ETH to be withdrawn
      */
     function withdrawEth(uint256 _amount)
-    public {
+    external {
         require(consumerState.withdrawEth(_amount));
     }
 
