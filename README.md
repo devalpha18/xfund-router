@@ -52,7 +52,8 @@ to compile smart contracts
 
 To run all tests:
 
-```bash 
+```bash
+npx ganache-cli --mnemonic "myth like bonus scare over problem client lizard pioneer submit female collect"
 yarn test
 ```
 
@@ -61,8 +62,17 @@ Running all tests will take a few minutes.
 To run individual test files:
 
 ```bash
-npx mocha test/[TEST_FILE] --exit
+npx truffle test/[TEST_FILE]
 ```
+
+Test Coverage
+
+```bash
+yarn run coverage
+```
+
+Running unit test coverage will take a long time. Results are saved to 
+`converage.json` and `./coverage`
 
 ### Deployment & Interaction
 
