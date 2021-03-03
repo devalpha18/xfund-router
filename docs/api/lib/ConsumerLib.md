@@ -76,7 +76,7 @@ each call to the submitDataRequest function.
 <a name="ConsumerLib-transferOwnership-struct-ConsumerLib-State-address-payable-"></a>
 ### Function `transferOwnership(struct ConsumerLib.State self, address payable newOwner) -> bool success`
 Transfers ownership of the contract to a new account (`newOwner`),
-and withdraws any tokens currentlry held by the contract.
+and withdraws any tokens currently held by the contract.
 
 Can only be called by the current owner.
 
@@ -271,7 +271,7 @@ DecreasedRouterAllowance - emitted when the owner decreases the Router's token a
 - `amount`: amount
 <a name="ConsumerLib-AddedDataProvider-address-address-uint64-uint64-"></a>
 ### Event `AddedDataProvider(address sender, address provider, uint64 oldFee, uint64 newFee)`
-AddedDataProvider - emitted when the owner adds a new data provider
+AddedDataProvider - emitted when the owner adds a new data provider or updates the fee
 
 #### Parameters:
 - `sender`: address of the owner
