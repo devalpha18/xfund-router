@@ -1,3 +1,7 @@
+require("dotenv").config()
+
+const { IS_COVERAGE } = process.env || 0
+
 const {
   BN, // Big Number support
   expectRevert,
@@ -23,6 +27,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
   const initSupply = 1000 * 10 ** decimals
   const initialAmount = 1000
   const amountForContract = 100
+  const sillyAmount = IS_COVERAGE ? "150000" : "150"
 
   beforeEach(async function () {
     // admin deploy Token contract
@@ -77,7 +82,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           value: topupValue,
         })
 
-        expectEvent(receipt, "GasToppedUp", {
+        expectEvent.inTransaction(receipt.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider1,
           amount: topupValue,
@@ -200,7 +205,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           value: topupValue1,
         })
 
-        expectEvent(receipt1, "GasToppedUp", {
+        expectEvent.inTransaction(receipt1.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider1,
           amount: topupValue1,
@@ -210,7 +215,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           value: topupValue2,
         })
 
-        expectEvent(receipt2, "GasToppedUp", {
+        expectEvent.inTransaction(receipt2.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider2,
           amount: topupValue2,
@@ -392,17 +397,18 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           value: topupValue1,
         })
 
-        expectEvent(receipt1, "GasToppedUp", {
+        expectEvent.inTransaction(receipt1.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider1,
           amount: topupValue1,
         })
+
         const receipt2 = await this.MockConsumerContract1.topUpGas(dataProvider2, {
           from: dataConsumerOwner1,
           value: topupValue2,
         })
 
-        expectEvent(receipt2, "GasToppedUp", {
+        expectEvent.inTransaction(receipt2.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider2,
           amount: topupValue2,
@@ -413,17 +419,18 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           value: topupValue3,
         })
 
-        expectEvent(receipt3, "GasToppedUp", {
+        expectEvent.inTransaction(receipt3.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract2.address,
           dataProvider: dataProvider1,
           amount: topupValue3,
         })
+
         const receipt4 = await this.MockConsumerContract2.topUpGas(dataProvider2, {
           from: dataConsumerOwner2,
           value: topupValue4,
         })
 
-        expectEvent(receipt4, "GasToppedUp", {
+        expectEvent.inTransaction(receipt4.tx, this.RouterContract, "GasToppedUp", {
           dataConsumer: this.MockConsumerContract2.address,
           dataProvider: dataProvider2,
           amount: topupValue4,
@@ -682,8 +689,8 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
       })
 
       it("owner requires sufficient ETH balance - should revert with error", async function () {
-        const silly = web3.utils.toWei("150", "ether")
-        const topupValue = web3.utils.toWei("101", "ether")
+        const silly = web3.utils.toWei(sillyAmount, "ether")
+        const topupValue = web3.utils.toWei(sillyAmount, "ether")
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, {
           from: dataConsumerOwner1,
@@ -693,17 +700,26 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           from: dataConsumerOwner1,
         })
 
-        const balance = await web3.eth.getBalance(dataConsumerOwner1)
-
-        await expectRevert(
-          this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue }),
-          `sender doesn't have enough funds to send tx. The upfront cost is: 101134439500000000000 and the sender's account only has: ${balance}`,
-        )
+        try {
+          await this.MockConsumerContract1.topUpGas(dataProvider1, {
+            from: dataConsumerOwner1,
+            value: topupValue,
+          })
+        } catch (error) {
+          const match = error.message.match(
+            /sender doesn't have enough funds to send tx. The upfront cost is/,
+          )
+          expect(match).to.not.null
+          if (match) {
+            return
+          }
+        }
+        expect.fail("Expected an exception but none was received")
       })
 
       it("owner requires sufficient ETH balance - owner balance should not change", async function () {
-        const silly = web3.utils.toWei("150", "ether")
-        const topupValue = web3.utils.toWei("101", "ether")
+        const silly = web3.utils.toWei(sillyAmount, "ether")
+        const topupValue = web3.utils.toWei(sillyAmount, "ether")
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, {
           from: dataConsumerOwner1,
@@ -716,10 +732,17 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
 
         const startBalance = await web3.eth.getBalance(dataConsumerOwner1)
 
-        await expectRevert(
-          this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue }),
-          `sender doesn't have enough funds to send tx. The upfront cost is: 101134439500000000000 and the sender's account only has: ${startBalance}`,
-        )
+        try {
+          await this.MockConsumerContract1.topUpGas(dataProvider1, {
+            from: dataConsumerOwner1,
+            value: topupValue,
+          })
+        } catch (error) {
+          const match = error.message.match(
+            /sender doesn't have enough funds to send tx. The upfront cost is/,
+          )
+          expect(match).to.not.null
+        }
 
         const newBalance = await web3.eth.getBalance(dataConsumerOwner1)
 
@@ -727,8 +750,8 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
       })
 
       it("owner requires sufficient ETH balance - router balance should not change", async function () {
-        const silly = web3.utils.toWei("150", "ether")
-        const topupValue = web3.utils.toWei("101", "ether")
+        const silly = web3.utils.toWei(sillyAmount, "ether")
+        const topupValue = web3.utils.toWei(sillyAmount, "ether")
         await this.RouterContract.setGasTopUpLimit(silly, { from: admin })
         await this.MockConsumerContract1.setRequestVar(REQUEST_VAR_TOP_UP_LIMIT, silly, {
           from: dataConsumerOwner1,
@@ -739,12 +762,17 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           from: dataConsumerOwner1,
         })
 
-        const dcBalance = await web3.eth.getBalance(dataConsumerOwner1)
-
-        await expectRevert(
-          this.MockConsumerContract1.topUpGas(dataProvider1, { from: dataConsumerOwner1, value: topupValue }),
-          `sender doesn't have enough funds to send tx. The upfront cost is: 101134439500000000000 and the sender's account only has: ${dcBalance}`,
-        )
+        try {
+          await this.MockConsumerContract1.topUpGas(dataProvider1, {
+            from: dataConsumerOwner1,
+            value: topupValue,
+          })
+        } catch (error) {
+          const match = error.message.match(
+            /sender doesn't have enough funds to send tx. The upfront cost is/,
+          )
+          expect(match).to.not.null
+        }
 
         const routerBalance = await web3.eth.getBalance(this.RouterContract.address)
 
@@ -857,7 +885,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           from: dataConsumerOwner1,
         })
 
-        expectEvent(receipt, "GasWithdrawnByConsumer", {
+        expectEvent.inTransaction(receipt.tx, this.RouterContract, "GasWithdrawnByConsumer", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider1,
           amount: topupValue,
@@ -1021,11 +1049,12 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           from: dataConsumerOwner1,
         })
 
-        expectEvent(receipt3, "GasWithdrawnByConsumer", {
+        expectEvent.inTransaction(receipt3.tx, this.RouterContract, "GasWithdrawnByConsumer", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider1,
           amount: topupValue,
         })
+
         expectEvent(receipt3, "PaymentRecieved", {
           sender: this.RouterContract.address,
           amount: topupValue,
@@ -1156,7 +1185,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           from: dataConsumerOwner1,
         })
 
-        expectEvent(receipt1, "GasWithdrawnByConsumer", {
+        expectEvent.inTransaction(receipt1.tx, this.RouterContract, "GasWithdrawnByConsumer", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider1,
           amount: topupValue1,
@@ -1166,7 +1195,7 @@ contract("Consumer - Gas top up and withdraw", (accounts) => {
           from: dataConsumerOwner1,
         })
 
-        expectEvent(receipt2, "GasWithdrawnByConsumer", {
+        expectEvent.inTransaction(receipt2.tx, this.RouterContract, "GasWithdrawnByConsumer", {
           dataConsumer: this.MockConsumerContract1.address,
           dataProvider: dataProvider2,
           amount: topupValue2,
