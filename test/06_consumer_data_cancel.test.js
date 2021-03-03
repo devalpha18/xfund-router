@@ -118,9 +118,9 @@ contract("Consumer - request cancellation tests", (accounts) => {
       await sleepFor(1000)
 
       // cancel request
-      const reciept = await this.MockConsumerContract.cancelRequest(reqId, { from: dataConsumerOwner1 })
+      const receipt = await this.MockConsumerContract.cancelRequest(reqId, { from: dataConsumerOwner1 })
 
-      expectEvent(reciept, "RequestCancelled", {
+      expectEvent.inTransaction(receipt.tx, this.RouterContract, "RequestCancelled", {
         dataConsumer: this.MockConsumerContract.address,
         dataProvider: dataProvider1,
         requestId: reqId,

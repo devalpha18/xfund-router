@@ -128,13 +128,13 @@ contract("Consumer - data request tests", (accounts) => {
       })
 
       it("dataConsumer (owner) can initialise a request - Router emits DataRequested event", async function () {
-        const reciept = await this.MockConsumerContract.requestData(dataProvider, endpoint, gasPrice, {
+        const receipt = await this.MockConsumerContract.requestData(dataProvider, endpoint, gasPrice, {
           from: dataConsumerOwner,
         })
-        const reqId = await getReqIdFromReceipt(reciept)
+        const reqId = await getReqIdFromReceipt(receipt)
         const expires = await this.RouterContract.getDataRequestExpires(reqId)
 
-        expectEvent(reciept, "DataRequested", {
+        expectEvent.inTransaction(receipt.tx, this.RouterContract, "DataRequested", {
           dataConsumer: this.MockConsumerContract.address,
           dataProvider,
           fee,

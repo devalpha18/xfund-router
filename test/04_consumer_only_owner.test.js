@@ -436,7 +436,7 @@ contract("Consumer - only owner function tests", (accounts) => {
         from: dataConsumerOwner,
       })
 
-      expectEvent(receipt, "GrantProviderPermission", {
+      expectEvent.inTransaction(receipt.tx, this.RouterContract, "GrantProviderPermission", {
         dataConsumer: this.MockConsumerContract.address,
         dataProvider,
       })
@@ -575,7 +575,7 @@ contract("Consumer - only owner function tests", (accounts) => {
         from: dataConsumerOwner,
       })
 
-      expectEvent(receipt, "RevokeProviderPermission", {
+      expectEvent.inTransaction(receipt.tx, this.RouterContract, "RevokeProviderPermission", {
         dataConsumer: this.MockConsumerContract.address,
         dataProvider,
       })
