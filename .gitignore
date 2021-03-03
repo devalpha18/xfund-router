@@ -117,6 +117,8 @@ dist
 build
 
 flattened_contracts
+.coverage_artifacts
+.coverage_contracts
 
 # DB file
 provider-oracle/db/database.sqlite

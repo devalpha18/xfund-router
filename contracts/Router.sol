@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.7.0 <0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -41,8 +41,8 @@ contract Router is AccessControl, ReentrancyGuard {
     // Note: First time fulfillments are usually more expensive
     // since they will be setting a zero value in the Consumer's contract
     // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 90750;
-    uint256 public constant EXPECTED_GAS = 56550;
+    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 90550;
+    uint256 public constant EXPECTED_GAS = 56290;
 
     uint8 public constant REQUEST_STATUS_NOT_SET = 0;
     uint8 public constant REQUEST_STATUS_REQUESTED = 1;
@@ -217,7 +217,7 @@ contract Router is AccessControl, ReentrancyGuard {
      * @dev Contract constructor. Accepts the address for a Token smart contract.
      * @param _token address must be for an ERC-20 token (e.g. xFUND)
      */
-    constructor(address _token) public {
+    constructor(address _token) {
         require(_token != address(0), "Router: token cannot be zero address");
         require(_token.isContract(), "Router: token address must be a contract");
         token = IERC20(_token);
@@ -553,7 +553,7 @@ contract Router is AccessControl, ReentrancyGuard {
 
         // msg.sender is the contract address of the consumer
         require(msg.sender == dataConsumer, "Router: msg.sender != dataConsumer");
-        require(now >= expires, "Router: request has not yet expired");
+        require(block.timestamp >= expires, "Router: request has not yet expired");
 
         emit RequestCancelled(
             msg.sender,

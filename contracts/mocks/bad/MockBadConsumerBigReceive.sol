@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.7.0 <0.8.0;
 
 import "../../lib/ConsumerBase.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -32,7 +32,7 @@ contract MockBadConsumerBigReceive is ConsumerBase {
     );
 
     constructor(address _router)
-    public ConsumerBase(_router) {
+    ConsumerBase(_router) {
         price = 0;
         arbitraryCounter = 0;
     }

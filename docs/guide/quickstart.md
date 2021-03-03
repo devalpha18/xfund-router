@@ -60,10 +60,10 @@ const MyContract = artifacts.require("MyContract")
 module.exports = function(deployer) {
   // Link MyContract to the deployed ConsumerLib contract
   // Note: below is the Rinkeby Testnet address
-  MyContract.link("ConsumerLib", "0x7D9581C99A891cBfE9626d4aD0c2D24D4EDdfD74")
+  MyContract.link("ConsumerLib", "0xD69582b569C5616D46f277b97d1fd49EcB9df418")
   // deploy, passing the Router smart contract address
   // Note: below is the Rinkeby Testnet address
-  deployer.deploy(MockConsumer, "0x358A975399E7A99013aA1233801eFFe21f19fDfC")
+  deployer.deploy(MockConsumer, "0x04E254510600b025A63Ea41A45e89e980bEdb2DD")
 }
 ```
 

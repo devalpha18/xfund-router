@@ -12,7 +12,6 @@ Most of the functions in this contract are proxy functions to the ConsumerLib
 smart contract
 
 ## Functions:
-- [`constructor(address _router)`](#ConsumerBase-constructor-address-)
 - [`receive()`](#ConsumerBase-receive--)
 - [`withdrawAllTokens()`](#ConsumerBase-withdrawAllTokens--)
 - [`transferOwnership(address payable _newOwner)`](#ConsumerBase-transferOwnership-address-payable-)
@@ -35,17 +34,6 @@ smart contract
 - [`PaymentRecieved(address sender, uint256 amount)`](#ConsumerBase-PaymentRecieved-address-uint256-)
 
 
-<a name="ConsumerBase-constructor-address-"></a>
-### Function `constructor(address _router)`
-Contract constructor. Accepts the address for the router smart contract,
-and a token allowance for the Router to spend on the consumer's behalf (to pay fees).
-
-The Consumer contract should have enough tokens allocated to it to pay fees
-and the Router should be able to use the Tokens to forward fees.
-
-
-#### Parameters:
-- `_router`: address of the deployed Router smart contract
 <a name="ConsumerBase-receive--"></a>
 ### Function `receive()`
 fallback payable function, which emits an event if ETH is received either via

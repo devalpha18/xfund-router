@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.7.0 <0.8.0;
 
 import "../../interfaces/IRouter.sol";
 import "../../interfaces/IERC20_Ex.sol";
@@ -34,7 +34,7 @@ contract MockBadConsumer {
         uint64 expires
     );
 
-    constructor(address _router) public {
+    constructor(address _router) {
         router = IRouter(_router);
         token = IERC20_Ex(router.getTokenAddress());
     }
@@ -57,7 +57,7 @@ contract MockBadConsumer {
             100,
             nonce,
                 uint64(20000000000),
-                uint64(now + 300),
+                uint64(block.timestamp + 300),
             requestId,
             _data
         );
