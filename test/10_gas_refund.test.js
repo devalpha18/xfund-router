@@ -1,4 +1,6 @@
-const { IS_COVERAGE } = process.env || 0
+require("dotenv").config()
+
+const { IS_COVERAGE } = process.env || undefined
 
 const {
   BN, // Big Number support
