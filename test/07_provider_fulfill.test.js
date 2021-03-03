@@ -1,4 +1,6 @@
-const { IS_COVERAGE } = process.env || 0
+require("dotenv").config()
+
+const { IS_COVERAGE } = process.env || undefined
 
 const {
   BN, // Big Number support
@@ -140,6 +142,14 @@ contract("Provider - fulfillment tests", (accounts) => {
         dataProvider,
         requestId: reqId,
         requestedData: new BN(priceToSend),
+      })
+
+      expectEvent.inTransaction(fulfullReceipt.tx, this.RouterContract, "RequestFulfilled", {
+        dataConsumer: this.MockConsumerContract.address,
+        dataProvider,
+        requestId: reqId,
+        requestedData: new BN(priceToSend),
+        gasPayer: dataProvider,
       })
 
       const retPrice = await this.MockConsumerContract.price()
