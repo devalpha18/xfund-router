@@ -1,5 +1,6 @@
 require("dotenv").config()
 const HDWalletProvider = require("@truffle/hdwallet-provider")
+const TestRPC = require("ganache-cli")
 
 const {
   ETH_PKEY_RINKEBY,
@@ -13,8 +14,10 @@ module.exports = {
   networks: {
     // ganache-cli
     development: {
-      host: "127.0.0.1", // Localhost (default: none)
-      port: 8545, // Standard Ethereum port (default: none)
+      provider: TestRPC.provider({
+        mnemonic: "myth like bonus scare over problem client lizard pioneer submit female collect",
+        gasPrice: "0x4A817C800",
+      }),
       network_id: "*", // Any network (default: none)
     },
     // truffle develop console
