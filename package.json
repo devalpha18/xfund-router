@@ -48,6 +48,7 @@
     "lodash": "^4.17.19",
     "pg": "^8.5.1",
     "sequelize": "^6.4.0",
+    "serialize-error": "^8.0.1",
     "sqlite3": "^5.0.1",
     "web3": "^1.3.0",
     "web3-providers-ws": "^1.3.4"
