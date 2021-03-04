@@ -1,5 +1,6 @@
 const BN = require("bn.js")
 const Web3 = require("web3")
+const { serializeError } = require("serialize-error")
 const { XFUNDRouter } = require("./router")
 const { getPriceFromApi } = require("./finchains_api")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
@@ -101,7 +102,7 @@ class ProviderOracle {
             "ERROR watchIncommingRequests.processEvent for event",
             self.dataRequestEvent,
           )
-          console.error(err.toString())
+          console.error(JSON.stringify(serializeError(err), null, 2))
         } else {
           const requestValid = await self.router.isValidDataRequest(event)
           const height = parseInt(event.blockNumber, 10)
@@ -168,7 +169,7 @@ class ProviderOracle {
             "ERROR watchIncommingFulfillments.processEvent for event",
             self.dataRequestFulfilledEvent,
           )
-          console.error(err.toString())
+          console.error(JSON.stringify(serializeError(err), null, 2))
         } else {
           const height = parseInt(event.blockNumber, 10)
           const { requestId } = event.returnValues
@@ -206,7 +207,7 @@ class ProviderOracle {
             "ERROR watchIncommingCancellations.processEvent for event",
             self.dataCancelledEvent,
           )
-          console.error(err.toString())
+          console.error(JSON.stringify(serializeError(err), null, 2))
         } else {
           const height = parseInt(event.blockNumber, 10)
           const { requestId } = event.returnValues
@@ -244,9 +245,7 @@ class ProviderOracle {
     await this.router.watchBlocks(async function processBock(blockHeader, err) {
       if (err) {
         console.error(new Date(), "ERROR fulfillRequests.processBock:")
-        console.error(err.toString())
-        console.log(new Date(), "attempt restart after WS error")
-        process.exit(1)
+        console.error(JSON.stringify(serializeError(err), null, 2))
       } else {
         const height = blockHeader.number
         const jobsToProcess = await getOpenOrStuckJobs(height)
@@ -275,10 +274,10 @@ class ProviderOracle {
               await updateJobWithStatusReason(
                 id,
                 REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS,
-                error.toString(),
+                JSON.stringify(serializeError(error), null, 2),
               )
               console.error(new Date(), "ERROR getPriceFromApi:")
-              console.error(error.toString())
+              console.error(JSON.stringify(serializeError(error), null, 2))
             }
             if (price.gt(new BN("0"))) {
               console.log(
@@ -305,10 +304,10 @@ class ProviderOracle {
                 await updateJobWithStatusReason(
                   id,
                   REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS,
-                  error.toString(),
+                  JSON.stringify(serializeError(error), null, 2),
                 )
                 console.error(new Date(), "ERROR fulfillRequest:")
-                console.error(error.toString())
+                console.error(JSON.stringify(serializeError(error), null, 2))
               }
             }
           } else {
