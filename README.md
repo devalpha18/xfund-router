@@ -53,7 +53,6 @@ to compile smart contracts
 To run all tests:
 
 ```bash
-npx ganache-cli --mnemonic "myth like bonus scare over problem client lizard pioneer submit female collect"
 yarn test
 ```
 
