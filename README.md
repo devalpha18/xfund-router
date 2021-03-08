@@ -48,8 +48,6 @@ to compile smart contracts
 
 ### Unit Tests
 
-**Note**: The unit tests utilise the `openzeppelin/test-environment`, not `truffle test`.
-
 To run all tests:
 
 ```bash
@@ -87,7 +85,7 @@ Run the `truffle` development console:
 npx truffle develop
 ```
 
-**Note**: Make a not of the address and private key for `account[1]`. This will be
+**Note**: Make a note of the address and private key for `account[1]`. This will be
 required later for Data Provider interaction.
 
 #### Deploy the smart contracts
@@ -208,11 +206,25 @@ WALLET_ADDRESS=
 In a separate terminal, run:
 
 ```bash
-npx sequelize-cli db:migrate:undo:all
 npx sequelize-cli db:migrate
 ```
 
-to initialise the oracle's database, followed by:
+to initialise the oracle's database. If required, run
+
+```bash
+npx sequelize-cli db:migrate:undo:all
+```
+
+first to wipe the database.
+
+**Note**: the default `NODE_ENV` environment is `development`. In the `development` environment,
+the Oracle will initialise a local SQLite database and save it to `provider-oracle/db/database.sqlite`.
+This is intended for rapid testing/development, and is not meant for extensive testing. To test
+in a more realistic environment, install PostgreSQL and change the `NODE_ENV` in `.env`
+to `test`. Configure the appropriate `DB_` values in `.env` and re-run the above `sequelize`
+commands to initialise the PostgreSQL database.
+
+Run the oracle with:
 
 ``` 
 node provider-oracle/index.js --run=run-oracle
@@ -224,17 +236,39 @@ grab the data, and call the `Router`'s `fulfillRequest` function, which in turn 
 the data to the requesting `MockConsumer` smart contract.
 
 ``` 
-2020-12-11T13:29:24.944Z watching DataRequested
-2020-12-11T13:29:24.967Z running watcher
-2020-12-11T13:29:24.978Z newBlockHeaders connected 0x1
-2020-12-11T13:29:25.025Z get https://crypto.finchains.io/api/currency/BTC/USD/avg
-2020-12-11T13:29:26.204Z got block 15
-2020-12-11T13:29:26.206Z txHash 0xa21c94a8043ca49c77b2c4228f52fb4d4176753a5a42051c27d10137cb2a4d2c
+2021-03-08T11:36:23.293Z current Eth height 15
+2021-03-08T11:36:23.302Z get supported pairs
+2021-03-08T11:36:37.055Z watching DataRequested from block 0
+2021-03-08T11:36:37.055Z BEGIN watchIncommingRequests
+2021-03-08T11:36:37.056Z running watcher for DataRequested
+2021-03-08T11:36:37.065Z watching RequestFulfilled from block 0
+2021-03-08T11:36:37.066Z BEGIN watchIncommingFulfillments
+2021-03-08T11:36:37.066Z running watcher for RequestFulfilled
+2021-03-08T11:36:37.067Z watching RequestCancelled from block 0
+2021-03-08T11:36:37.068Z BEGIN watchIncommingCancellations
+2021-03-08T11:36:37.068Z running watcher for RequestCancelled
+2021-03-08T11:36:37.069Z watching blocks for jobs to process from block 0
+2021-03-08T11:36:37.070Z BEGIN fulfillRequests
+2021-03-08T11:36:37.081Z running block watcher
+2021-03-08T11:36:37.135Z watchEvent DataRequested connected 0x1
+2021-03-08T11:36:37.136Z watchEvent RequestFulfilled connected 0x2
+2021-03-08T11:36:37.140Z watchEvent RequestCancelled connected 0x3
+2021-03-08T11:36:37.142Z watchBlocks newBlockHeaders connected 0x4
 ```
 
 **Note**: The price returned by the Oracle is always standardised to `actualPrice * (10 ** 18)`
 
 ##### Check Price in `MockConsumer`
+
+Depending on what is configured for the `WAIT_CONFIRMATIONS` in `.env`, you will need
+to run the following command in the Truffle console a few times to mine blocks:
+
+```bash
+truffle(develop)> await web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_mine", id: 12345 }, function(err, result) { return })
+```
+
+This will force `ganache-cli` to mine new blocks until the required number of block confirmations
+have been achieved for the Provider Oracle to process and fulfil the data request.
 
 Once the provider has fulfilled the request, the `price` value should have been updated
 in the `MockConsumer` smart contract. Run:
@@ -245,7 +279,7 @@ truffle(develop)> priceAfter.toString()
 ```
 
 The result should now be a non-zero
-value, e.g. `17884795591666666666666`.
+value, e.g. `36547117907180545000000`.
 
 #### Dev Notes
 
