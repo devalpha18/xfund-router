@@ -227,7 +227,7 @@ commands to initialise the PostgreSQL database.
 Run the oracle with:
 
 ``` 
-node provider-oracle/index.js --run=run-oracle
+yarn run dev:oracle
 ```
 
 This will run, watching the `Router` smart contract for any `DataRequested` events. If
