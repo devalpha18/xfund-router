@@ -28,8 +28,8 @@ jobs:
           while IFS= read -r file
           do
             echo $file
-            if [[ $file != contracts/* ]]; then
-              echo "This modified file is not under the 'contracts' folder."
+            if [[ $file != contracts/* && $file != test/* ]]; then
+              echo "This modified file is not under the 'contracts' or 'test' folder."
               echo "::set-output name=run_job::false"
               break
             else
