@@ -1,6 +1,7 @@
 # xFUND Router & Data Consumer Solidity Smart Contracts
 
 [![npm version](http://img.shields.io/npm/v/@unification-com/xfund-router.svg?style=flat)](https://npmjs.org/package/@unification-com/xfund-router "View this project on npm")
+![sc unit tests](https://github.com/unification-com/xfund-router/actions/workflows/test-contracts.yml/badge.svg)
 
 A suite of smart contracts to enable data from external sources (such as Finchains.io)
 to be included in your smart contracts. The suite comprises of:
