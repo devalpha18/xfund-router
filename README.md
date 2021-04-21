@@ -8,7 +8,7 @@ to be included in your smart contracts. The suite comprises of:
 
 1) A deployed Router smart contract. This facilitates receiving and forwarding data requests,
    between Consumers and Providers, in addition to processing xFUND payments for data provision.
-2) A Consumer Library smart contract, which is integrated into your own smart contract in 
+2) A ConsumerBase smart contract, which is integrated into your own smart contract in 
    order for data requests to be initialised (via the Router), and data to be received (from
    a designated Provider)
    
@@ -231,8 +231,7 @@ the data to the requesting `MockConsumer` smart contract.
 2021-03-08T11:36:37.081Z running block watcher
 2021-03-08T11:36:37.135Z watchEvent DataRequested connected 0x1
 2021-03-08T11:36:37.136Z watchEvent RequestFulfilled connected 0x2
-2021-03-08T11:36:37.140Z watchEvent RequestCancelled connected 0x3
-2021-03-08T11:36:37.142Z watchBlocks newBlockHeaders connected 0x4
+2021-03-08T11:36:37.142Z watchBlocks newBlockHeaders connected 0x3
 ```
 
 **Note**: The price returned by the Oracle is always standardised to `actualPrice * (10 ** 18)`
