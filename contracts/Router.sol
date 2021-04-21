@@ -3,46 +3,32 @@
 pragma solidity >=0.7.0 <0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "./lib/ConsumerBase.sol";
+import "./interfaces/IConsumerBase.sol";
+import "./lib/RequestIdBase.sol";
+
 
 /**
  * @title Data Request routing smart contract.
  *
- * @dev Routes requests for data from Consumers to authorised data providers.
+ * @dev Routes requests for data from Consumers to data providers.
  * Data providers listen for requests and process data, sending it back to the
  * Consumer's smart contract.
  *
  * An ERC-20 Token fee is charged by the provider, and paid for by the consumer
- * The consumer is also responsible for reimbursing any Tx gas costs incurred
- * by the data provider for submitting the data to their smart contract (within
- * a reasonable limit)
  *
- * This contract uses {AccessControl} to lock permissioned functions using the
- * different roles.
  */
-contract Router is AccessControl, ReentrancyGuard {
+contract Router is RequestIdBase, ReentrancyGuard {
     using SafeMath for uint256;
     using Address for address;
 
     /*
      * CONSTANTS
      */
-    // The expected base amount of gas that a small fulfillRequest will consume,
-    // without the actual gas used to call the underlying Consumer contract's
-    // function. This will be added in the fulfillRequest function.
-    // Used to calculate the refund to the provider, if the
-    // provider expects the consumer to pay for the gas.
-    // Note: First time fulfillments are usually more expensive
-    // since they will be setting a zero value in the Consumer's contract
-    // Subsequent calls will be cheaper.
-    uint256 public constant EXPECTED_GAS_FIRST_FULFILMENT = 90550;
-    uint256 public constant EXPECTED_GAS = 56290;
 
     uint8 public constant REQUEST_STATUS_NOT_SET = 0;
     uint8 public constant REQUEST_STATUS_REQUESTED = 1;
@@ -52,102 +38,69 @@ contract Router is AccessControl, ReentrancyGuard {
      */
 
     struct DataRequest {
-        address dataConsumer;
-        address payable dataProvider;
-        uint64 expires;
-        uint64 fee;
-        uint64 gasPrice;
+        address consumer;
+        address provider;
+        uint256 fee;
         uint8 status;
     }
 
     struct DataProvider {
-        bool providerPaysGas;
-        uint64 minFee;
+        uint256 minFee;
+        mapping(address => uint256) granularFees; // Per consumer fees if required
     }
 
-    uint256 private gasTopUpLimit; // max ETH that can be sent in a gas top up Tx
+    /*
+     * STATE VARS
+     */
 
-    // Eth held for provider gas payments
-    uint256 private totalGasDeposits;
+    // Contract address of ERC-20 Token being used to pay for data
+    IERC20 private immutable token;
 
-    IERC20 private token; // Contract address of ERC-20 Token being used to pay for data
-
-    // Eth held for provider gas payments
-    mapping(address => uint256) private gasDepositsForConsumer;
-    mapping(address => mapping(address => uint256)) private gasDepositsForConsumerProviders;
+    // Mapping to hold registered providers
     mapping(address => DataProvider) private dataProviders;
-
-    // Mapping for [dataConsumers] to [dataProviders].
-    // A dataProvider is authorised to provide data for the dataConsumer
-    mapping(address => mapping(address => bool)) public consumerAuthorisedProviders;
 
     // Mapping to hold open data requests
     mapping(bytes32 => DataRequest) public dataRequests;
 
-    mapping(address => bool) public consumerPreviousFulfillment;
+    // nonces for generating requestIds. Must be in sync with the consumer's 
+    // nonces defined in ConsumerBase.sol.
+    mapping(address => mapping(address => uint256)) private nonces;
+
+    // Mapping to track accumulated provider earnings upon request fulfillment.
+    mapping(address => uint256) private withdrawableTokens;
+
+    /*
+     * EVENTS
+     */
 
     /**
      * @dev DataRequested. Emitted when a data request is sent by a Consumer.
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the data provider
+     * @param consumer address of the Consumer's contract
+     * @param provider address of the data provider
      * @param fee amount of xFUND paid for data request
      * @param data data being requested
      * @param requestId the request ID
-     * @param gasPrice max gas price the Consumer is willing to pay for data fulfilment
-     * @param expires request expire time, after which the Consumer can cancel the request
      */
     event DataRequested(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint64 fee,
+        address indexed consumer,
+        address indexed provider,
+        uint256 fee,
         bytes32 data,
-        bytes32 indexed requestId,
-        uint64 gasPrice,
-        uint64 expires
+        bytes32 indexed requestId
     );
-
-    /**
-     * @dev GrantProviderPermission. Emitted when a Consumer grants permission to a provider
-     * to fulfil data requests.
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the data provider
-     */
-    event GrantProviderPermission(address indexed dataConsumer, address indexed dataProvider);
-
-    /**
-     * @dev RevokeProviderPermission. Emitted when a Consumer revokes permission for a provider
-     * to fulfil data requests.
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the data provider
-     */
-    event RevokeProviderPermission(address indexed dataConsumer, address indexed dataProvider);
 
     /**
      * @dev RequestFulfilled. Emitted when a provider fulfils a data request
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the data provider
+     * @param consumer address of the Consumer's contract
+     * @param provider address of the data provider
      * @param requestId the request ID being fulfilled
      * @param requestedData the data sent to the Consumer's contract
-     * @param gasPayer who paid the gas for fulfilling the request (provider or consumer)
      */
     event RequestFulfilled(
-        address indexed dataConsumer,
-        address indexed dataProvider,
+        address indexed consumer,
+        address indexed provider,
         bytes32 indexed requestId,
-        uint256 requestedData,
-        address gasPayer
-    );
-
-    /**
-     * @dev RequestCancelled. Emitted when a consumer cancels a data request
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the data provider
-     * @param requestId the request ID being cancelled
-     */
-    event RequestCancelled(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        bytes32 indexed requestId
+        uint256 requestedData
     );
 
     /**
@@ -157,272 +110,152 @@ contract Router is AccessControl, ReentrancyGuard {
     event TokenSet(address tokenAddress);
 
     /**
-     * @dev SetGasTopUpLimit. Emitted when the Router admin changes the gas topup limit
-     * with the setGasTopUpLimit function
-     * @param sender address of the admin
-     * @param oldLimit old limit
-     * @param newLimit new limit
-     */
-    event SetGasTopUpLimit(address indexed sender, uint256 oldLimit, uint256 newLimit);
-
-    /**
      * @dev ProviderRegistered. Emitted when a provider registers
-     * @param dataProvider address of the provider
+     * @param provider address of the provider
      * @param minFee new fee value
-     * @param providerPays true/false
      */
-    event ProviderRegistered(address indexed dataProvider, uint64 minFee, bool providerPays);
-
-    /**
-     * @dev SetProviderPaysGas. Emitted when a provider changes their params
-     * @param dataProvider address of the provider
-     * @param providerPays true/false
-     */
-    event SetProviderPaysGas(address indexed dataProvider, bool providerPays);
+    event ProviderRegistered(address indexed provider, uint256 minFee);
 
     /**
      * @dev SetProviderMinFee. Emitted when a provider changes their minimum token fee for providing data
-     * @param dataProvider address of the provider
-     * @param minFee new fee value
+     * @param provider address of the provider
+     * @param oldMinFee old fee value
+     * @param newMinFee new fee value
      */
-    event SetProviderMinFee(address indexed dataProvider, uint64 minFee);
+    event SetProviderMinFee(address indexed provider, uint256 oldMinFee, uint256 newMinFee);
 
     /**
-     * @dev GasToppedUp. Emitted when a Consumer calls the topUpGas function to send ETH to top up gas
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the provider who can claim a gas refund
-     * @param amount amount of ETH (in wei) being sent
+     * @dev SetProviderGranularFee. Emitted when a provider changes their token fee for providing data
+     * to a selected consumer contract
+     * @param provider address of the provider
+     * @param consumer address of the consumer
+     * @param oldFee old fee value
+     * @param newFee new fee value
      */
-    event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+    event SetProviderGranularFee(address indexed provider, address indexed consumer, uint256 oldFee, uint256 newFee);
 
     /**
-     * @dev GasWithdrawnByConsumer. Emitted when a Consumer withdraws any ETH held by the Router for gas refunds
-     * via the withDrawGasTopUpForProvider function
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the provider who can claim a gas refund
-     * @param amount amount of ETH (in wei) being sent
-     */
-    event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
+    * @dev WithdrawFees. Emitted when a provider withdraws their accumulated fees
+    * @param provider address of the provider withdrawing
+    * @param recipient address of the recipient
+    * @param amount uint256 amount being withdrawn
+    */
+    event WithdrawFees(address indexed provider, address indexed recipient, uint256 amount);
 
-    /**
-     * @dev GasRefundedToProvider. Emitted when a provider fulfils a data request, if the Consumer is to pay
-     * the gas costs for data fulfilment
-     * @param dataConsumer address of the Consumer's contract
-     * @param dataProvider address of the provider who can claim a gas refund
-     * @param amount amount of ETH (in wei) being refunded
+    /*
+     * FUNCTIONS
      */
-    event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
 
     /**
      * @dev Contract constructor. Accepts the address for a Token smart contract.
      * @param _token address must be for an ERC-20 token (e.g. xFUND)
      */
     constructor(address _token) {
-        require(_token != address(0), "Router: token cannot be zero address");
-        require(_token.isContract(), "Router: token address must be a contract");
+        require(_token != address(0), "token cannot be zero address");
+        require(_token.isContract(), "token address must be a contract");
         token = IERC20(_token);
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        gasTopUpLimit = 1 ether;
         emit TokenSet(_token);
-    }
-
-    /**
-     * @dev setGasTopUpLimit set the max amount of ETH that can be sent
-     * in a topUpGas Tx. Router admin calls this to set the maximum amount
-     * a Consumer can send in a single Tx, to prevent large amounts of ETH
-     * being sent.
-     *
-     * @param _gasTopUpLimit amount in wei
-     * @return success
-     */
-    function setGasTopUpLimit(uint256 _gasTopUpLimit) external onlyAdmin() returns (bool success) {
-        require(_gasTopUpLimit > 0, "Router: _gasTopUpLimit must be > 0");
-        uint256 oldGasTopUpLimit = gasTopUpLimit;
-        gasTopUpLimit = _gasTopUpLimit;
-        emit SetGasTopUpLimit(msg.sender, oldGasTopUpLimit, _gasTopUpLimit);
-        return true;
     }
 
     /**
      * @dev registerAsProvider - register as a provider
      * @param _minFee uint256 - minimum fee provider will accept to fulfill request
-     * @param _providerPaysGas bool - true if provider will pay gas
      * @return success
      */
-    function registerAsProvider(uint64 _minFee, bool _providerPaysGas) external returns (bool success) {
-        require(_minFee > 0, "Router: fee must be > 0");
-        dataProviders[msg.sender].providerPaysGas = _providerPaysGas;
+    function registerAsProvider(uint256 _minFee) external returns (bool success) {
+        require(_minFee > 0, "fee must be > 0");
+        require(dataProviders[msg.sender].minFee == 0, "already registered");
         dataProviders[msg.sender].minFee = _minFee;
-        emit ProviderRegistered(msg.sender, _minFee, _providerPaysGas);
-        return true;
-    }
-
-    /**
-     * @dev setProviderPaysGas - provider calls for setting who pays gas
-     * for sending the fulfillRequest Tx
-     * @param _providerPays bool - true if provider will pay gas
-     * @return success
-     */
-    function setProviderPaysGas(bool _providerPays) external returns (bool success) {
-        dataProviders[msg.sender].providerPaysGas = _providerPays;
-        emit SetProviderPaysGas(msg.sender, _providerPays);
+        emit ProviderRegistered(msg.sender, _minFee);
         return true;
     }
 
     /**
      * @dev setProviderMinFee - provider calls for setting its minimum fee
-     * @param _minFee uint256 - minimum fee provider will accept to fulfill request
+     * @param _newMinFee uint256 - minimum fee provider will accept to fulfill request
      * @return success
      */
-    function setProviderMinFee(uint64 _minFee) external returns (bool success) {
-        require(_minFee > 0, "Router: fee must be > 0");
-        dataProviders[msg.sender].minFee = _minFee;
-        emit SetProviderMinFee(msg.sender, _minFee);
+    function setProviderMinFee(uint256 _newMinFee) external returns (bool success) {
+        require(_newMinFee > 0, "fee must be > 0");
+        require(dataProviders[msg.sender].minFee > 0, "not registered yet");
+        uint256 oldMinFee = dataProviders[msg.sender].minFee;
+        dataProviders[msg.sender].minFee = _newMinFee;
+        emit SetProviderMinFee(msg.sender, oldMinFee, _newMinFee);
         return true;
     }
 
     /**
-     * @dev topUpGas data consumer contract calls this function to top up gas
-     * Gas is the ETH held by this contract which is used to refund Tx costs
-     * to the data provider for fulfilling a request.
-     *
-     * To prevent silly amounts of ETH being sent, a sensible limit is imposed.
-     *
-     * Can only top up for authorised providers
-     *
-     * @param _dataProvider address of data provider
+     * @dev setProviderGranularFee - provider calls for setting its fee for the selected consumer
+     * @param _consumer address of consumer contract
+     * @param _newFee uint256 - minimum fee provider will accept to fulfill request
      * @return success
      */
-    function topUpGas(address _dataProvider) external payable nonReentrant returns (bool success) {
-        uint256 amount = msg.value;
-        // msg.sender is the address of the Consumer's smart contract
-        address dataConsumer = msg.sender;
-        require(address(dataConsumer).isContract(), "Router: only a contract can top up gas");
-        require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
-        require(amount > 0, "Router: cannot top up zero");
-        require(amount <= gasTopUpLimit, "Router: cannot top up more than gasTopUpLimit");
-
-        // total held by Router contract
-        totalGasDeposits = totalGasDeposits.add(amount);
-
-        // Total held for dataConsumer contract
-        gasDepositsForConsumer[dataConsumer] = gasDepositsForConsumer[dataConsumer].add(amount);
-
-        // Total held for dataConsumer contract/provider pair
-        gasDepositsForConsumerProviders[dataConsumer][_dataProvider] = gasDepositsForConsumerProviders[dataConsumer][_dataProvider].add(amount);
-
-        emit GasToppedUp(dataConsumer, _dataProvider, amount);
+    function setProviderGranularFee(address _consumer, uint256 _newFee) external returns (bool success) {
+        require(_newFee > 0, "fee must be > 0");
+        require(dataProviders[msg.sender].minFee > 0, "not registered yet");
+        uint256 oldFee = dataProviders[msg.sender].granularFees[_consumer];
+        dataProviders[msg.sender].granularFees[_consumer] = _newFee;
+        emit SetProviderGranularFee(msg.sender, _consumer, oldFee, _newFee);
         return true;
     }
 
     /**
-     * @dev withDrawGasTopUpForProvider data consumer contract calls this function to
-     * withdraw any remaining ETH stored in the Router for gas refunds for a specified
-     * data provider.
-     *
-     * Consumer contract will then transfer through to the consumer contract's
-     * owner.
-     *
-     * NOTE - data provider authorisation is not checked, since a consumer needs to
-     * be able to withdraw for a data provide that has been revoked.
-     *
-     * @param _dataProvider address of data provider
-     * @return amountWithdrawn
+     * @dev Allows the provider to withdraw their xFUND
+     * @param _recipient is the address the funds will be sent to
+     * @param _amount is the amount of xFUND transferred from the Coordinator contract
      */
-    function withDrawGasTopUpForProvider(address _dataProvider) external nonReentrant returns (uint256 amountWithdrawn) {
-        // msg.sender is the consumer's contract
-        address payable dataConsumer = msg.sender;
-        require(address(dataConsumer).isContract(), "Router: only a contract can withdraw gas");
-        require(_dataProvider != address(0), "Router: _dataProvider cannot be zero address");
-
-        uint256 amount = gasDepositsForConsumerProviders[dataConsumer][_dataProvider];
-        if(amount > 0) {
-            // total held by Router contract
-            totalGasDeposits = totalGasDeposits.sub(amount);
-
-            // Total held for dataConsumer contract
-            gasDepositsForConsumer[dataConsumer] = gasDepositsForConsumer[dataConsumer].sub(amount);
-
-            // Total held for dataConsumer contract/provider pair
-            delete gasDepositsForConsumerProviders[dataConsumer][_dataProvider];
-
-            emit GasWithdrawnByConsumer(dataConsumer, _dataProvider, amount);
-
-            // send back to consumer contract
-            Address.sendValue(dataConsumer, amount);
-        }
-
-        return amount;
+    function withdraw(address _recipient, uint256 _amount) external hasAvailableTokens(_amount) {
+        withdrawableTokens[msg.sender] = withdrawableTokens[msg.sender].sub(_amount);
+        emit WithdrawFees(msg.sender, _recipient, _amount);
+        assert(token.transfer(_recipient, _amount));
     }
 
     /**
      * @dev initialiseRequest - called by Consumer contract to initialise a data request. Can only be called by
      * a contract. Daata providers can watch for the DataRequested being emitted, and act on any requests
-     * for the provider. Only the provider specified in the reqyest may fulfil the request.
-     * @param _dataProvider address of the data provider. Must be authorised for this consumer
+     * for the provider. Only the provider specified in the request may fulfil the request.
+     * @param _provider address of the data provider.
      * @param _fee amount of Tokens to pay for data
-     * @param _requestNonce incremented nonce for Consumer to help prevent request replay
      * @param _data type of data being requested. E.g. PRICE.BTC.USD.AVG requests average price for BTC/USD pair
-     * @param _gasPrice gas price Consumer is willing to pay for data return. Converted to gwei (10 ** 9) in this method
-     * @param _expires unix epoch for fulfillment expiration, after which cancelRequest can be called for refund
-     * @param _requestId the generated ID for this request - used to double check request is coming from the Consumer
      * @return success if the execution was successful. Status is checked in the Consumer contract
      */
     function initialiseRequest(
-        address payable _dataProvider,
-        uint64 _fee,
-        uint256 _requestNonce,
-        uint64 _gasPrice,
-        uint64 _expires,
-        bytes32 _requestId,
+        address _provider,
+        uint256 _fee,
         bytes32 _data
-    ) external nonReentrant returns (bool success) {
-        address dataConsumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
-        require(address(dataConsumer).isContract(), "Router: only a contract can initialise a request");
-        require(consumerAuthorisedProviders[dataConsumer][_dataProvider], "Router: dataProvider not authorised for this dataConsumer");
-        require(_fee >= dataProviders[_dataProvider].minFee, "Router: not enough fee");
-        require(token.balanceOf(dataConsumer) >= _fee, "Router: contract does not have enough tokens to pay fee");
-        require(token.allowance(dataConsumer, address(this)) >= _fee, "Router: not enough allowance to pay fee");
+    ) external paidSufficientFee(_fee, _provider) nonReentrant returns (bool success) {
+        address consumer = msg.sender; // msg.sender is the address of the Consumer's smart contract
+        require(address(consumer).isContract(), "only a contract can initialise");
+        require(dataProviders[_provider].minFee > 0, "provider not registered");
 
+        token.transferFrom(consumer, address(this), _fee);
+
+        uint256 nonce = nonces[_provider][consumer];
         // recreate request ID from params sent
-        bytes32 reqId = keccak256(
-            abi.encodePacked(
-                dataConsumer,
-                _dataProvider,
-                address(this),
-                _requestNonce
-            )
-        );
+        bytes32 requestId = makeRequestId(consumer, _provider, address(this), nonce, _data);
 
-        require(reqId == _requestId, "Router: reqId != _requestId");
-        require(dataRequests[reqId].status == REQUEST_STATUS_NOT_SET, "Router: request id already initialised");
-
-        DataRequest storage dr = dataRequests[reqId];
-
-        dr.dataConsumer = dataConsumer;
-        dr.dataProvider = _dataProvider;
-        dr.expires = _expires;
-        dr.fee = _fee;
-        dr.gasPrice = _gasPrice;
-        dr.status = REQUEST_STATUS_REQUESTED;
+        dataRequests[requestId].consumer = consumer;
+        dataRequests[requestId].provider = _provider;
+        dataRequests[requestId].fee = _fee;
+        dataRequests[requestId].status = REQUEST_STATUS_REQUESTED;
 
         // Transfer successful - emit the DataRequested event
         emit DataRequested(
-            dataConsumer,
-            _dataProvider,
+            consumer,
+            _provider,
             _fee,
             _data,
-            _requestId,
-            _gasPrice,
-            _expires
+            requestId
         );
+
+        nonces[_provider][consumer] = nonces[_provider][consumer].add(1);
 
         return true;
     }
 
     /**
      * @dev fulfillRequest - called by data provider to forward data to the Consumer. Only the specified provider
-     * may fulfil the data request. Gas paid by the provider may also be refunded to the provider.
+     * may fulfil the data request.
      * @param _requestId the request the provider is sending data for
      * @param _requestedData the data to send
      * @param _signature data provider's signature of the _requestId, _requestedData and Consumer's address
@@ -433,174 +266,45 @@ contract Router is AccessControl, ReentrancyGuard {
     external
     nonReentrant
     returns (bool){
-        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request does not exist");
+        require(dataProviders[msg.sender].minFee > 0, "provider not registered");
+        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "request does not exist");
 
-        require(tx.gasprice <= dataRequests[_requestId].gasPrice, "Router: tx.gasprice too high");
-
-        address dataConsumer = dataRequests[_requestId].dataConsumer;
-        address payable dataProvider = dataRequests[_requestId].dataProvider;
+        address consumer = dataRequests[_requestId].consumer;
+        address provider = dataRequests[_requestId].provider;
         uint256 fee = dataRequests[_requestId].fee;
 
         // signature must be valid. msg.sender must match
-        // 1. the dataProvider in the request
+        // 1. the provider in the request
         // 2. the address recovered from the signature
-        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _requestedData, dataConsumer)));
+        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(_requestId, _requestedData, consumer)));
         address recoveredProvider = ECDSA.recover(message, _signature);
-        require(
-            consumerAuthorisedProviders[dataConsumer][recoveredProvider] &&
-            consumerAuthorisedProviders[dataConsumer][msg.sender],
-            "Router: dataProvider not authorised for this dataConsumer"
-        );
 
         // msg.sender is the address of the data provider
-        require(msg.sender == dataProvider &&
+        require(msg.sender == provider &&
             msg.sender == recoveredProvider &&
-            recoveredProvider == dataProvider,
-            "Router: msg.sender != dataProvider || recoveredProvider"
+            recoveredProvider == provider,
+            "ECDSA.recover mismatch - correct provider and data?"
         );
-
-        address gasPayer = (dataProviders[dataProvider].providerPaysGas) ? dataProvider : dataConsumer;
 
         emit RequestFulfilled(
-            dataConsumer,
+            consumer,
             msg.sender,
             _requestId,
-            _requestedData,
-            gasPayer
+            _requestedData
         );
 
         delete dataRequests[_requestId];
 
-        // Pay dataProvider (msg.sender) from tokens held by the consumer's contract
-        // dataConsumer (msg.sender) is the address of the Consumer smart contract
-        // for which the provider is fulfilling the request.
-        // It must have enough Tokens to pay for the dataProvider's fee.
-        // Will return underlying ERC20 error "ERC20: transfer amount exceeds balance"
-        // if the Consumer's contract does not have enough tokens to pay
-        require(token.transferFrom(dataConsumer, dataProvider, fee));
+        withdrawableTokens[provider] = withdrawableTokens[provider].add(fee);
 
         // All checks have passed - send the data to the consumer contract
-        // dataConsumer will see msg.sender as the Router's contract address
+        // consumer will see msg.sender as the Router's contract address
         // using functionCall from OZ's Address library
-        ConsumerBase cb; // just used to get the rawReceiveData function's selector
-        uint256 gasLeftStart = gasleft();
+        IConsumerBase cb; // just used to get the rawReceiveData function's selector
         require(gasleft() >= 400000, "not enough gas");
-        dataConsumer.functionCall(abi.encodeWithSelector(cb.rawReceiveData.selector, _requestedData, _requestId));
-        uint256 gasUsedToCall = gasLeftStart - gasleft();
-
-        if(gasPayer != dataProvider) {
-            require(refundGas(dataConsumer, dataProvider, gasUsedToCall));
-        }
+        consumer.functionCall(abi.encodeWithSelector(cb.rawReceiveData.selector, _requestedData, _requestId));
 
         return true;
-    }
-
-    /**
-     * @dev refundGas - private function called by fulfillRequest, when Consumer is expected to pay
-     * the gas for fulfilling a request.
-     *
-     * @param _dataConsumer address of the consumer contract
-     * @param _dataProvider address of the data provider
-     * @param _gasUsedToCall amount of gas consumed calling the Consumer's rawReceiveData function
-     * @return success if the execution was successful.
-     */
-    function refundGas(address _dataConsumer, address payable _dataProvider, uint256 _gasUsedToCall) private returns (bool){
-        // calculate how much should be refunded to the provider
-        uint256 baseGas = EXPECTED_GAS_FIRST_FULFILMENT;
-        if(consumerPreviousFulfillment[_dataConsumer]) {
-            baseGas = EXPECTED_GAS;
-        }
-
-        consumerPreviousFulfillment[_dataConsumer] = true;
-
-        uint256 totalGasUsed = baseGas + _gasUsedToCall;
-        uint256 ethRefund = totalGasUsed.mul(tx.gasprice);
-
-        // check there's enough
-        require(
-            gasDepositsForConsumerProviders[_dataConsumer][_dataProvider] >= ethRefund
-            && totalGasDeposits >= ethRefund,
-            "Router: not enough ETH to refund"
-        );
-        // update total held by Router contract
-        totalGasDeposits = totalGasDeposits.sub(ethRefund);
-
-        // update total held for dataConsumer contract
-        gasDepositsForConsumer[_dataConsumer] = gasDepositsForConsumer[_dataConsumer].sub(ethRefund);
-
-        // update total held for dataConsumer contract/provider pair
-        gasDepositsForConsumerProviders[_dataConsumer][_dataProvider] = gasDepositsForConsumerProviders[_dataConsumer][_dataProvider].sub(ethRefund);
-
-        emit GasRefundedToProvider(_dataConsumer, _dataProvider, ethRefund);
-        // refund the provider
-        Address.sendValue(_dataProvider, ethRefund);
-        return true;
-    }
-
-    /**
-     * @dev cancelRequest - called by data Consumer to cancel a request. Can only be called once the request's
-     * expire time is exceeded. Cancelled requests cannot be fulfilled.
-     * @param _requestId the request the consumer wishes to cancel
-     * @return success if the execution was successful. Status is checked in the Consumer contract
-     */
-    function cancelRequest(bytes32 _requestId) external nonReentrant returns (bool) {
-        require(address(msg.sender).isContract(), "Router: only a contract can cancel a request");
-        require(dataRequests[_requestId].status == REQUEST_STATUS_REQUESTED, "Router: request id does not exist");
-
-        address dataConsumer = dataRequests[_requestId].dataConsumer;
-        address dataProvider = dataRequests[_requestId].dataProvider;
-        uint256 expires = dataRequests[_requestId].expires;
-
-        // msg.sender is the contract address of the consumer
-        require(msg.sender == dataConsumer, "Router: msg.sender != dataConsumer");
-        require(block.timestamp >= expires, "Router: request has not yet expired");
-
-        emit RequestCancelled(
-            msg.sender,
-            dataProvider,
-            _requestId
-        );
-
-        delete dataRequests[_requestId];
-
-        return true;
-    }
-
-    /**
-     * @dev grantProviderPermission - called by Consumer to grant permission to a data provider to send data
-     * @param _dataProvider address of the data provider to grant access
-     * @return success if the execution was successful. Status is checked in the Consumer contract
-     */
-    function grantProviderPermission(address _dataProvider) external returns (bool) {
-        // msg.sender is the address of the Consumer's smart contract
-        require(address(msg.sender).isContract(), "Router: only a contract can grant a provider permission");
-        require(dataProviders[_dataProvider].minFee > 0, "Router: provider not registered");
-        consumerAuthorisedProviders[msg.sender][_dataProvider] = true;
-        emit GrantProviderPermission(msg.sender, _dataProvider);
-        return true;
-    }
-
-    /**
-     * @dev revokeProviderPermission - called by Consumer to revoke permission for a data provider to send data
-     * @param _dataProvider address of the data provider to revoke access
-     * @return success if the execution was successful. Status is checked in the Consumer contract
-     */
-    function revokeProviderPermission(address _dataProvider) external returns (bool) {
-        // msg.sender is the address of the Consumer's smart contract
-        require(address(msg.sender).isContract(), "Router: only a contract can revoke a provider permission");
-        consumerAuthorisedProviders[msg.sender][_dataProvider] = false;
-        emit RevokeProviderPermission(msg.sender, _dataProvider);
-        return true;
-    }
-
-    /**
-     * @dev providerIsAuthorised - check if provider is authorised for consumer
-     * @param _dataConsumer address of the data provider
-     * @param _dataProvider address of the data provider
-     * @return success if the execution was successful. Status is checked in the Consumer contract
-     */
-    function providerIsAuthorised(address _dataConsumer, address _dataProvider) external view returns (bool) {
-        return consumerAuthorisedProviders[_dataConsumer][_dataProvider];
     }
 
     /**
@@ -612,49 +316,22 @@ contract Router is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @dev getDataRequestConsumer - get the dataConsumer for a request
+     * @dev getDataRequestConsumer - get the consumer for a request
      * @param _requestId bytes32 request id
      * @return address data consumer contract address
      */
     function getDataRequestConsumer(bytes32 _requestId) external view returns (address) {
-        return dataRequests[_requestId].dataConsumer;
+        return dataRequests[_requestId].consumer;
     }
 
     /**
-     * @dev getDataRequestProvider - get the dataConsumer for a request
+     * @dev getDataRequestProvider - get the consumer for a request
      * @param _requestId bytes32 request id
      * @return address data provider address
      */
     function getDataRequestProvider(bytes32 _requestId) external view returns (address) {
-        return dataRequests[_requestId].dataProvider;
+        return dataRequests[_requestId].provider;
     }
-
-    /**
-     * @dev getDataRequestExpires - get the expire timestamp for a request
-     * @param _requestId bytes32 request id
-     * @return uint256 expire timestamp
-     */
-    function getDataRequestExpires(bytes32 _requestId) external view returns (uint256) {
-        return dataRequests[_requestId].expires;
-    }
-
-    /**
-     * @dev getDataRequestGasPrice - get the max gas price consumer will pay for a request
-     * @param _requestId bytes32 request id
-     * @return uint256 expire timestamp
-     */
-    function getDataRequestGasPrice(bytes32 _requestId) external view returns (uint256) {
-        return dataRequests[_requestId].gasPrice;
-    }
-
-    /**
-     * @dev getGasTopUpLimit - get the gas top up limit
-     * @return uint256 amount in wei
-     */
-    function getGasTopUpLimit() external view returns (uint256) {
-        return gasTopUpLimit;
-    }
-
     /**
      * @dev requestExists - check a request ID exists
      * @param _requestId bytes32 request id
@@ -668,7 +345,6 @@ contract Router is AccessControl, ReentrancyGuard {
      * @dev getRequestStatus - check a request status
      * 0 = does not exist/not yet initialised
      * 1 = Request initialised
-     * 2 = fulfillment processing
      * @param _requestId bytes32 request id
      * @return bool
      */
@@ -677,62 +353,55 @@ contract Router is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @dev getTotalGasDeposits - get total gas deposited in Router
-     * @return uint256
-     */
-    function getTotalGasDeposits() external view returns (uint256) {
-        return totalGasDeposits;
-    }
-
-    /**
-     * @dev getGasDepositsForConsumer - get total gas deposited in Router
-     * by a data consumer
-     * @param _dataConsumer address of data consumer
-     * @return uint256
-     */
-    function getGasDepositsForConsumer(address _dataConsumer) external view returns (uint256) {
-        return gasDepositsForConsumer[_dataConsumer];
-    }
-
-    /**
-     * @dev getGasDepositsForConsumerProviders - get total gas deposited in Router
-     * by a data consumer for a given data provider
-     * @param _dataConsumer address of data consumer
-     * @param _dataProvider address of data provider
-     * @return uint256
-     */
-    function getGasDepositsForConsumerProviders(address _dataConsumer, address _dataProvider) external view returns (uint256) {
-        return gasDepositsForConsumerProviders[_dataConsumer][_dataProvider];
-    }
-
-    /**
-     * @dev getProviderPaysGas - returns whether or not the given provider pays gas
-     * for sending the fulfillRequest Tx
-     * @param _dataProvider address of data provider
-     * @return bool
-     */
-    function getProviderPaysGas(address _dataProvider) external view returns (bool) {
-        return dataProviders[_dataProvider].providerPaysGas;
-    }
-
-    /**
      * @dev getProviderMinFee - returns minimum fee provider will accept to fulfill data request
-     * @param _dataProvider address of data provider
-     * @return uint64
+     * @param _provider address of data provider
+     * @return uint256
      */
-    function getProviderMinFee(address _dataProvider) external view returns (uint64) {
-        return dataProviders[_dataProvider].minFee;
+    function getProviderMinFee(address _provider) external view returns (uint256) {
+        return dataProviders[_provider].minFee;
     }
 
-    /*
-     * MODIFIERS
+    /**
+     * @dev getProviderGranularFee - returns fee provider will accept to fulfill data request
+     * for the given consumer
+     * @param _provider address of data provider
+     * @param _consumer address of consumer contract
+     * @return uint256
      */
+    function getProviderGranularFee(address _provider, address _consumer) external view returns (uint256) {
+        return dataProviders[_provider].granularFees[_consumer];
+    }
 
     /**
-     * @dev onlyAdmin ensure only a Router admin can run the function
+     * @dev getWithdrawableTokens - returns withdrawable tokens for the given provider
+     * @param _provider address of data provider
+     * @return uint256
      */
-    modifier onlyAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Router: only admin can do this");
+    function getWithdrawableTokens(address _provider) external view returns (uint256) {
+        return withdrawableTokens[_provider];
+    }
+
+    /**
+     * @dev Reverts if amount is not at least what the provider has set as their min fee
+     * @param _feePaid The payment for the request
+     * @param _provider address of the provider
+     */
+    modifier paidSufficientFee(uint256 _feePaid, address _provider) {
+        require(_feePaid > 0, "fee cannot be zero");
+        if(dataProviders[_provider].granularFees[msg.sender] > 0) {
+            require(_feePaid >= dataProviders[_provider].granularFees[msg.sender], "below agreed granular fee");
+        } else {
+            require(_feePaid >= dataProviders[_provider].minFee, "below agreed min fee");
+        }
+        _;
+    }
+
+    /**
+     * @dev Reverts if amount requested is greater than withdrawable balance
+     * @param _amount The given amount to compare to `withdrawableTokens`
+     */
+    modifier hasAvailableTokens(uint256 _amount) {
+        require(withdrawableTokens[msg.sender] >= _amount, "can't withdraw more than balance");
         _;
     }
 }
