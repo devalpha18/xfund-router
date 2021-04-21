@@ -23,12 +23,13 @@ const getReqIdFromReceipt = function (receipt) {
   return null
 }
 
-const generateRequestId = function (consumerAddress, requestNonce, dataProvider, routerAddress) {
+const generateRequestId = function (consumerAddress, dataProvider, routerAddress, requestNonce, endpoint) {
   return web3.utils.soliditySha3(
     { type: "address", value: consumerAddress },
     { type: "address", value: dataProvider },
     { type: "address", value: routerAddress },
     { type: "uint256", value: requestNonce.toNumber() },
+    { type: "bytes32", value: endpoint },
   )
 }
 
