@@ -7,16 +7,18 @@ const {
 
 const { expect } = require("chai")
 
-const { generateRequestId, generateSigMsg } = require("./helpers/utils")
+const { generateRequestId, generateSigMsg, getReqIdFromReceipt, randomPrice } = require("./helpers/utils")
 
 const MockToken = artifacts.require("MockToken") // Loads a compiled contract
 const Router = artifacts.require("Router") // Loads a compiled contract
 const MockConsumer = artifacts.require("MockConsumer") // Loads a compiled contract
 
 contract("Router - fulfillment & withdraw tests", (accounts) => {
-  const [admin, dataProvider, dataConsumerOwner, rando, beneficiary] = accounts
+  const [admin, dataProvider, dataConsumerOwner, rando, beneficiary, c1, c2, c3, p1, p2] = accounts
   const dataProviderPk = "0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"
   const randoPk = "0x646f1ce2fdad0e6deeeb5c7e8e5543bdde65e86029e2fd9fc169899c440a7913"
+  const p1pk = "0x829e924fdf021ba3dbbc4225edfece9aca04b929d6e75613329ca6f1d31c0bb4"
+  const p2pk = "0xb0057716d5917badaf911b193b12b910811c1497b5bada8d7711f758981c3773"
 
   const decimals = 9
   const initSupply = 1000 * 10 ** decimals
@@ -110,7 +112,55 @@ contract("Router - fulfillment & withdraw tests", (accounts) => {
         })
       })
 
-      it("provider tokens correctly credited", async function () {
+      it("nonces remain in sync", async function () {
+        const accs = [c1, c2, c3]
+        const providers = [p1, p2, p1]
+        const provPks = [p1pk, p2pk, p1pk]
+        const contracts = []
+        const numReqs = 5
+        const tokens = defaultFee * numReqs
+        // register provider on router
+        await this.RouterContract.registerAsProvider(defaultFee, { from: p1 })
+        await this.RouterContract.registerAsProvider(defaultFee, { from: p2 })
+        for (let i = 0; i < accs.length; i += 1) {
+          const acc = accs[i]
+          const c = await MockConsumer.new(this.RouterContract.address, this.MockTokenContract.address, {
+            from: acc,
+          })
+
+          // send xFUND to consumer contract
+          await this.MockTokenContract.transfer(c.address, tokens, { from: admin })
+          // increase router allowance
+          await c.increaseRouterAllowance(tokens, { from: acc })
+          contracts.push(c)
+        }
+
+        for (let i = 0; i < numReqs; i += 1) {
+          for (let j = 0; j < accs.length; j += 1) {
+            const acc = accs[j]
+            const c = contracts[j]
+            const p = providers[j]
+            const pk = provPks[j]
+            const ep = web3.utils.randomHex(32)
+            const reqRec = await c.getData(p, defaultFee, ep, { from: acc })
+            const reqId = getReqIdFromReceipt(reqRec)
+            const price = randomPrice()
+            const msg = generateSigMsg(reqId, price, c.address)
+            const sig = await web3.eth.accounts.sign(msg, pk)
+            const ffRec = await this.RouterContract.fulfillRequest(reqId, price, sig.signature, {
+              from: p,
+            })
+            expectEvent.inTransaction(ffRec.tx, this.RouterContract, "RequestFulfilled", {
+              consumer: c.address,
+              provider: p,
+              requestId: reqId,
+              requestedData: new BN(price),
+            })
+          }
+        }
+      })
+
+      it("provider tokens correctly credited - standard fee", async function () {
         // register provider on router
         await this.RouterContract.registerAsProvider(defaultFee, { from: dataProvider })
         // send xFUND to consumer contract
@@ -140,6 +190,44 @@ contract("Router - fulfillment & withdraw tests", (accounts) => {
 
         expect(await this.RouterContract.getWithdrawableTokens(dataProvider)).to.be.bignumber.equal(
           new BN(defaultFee),
+        )
+      })
+
+      it("provider tokens correctly credited - granular fee", async function () {
+        const granularFee = defaultFee * 2
+        // register provider on router
+        await this.RouterContract.registerAsProvider(defaultFee, { from: dataProvider })
+        // set granular fee
+        await this.RouterContract.setProviderGranularFee(this.MockConsumerContract.address, granularFee, {
+          from: dataProvider,
+        })
+        // send xFUND to consumer contract
+        await this.MockTokenContract.transfer(this.MockConsumerContract.address, granularFee, { from: admin })
+        // increase router allowance
+        await this.MockConsumerContract.increaseRouterAllowance(granularFee, { from: dataConsumerOwner })
+
+        const requestId = generateRequestId(
+          this.MockConsumerContract.address,
+          dataProvider,
+          this.RouterContract.address,
+          new BN(0),
+          endpoint,
+        )
+
+        // request
+        await this.MockConsumerContract.getData(dataProvider, granularFee, endpoint, {
+          from: dataConsumerOwner,
+        })
+
+        // fulfill
+        const msg = generateSigMsg(requestId, priceToSend, this.MockConsumerContract.address)
+        const sig = await web3.eth.accounts.sign(msg, dataProviderPk)
+        await this.RouterContract.fulfillRequest(requestId, priceToSend, sig.signature, {
+          from: dataProvider,
+        })
+
+        expect(await this.RouterContract.getWithdrawableTokens(dataProvider)).to.be.bignumber.equal(
+          new BN(granularFee),
         )
       })
     })

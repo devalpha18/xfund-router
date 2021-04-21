@@ -23,8 +23,9 @@ contract("Consumer - deploy", (accounts) => {
 
   it("can deploy a Consumer contract with router address - has correct router address", async function () {
     const MockConsumerContract = await MockConsumer.new(this.RouterContract.address, this.MockTokenContract.address, {
-      from: dataConsumerOwner,
-    })
+        from: dataConsumerOwner,
+      },
+    )
     expect(await MockConsumerContract.getRouterAddress()).to.equal(this.RouterContract.address)
   })
 
@@ -35,24 +36,10 @@ contract("Consumer - deploy", (accounts) => {
     )
   })
 
-  it("router address must be a contract", async function () {
-    await expectRevert(
-      MockConsumer.new(eoa, this.MockTokenContract.address, { from: dataConsumerOwner }),
-      "router address must be a contract",
-    )
-  })
-
   it("must deploy with xfund contract address", async function () {
     await expectRevert(
       MockConsumer.new(this.MockTokenContract.address, constants.ZERO_ADDRESS, { from: dataConsumerOwner }),
       "xfund cannot be the zero address",
-    )
-  })
-
-  it("xfund address must be a contract", async function () {
-    await expectRevert(
-      MockConsumer.new(this.RouterContract.address, eoa, { from: dataConsumerOwner }),
-      "xfund address must be a contract",
     )
   })
 })
