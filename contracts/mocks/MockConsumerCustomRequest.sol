@@ -38,7 +38,7 @@ contract MockConsumerCustomRequest is ConsumerBase {
         bytes32 _data)
     external {
         // call the underlying function
-        bytes32 requestId = requestData(_dataProvider, _fee, _data);
+        bytes32 requestId = _requestData(_dataProvider, _fee, _data);
         emit CustomDataRequested(requestId, _data);
         myCustomRequestStorage[requestId] = _data;
     }

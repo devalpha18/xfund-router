@@ -10,7 +10,7 @@ import "../interfaces/IRouter.sol";
 import "./RequestIdBase.sol";
 
 /**
- * @title Data Consumer smart contract
+ * @title ConsumerBase smart contract
  *
  * @dev This contract can be imported by any smart contract wishing to include
  * off-chain data or data from a different network within it.
@@ -28,6 +28,8 @@ abstract contract ConsumerBase is RequestIdBase {
      * STATE VARIABLES
      */
 
+    // nonces for generating requestIds. Must be in sync with the
+    // nonces defined in Router.sol.
     mapping(address => uint256) private nonces;
 
     IERC20_Ex internal immutable xFUND;
@@ -88,7 +90,7 @@ abstract contract ConsumerBase is RequestIdBase {
     }
 
     /**
-     * @dev requestData - initialises a data request. forwards the request to the deployed
+     * @dev _requestData - initialises a data request. forwards the request to the deployed
      * Router smart contract.
      *
      * @param _dataProvider payable address of the data provider
@@ -97,7 +99,7 @@ abstract contract ConsumerBase is RequestIdBase {
      * average price for BTC/USD pair
      * @return requestId bytes32 request ID which can be used to track or cancel the request
      */
-    function requestData(address _dataProvider, uint256 _fee, bytes32 _data)
+    function _requestData(address _dataProvider, uint256 _fee, bytes32 _data)
     internal returns (bytes32) {
         bytes32 requestId = makeRequestId(address(this), _dataProvider, address(router), nonces[_dataProvider], _data);
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
@@ -130,7 +132,7 @@ abstract contract ConsumerBase is RequestIdBase {
         receiveData(_price, _requestId);
     }
 
-    /*
+    /**
     * @dev receiveData - should be overridden by contract developers to process the
     * data fulfilment in their own contract.
     *

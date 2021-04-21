@@ -13,7 +13,7 @@ import "./lib/RequestIdBase.sol";
 
 
 /**
- * @title Data Request routing smart contract.
+ * @title Router smart contract
  *
  * @dev Routes requests for data from Consumers to data providers.
  * Data providers listen for requests and process data, sending it back to the

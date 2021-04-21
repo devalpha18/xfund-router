@@ -7,13 +7,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // must import this in order for it to connect to the system and network.
 import "../lib/ConsumerBase.sol";
 
-/*
- * @title Data Consumer demo smart contract
+/**
+ * @title Data Consumer Demo
+ *
  * @dev Note the "is ConsumerBase", to extend
  * https://github.com/unification-com/xfund-router/blob/main/contracts/lib/ConsumerBase.sol
  * ConsumerBase.sol interacts with the deployed Router.sol smart contract
  * which will route data requests and fee payment to the selected provider
  * and handle data fulfilment.
+ *
  * The selected provider will listen to the Router for requests, then send the data
  * back to the Router, which will in turn forward the data to your smart contract
  * after verifying the source of the data.
@@ -33,7 +35,7 @@ contract DemoConsumer is ConsumerBase, Ownable {
     // Will be called when data provider has sent data to the recieveData function
     event PriceDiff(bytes32 requestId, uint256 oldPrice, uint256 newPrice, int256 diff);
 
-    /*
+    /**
      * @dev constructor must pass the address of the Router and xFUND smart
      * contracts to the constructor of your contract! Without it, this contract
      * cannot interact with the system, nor request/receive any data.
@@ -51,7 +53,7 @@ contract DemoConsumer is ConsumerBase, Ownable {
         fee = _fee;
     }
 
-    /*
+    /**
      * @dev setProvider change default provider. Uses OpenZeppelin's
      * onlyOwner modifier to secure the function.
      *
@@ -61,7 +63,7 @@ contract DemoConsumer is ConsumerBase, Ownable {
         provider = _provider;
     }
 
-    /*
+    /**
      * @dev setFee change default fee. Uses OpenZeppelin's
      * onlyOwner modifier to secure the function.
      *
@@ -71,7 +73,7 @@ contract DemoConsumer is ConsumerBase, Ownable {
         fee = _fee;
     }
 
-    /*
+    /**
      * @dev getData the actual function to request data.
      *
      * NOTE: Calls ConsumerBase.sol's requestData function.
@@ -85,10 +87,10 @@ contract DemoConsumer is ConsumerBase, Ownable {
      * @param _data bytes32 data being requested.
      */
     function getData(bytes32 _data) external onlyOwner returns (bytes32) {
-        return requestData(provider, fee, _data);
+        return _requestData(provider, fee, _data);
     }
 
-    /*
+    /**
      * @dev increaseRouterAllowance allows the Router to spend xFUND on behalf of this
      * smart contract.
      *
@@ -103,7 +105,7 @@ contract DemoConsumer is ConsumerBase, Ownable {
         require(_increaseRouterAllowance(_amount));
     }
 
-    /*
+    /**
      * @dev setRouter allows updating the Router contract address
      *
      * NOTE: Calls the internal setRouter function in ConsumerBase.sol.
@@ -117,19 +119,19 @@ contract DemoConsumer is ConsumerBase, Ownable {
         require(_setRouter(_router));
     }
 
-    /*
+    /**
      * @dev increaseRouterAllowance allows contract owner to withdraw
      * any xFUND held in this contract.
      * Uses OpenZeppelin's onlyOwner modifier to secure the function.
      *
-     * @param to address recipient
-     * @param value uint256 amount to withdraw
+     * @param _to address recipient
+     * @param _value uint256 amount to withdraw
      */
-    function withdrawxFund(address to, uint256 value) external onlyOwner {
-        require(xFUND.transfer(to, value), "Not enough xFUND");
+    function withdrawxFund(address _to, uint256 _value) external onlyOwner {
+        require(xFUND.transfer(_to, _value), "Not enough xFUND");
     }
 
-    /*
+    /**
      * @dev recieveData - example end user function to receive data. This will be called
      * by the data provider, via the Router's fulfillRequest, and through the ConsumerBase's
      * rawReceiveData function.

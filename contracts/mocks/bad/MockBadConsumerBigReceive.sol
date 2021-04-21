@@ -26,7 +26,7 @@ contract MockBadConsumerBigReceive is ConsumerBase {
     }
 
     function getData(address _dataProvider, uint256 _fee, bytes32 _data) external {
-        requestData(_dataProvider, _fee, _data);
+        _requestData(_dataProvider, _fee, _data);
     }
 
     function setPrice(uint256 _price) external {
