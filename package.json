@@ -1,6 +1,6 @@
 {
   "name": "@unification-com/xfund-router",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "xFUND Router & Data Consumer Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "dev:oracle": "nodemon --exec babel-node -- provider-oracle --run=run-oracle",
     "build:oracle": "rimraf dist && babel provider-oracle -d dist/provider-oracle",
     "test": "truffle test",
-    "coverage": "IS_COVERAGE=1 truffle run coverage",
+    "coverage": "truffle run coverage",
     "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol",
     "prepublishOnly": "truffle compile",
     "docs:api:clean": "rimraf docs/api",
