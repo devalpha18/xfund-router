@@ -7,7 +7,6 @@ const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
 const {
   updateLastHeight,
   updateJobComplete,
-  updateJobCancelled,
   updateJobRecieved,
   updateJobFulfilling,
   updateJobWithStatusReason,
@@ -27,21 +26,16 @@ class ProviderOracle {
     this.currentBlock = await this.router.getBlockNumber()
 
     this.dataRequestEvent = "DataRequested"
-    this.dataCancelledEvent = "RequestCancelled"
     this.dataRequestFulfilledEvent = "RequestFulfilled"
 
     this.fromBlockRequests = WATCH_FROM_BLOCK || this.currentBlock
     this.fromBlockFulfillments = WATCH_FROM_BLOCK || this.currentBlock
-    this.fromBlockCancellations = WATCH_FROM_BLOCK || this.currentBlock
 
     console.log(new Date(), "current Eth height", this.currentBlock)
 
     const fromBlockRequestsRes = await LastGethBlock.findOne({ where: { event: this.dataRequestEvent } })
     const fromBlockFulfillmentsRes = await LastGethBlock.findOne({
       where: { event: this.dataRequestFulfilledEvent },
-    })
-    const fromBlockCancellationsRes = await LastGethBlock.findOne({
-      where: { event: this.dataCancelledEvent },
     })
 
     if (fromBlockRequestsRes) {
@@ -50,16 +44,9 @@ class ProviderOracle {
     if (fromBlockFulfillmentsRes) {
       this.fromBlockFulfillments = parseInt(fromBlockFulfillmentsRes.height, 10)
     }
-    const diff1 = this.currentBlock - this.fromBlockFulfillments
-    if (diff1 > 128) {
+    const diff = this.currentBlock - this.fromBlockFulfillments
+    if (diff > 128) {
       this.fromBlockFulfillments = this.currentBlock - 128
-    }
-    if (fromBlockCancellationsRes) {
-      this.fromBlockCancellations = parseInt(fromBlockCancellationsRes.height, 10)
-    }
-    const diff2 = this.currentBlock - this.fromBlockCancellations
-    if (diff2 > 128) {
-      this.fromBlockCancellations = this.currentBlock - 128
     }
     console.log(new Date(), "get supported pairs")
     await updateSupportedPairs()
@@ -76,8 +63,6 @@ class ProviderOracle {
       this.fromBlockFulfillments,
     )
     this.watchIncommingFulfillments()
-    console.log(new Date(), "watching", this.dataCancelledEvent, "from block", this.fromBlockCancellations)
-    this.watchIncommingCancellations()
     console.log(new Date(), "watching blocks for jobs to process from block", this.fromBlockRequests)
     this.fulfillRequests()
   }
@@ -110,12 +95,11 @@ class ProviderOracle {
 
           if (requestValid) {
             const requestTxHash = event.transactionHash
-            const { dataConsumer } = event.returnValues
+            const { consumer } = event.returnValues
             const endpoint = Web3.utils.toUtf8(event.returnValues.data)
-            const gasPriceWei = event.returnValues.gasPrice // already in wei
             const { fee } = event.returnValues
 
-            console.log(new Date(), "incoming job requestId", requestId, "from", dataConsumer)
+            console.log(new Date(), "incoming job requestId", requestId, "from", consumer)
             // add to Jobs table
             const heightToFulfill = height + waitConfirmations
             const [fr, frCreated] = await Jobs.findOrCreate({
@@ -127,9 +111,8 @@ class ProviderOracle {
                 requestTxHash,
                 requestHeight: height,
                 endpoint,
-                dataConsumer,
+                consumer,
                 heightToFulfill,
-                gas: gasPriceWei.toString(),
                 fee: fee.toString(),
                 requestStatus: REQUEST_STATUS.REQUEST_STATUS_OPEN,
               },
@@ -138,7 +121,7 @@ class ProviderOracle {
             if (frCreated) {
               console.log(
                 new Date(),
-                `Add new job ${endpoint} to queue from ${dataConsumer}. Job #${fr.id}, process in block ${heightToFulfill}`,
+                `Add new job ${endpoint} to queue from ${consumer}. Job #${fr.id}, process in block ${heightToFulfill}`,
               )
             } else {
               console.log(new Date(), `Job for request ID ${requestId} exists on DB - id: ${fr.id}`)
@@ -174,51 +157,25 @@ class ProviderOracle {
           const height = parseInt(event.blockNumber, 10)
           const { requestId } = event.returnValues
           const fulfillTxHash = event.transactionHash
-          const { gasPayer } = event.returnValues
+          let gasUsed = 0
+          let gasPrice = 0
+
+          try {
+            const txReceipt = await self.router.getTransactionReceipt(fulfillTxHash)
+            const tx = await self.router.getTransaction(fulfillTxHash)
+            gasUsed = txReceipt.gasUsed
+            gasPrice = tx.gasPrice
+          } catch (e) {
+            console.log(new Date(), "error getting Tx receipt", e.toString())
+          }
 
           console.log(new Date(), "incoming fulfillment requestId", requestId)
 
           const requestRes = await Jobs.findOne({ where: { requestId } })
 
           if (requestRes) {
-            await updateJobComplete(requestRes.id, fulfillTxHash, height, gasPayer)
+            await updateJobComplete(requestRes.id, fulfillTxHash, height, gasUsed, gasPrice)
             await updateLastHeight(self.dataRequestFulfilledEvent, height)
-          }
-        }
-      },
-    )
-  }
-
-  /**
-   * Watch for any RequestCancelled event and update the Jobs database
-   *
-   * @returns {Promise<void>}
-   */
-  async watchIncommingCancellations() {
-    console.log(new Date(), "BEGIN watchIncommingCancellations")
-    const self = this
-    await this.router.watchEvent(
-      this.dataCancelledEvent,
-      this.fromBlockCancellations,
-      async function processEvent(event, err) {
-        if (err) {
-          console.error(
-            new Date(),
-            "ERROR watchIncommingCancellations.processEvent for event",
-            self.dataCancelledEvent,
-          )
-          console.error(JSON.stringify(serializeError(err), null, 2))
-        } else {
-          const height = parseInt(event.blockNumber, 10)
-          const { requestId } = event.returnValues
-          const cancelTxHash = event.transactionHash
-
-          console.log(new Date(), "incoming cancellation requestId", requestId)
-
-          const requestRes = await Jobs.findOne({ where: { requestId } })
-          if (requestRes) {
-            await updateJobCancelled(requestRes.id, cancelTxHash, height)
-            await updateLastHeight(self.dataCancelledEvent, height)
           }
         }
       },
@@ -228,13 +185,12 @@ class ProviderOracle {
   /**
    * Monitors the newBlockHeaders WS subscription. With each new block,
    * it will check the Jobs database to see if any requests are due for processing.
-   * It will then check if the request is still valid (e.g.. hasn't been cancelled
-   * by the consumer), and attempt to query the Finchains API for the requested data
-   * endpoint. Finally, it will submit a fulfillRequest Tx to the router with the
-   * data.
+   * It will then check if the request is still valid, and attempt to query the
+   * Finchains API for the requested data endpoint. Finally, it will submit a
+   * fulfillRequest Tx to the router with the data.
    *
    * If the request does not exist in the Router smart contract, it will attempt to
-   * check of the request has previously been cancelled or fulfilled
+   * check of the request has previously been fulfilled
    *
    * @returns {Promise<void>}
    */
@@ -259,11 +215,10 @@ class ProviderOracle {
           console.log(new Date(), "process job", id)
           const { requestId } = jobsToProcess[i]
           const { requestHeight } = jobsToProcess[i]
-          const { dataConsumer } = jobsToProcess[i]
+          const { consumer } = jobsToProcess[i]
           const { endpoint } = jobsToProcess[i]
-          const gasPriceWei = jobsToProcess[i].gas
 
-          // check the request still exists and hasn't been cancelled or previously fulfilled
+          // check the request still exists and hasn't been previously fulfilled
           const requestExists = await self.router.getRequestExists(requestId)
           if (requestExists) {
             let price = new BN(0)
@@ -289,7 +244,7 @@ class ProviderOracle {
               )
               let fulfillTxHash
               try {
-                fulfillTxHash = await self.router.fulfillRequest(requestId, price, dataConsumer, gasPriceWei)
+                fulfillTxHash = await self.router.fulfillRequest(requestId, price, consumer)
                 console.log(
                   new Date(),
                   "fulfillRequest submitted: requestId",
@@ -311,7 +266,7 @@ class ProviderOracle {
               }
             }
           } else {
-            // perhaps cancelled or already fulfilled
+            // perhaps already fulfilled
             console.log(new Date(), "request id does not exist on Router. Check if previously fulfilled")
             const fulfilled = await self.router.searchEventsForRequest(
               requestHeight,
@@ -323,31 +278,16 @@ class ProviderOracle {
               const ev = fulfilled[0]
               if (ev.returnValues.requestId === requestId) {
                 console.log(new Date(), "fulfillRequests - request", requestId, "already fulfilled")
-                await updateJobComplete(id, ev.transactionHash, ev.blockNumber, ev.returnValues.gasPayer)
+                await updateJobComplete(id, ev.transactionHash, ev.blockNumber)
               }
             } else {
-              console.log(new Date(), "request id does not exist on Router. Check if previously cancelled")
-              const cancelled = await self.router.searchEventsForRequest(
-                requestHeight,
-                self.router.currentBlock,
-                self.dataCancelledEvent,
-                requestId,
+              console.log(new Date(), "request id does not exist on Router.")
+              // unknown request id
+              await updateJobWithStatusReason(
+                id,
+                REQUEST_STATUS.REQUEST_STATUS_ERROR_NOT_EXIST,
+                "request does not exist",
               )
-
-              if (cancelled.length > 0) {
-                const ev = cancelled[0]
-                if (ev.returnValues.requestId === requestId) {
-                  console.log(new Date(), "fulfillRequests - request", requestId, "cancelled")
-                  await updateJobCancelled(id, ev.transactionHash, ev.blockNumber)
-                }
-              } else {
-                // unknown request id
-                await updateJobWithStatusReason(
-                  id,
-                  REQUEST_STATUS.REQUEST_STATUS_ERROR_NOT_EXIST,
-                  "request does not exist",
-                )
-              }
             }
           }
         }

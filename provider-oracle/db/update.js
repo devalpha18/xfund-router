@@ -20,30 +20,15 @@ const updateLastHeight = async (eventToGet, height) => {
   }
 }
 
-const updateJobComplete = async (id, fulfillTxHash, height, gasPayer) => {
+const updateJobComplete = async (id, fulfillTxHash, height, gasUsed, gasPrice) => {
   await Jobs.update(
     {
       requestStatus: REQUEST_STATUS.REQUEST_STATUS_FULFILLED,
       fulfillTxHash,
+      gasUsed,
+      gasPrice,
       requestCompleteHeight: height,
-      gasPayer,
       statusReason: "fulfilled",
-    },
-    {
-      where: {
-        id,
-      },
-    },
-  )
-}
-
-const updateJobCancelled = async (id, cancelTxHash, cancelHeight) => {
-  await Jobs.update(
-    {
-      requestStatus: REQUEST_STATUS.REQUEST_STATUS_CANCELLED,
-      cancelTxHash,
-      cancelHeight,
-      statusReason: "cancelled by consumer",
     },
     {
       where: {
@@ -100,7 +85,6 @@ const updateJobWithStatusReason = async (id, requestStatus, statusReason) => {
 module.exports = {
   updateLastHeight,
   updateJobComplete,
-  updateJobCancelled,
   updateJobRecieved,
   updateJobFulfilling,
   updateJobWithStatusReason,

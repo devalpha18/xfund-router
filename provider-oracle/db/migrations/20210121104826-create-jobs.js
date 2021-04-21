@@ -23,25 +23,22 @@ module.exports = {
         heightToFulfill: {
           type: Sequelize.INTEGER,
         },
-        cancelTxHash: {
-          type: Sequelize.STRING,
-        },
-        cancelHeight: {
-          type: Sequelize.INTEGER,
-        },
         endpoint: {
           type: Sequelize.STRING,
         },
         price: {
           type: Sequelize.STRING,
         },
-        dataConsumer: {
+        consumer: {
           type: Sequelize.STRING,
         },
         fee: {
           type: Sequelize.BIGINT,
         },
-        gas: {
+        gasUsed: {
+          type: Sequelize.BIGINT,
+        },
+        gasPrice: {
           type: Sequelize.BIGINT,
         },
         requestStatus: {
@@ -49,9 +46,6 @@ module.exports = {
         },
         requestCompleteHeight: {
           type: Sequelize.INTEGER,
-        },
-        gasPayer: {
-          type: Sequelize.STRING,
         },
         statusReason: {
           type: Sequelize.STRING,
@@ -67,15 +61,13 @@ module.exports = {
       })
       .then(() => queryInterface.addIndex("Jobs", ["requestTxHash"], { unique: true }))
       .then(() => queryInterface.addIndex("Jobs", ["fulfillTxHash"], { unique: true }))
-      .then(() => queryInterface.addIndex("Jobs", ["cancelTxHash"], { unique: true }))
       .then(() => queryInterface.addIndex("Jobs", ["requestId"], { unique: true }))
-      .then(() => queryInterface.addIndex("Jobs", ["dataConsumer"]))
+      .then(() => queryInterface.addIndex("Jobs", ["consumer"]))
       .then(() => queryInterface.addIndex("Jobs", ["requestHeight"]))
       .then(() => queryInterface.addIndex("Jobs", ["heightToFulfill"]))
       .then(() => queryInterface.addIndex("Jobs", ["heightToFulfill", "requestStatus"]))
       .then(() => queryInterface.addIndex("Jobs", ["requestStatus"]))
       .then(() => queryInterface.addIndex("Jobs", ["requestCompleteHeight"]))
-      .then(() => queryInterface.addIndex("Jobs", ["gasPayer"]))
   },
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable("Jobs")
