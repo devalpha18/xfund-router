@@ -66,8 +66,7 @@ const MyConsumer = artifacts.require("MyConsumer")
 
 module.exports = function(deployer) {
   // deploy, passing the Router and xFUND smart contract addresses
-  // Note: below uses the Rinkeby Testnet addresses
-  deployer.deploy(MyConsumer, "0x04E254510600b025A63Ea41A45e89e980bEdb2DD", "0x245330351344F9301690D5D8De2A07f5F32e1149")
+  deployer.deploy(MyConsumer, "0x...ROUTER_ADDRES", "0x...XFUND_ADDRESS")
 }
 ```
 
