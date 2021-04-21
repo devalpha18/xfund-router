@@ -76,19 +76,19 @@ class XFUNDRouter {
       })
   }
 
-  async fulfillRequest(requestId, priceToSend, consumerContractAddress, gasPriceWei) {
+  async fulfillRequest(requestId, priceToSend, consumerContractAddress) {
     const sig = await this.signData(requestId, priceToSend, consumerContractAddress)
     const self = this
 
     return new Promise((resolve, reject) => {
       this.contractHttp.methods
         .fulfillRequest(requestId, priceToSend, sig.signature)
-        .estimateGas({ from: WALLET_ADDRESS, gasPrice: gasPriceWei })
+        .estimateGas({ from: WALLET_ADDRESS })
         .then(function onEstimateGas(gasAmount) {
           console.log("gas estimate:", gasAmount)
           self.contractHttp.methods
             .fulfillRequest(requestId, priceToSend, sig.signature)
-            .send({ from: WALLET_ADDRESS, gasPrice: gasPriceWei })
+            .send({ from: WALLET_ADDRESS })
             .on("transactionHash", function onTransactionHash(txHash) {
               resolve(txHash)
             })
@@ -153,6 +153,14 @@ class XFUNDRouter {
     return this.web3Http.eth.getBlockNumber()
   }
 
+  async getTransactionReceipt(txHash) {
+    return this.web3Http.eth.getTransactionReceipt(txHash)
+  }
+
+  async getTransaction(txHash) {
+    return this.web3Http.eth.getTransaction(txHash)
+  }
+
   async getPastEvents(fromBlock, toBlock, eventName, cb = function () {}) {
     await this.contractHttp.getPastEvents(
       eventName,
@@ -192,27 +200,21 @@ class XFUNDRouter {
       return false
     }
 
-    const { dataProvider } = eventEmitted.returnValues
-    const { fee } = eventEmitted.returnValues
+    const { provider } = eventEmitted.returnValues
     const { requestId } = eventEmitted.returnValues
 
     // check it's for us
     if (
-      Web3.utils.toChecksumAddress(dataProvider) !== Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)
+      Web3.utils.toChecksumAddress(provider) !== Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)
     ) {
-      console.log(new Date(), "request", requestId, "not for me (for ", dataProvider, ")")
+      console.log(new Date(), "request", requestId, "not for me (for ", provider, ")")
       return false
     }
 
-    // check request ID exists (has not been fulfiled, cancelled etc.)
+    // check request ID exists (has not been fulfiled etc.)
     const requestExists = await this.getRequestExists(requestId)
     if (!requestExists) {
-      console.log(new Date(), "request", requestId, "does not exist. Perhaps already processed or cancelled")
-      return false
-    }
-
-    if (parseInt(fee, 10) < parseInt(MIN_FEE, 10)) {
-      console.log(new Date(), "fee", fee, "for requestId", requestId, "not enough. MIN_FEE=", MIN_FEE)
+      console.log(new Date(), "request", requestId, "does not exist. Perhaps already processed")
       return false
     }
 

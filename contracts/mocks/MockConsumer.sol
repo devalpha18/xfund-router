@@ -11,72 +11,13 @@ contract MockConsumer is ConsumerBase {
     // Can be called when data provider has sent data
     event GotSomeData(address router, bytes32 requestId, uint256 price);
 
-    /*
-     * MIRRORED EVENTS - FOR CLIENT LOG DECODING
-     */
-
-    // Mirrored ERC20 events for web3 client decoding & testing
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
-    // Mirrored ConsumerLib events for web3 client decoding & testing
-
-    event DataRequestSubmitted(bytes32 indexed requestId);
-    event RouterSet(address indexed sender, address indexed oldRouter, address indexed newRouter);
-    event OwnershipTransferred(address indexed sender, address indexed previousOwner, address indexed newOwner);
-    event WithdrawTokensFromContract(address indexed sender, address indexed from, address indexed to, uint256 amount);
-    event IncreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
-    event DecreasedRouterAllowance(address indexed sender, address indexed router, address indexed contractAddress, uint256 amount);
-    event AddedDataProvider(address indexed sender, address indexed provider, uint64 oldFee, uint64 newFee);
-    event RemovedDataProvider(address indexed sender, address indexed provider);
-    event SetRequestVar(address indexed sender, uint8 variable, uint256 oldValue, uint256 newValue);
-
-    event RequestCancellationSubmitted(address sender, bytes32 requestId);
-
-    event EthWithdrawn(address receiver, uint256 amount);
-
-
-    // Mirrored Router events for web3 client decoding & testing
-    // DataRequested event. Emitted when a data request has been initialised
-    event DataRequested(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint64 fee,
-        bytes32 data,
-        bytes32 indexed requestId,
-        uint64 gasPrice,
-        uint64 expires
-    );
-
-    // GrantProviderPermission event. Emitted when a data consumer grants a data provider to provide data
-    event GrantProviderPermission(address indexed dataConsumer, address indexed dataProvider);
-
-    // RevokeProviderPermission event. Emitted when a data consumer revokes access for a data provider to provide data
-    event RevokeProviderPermission(address indexed dataConsumer, address indexed dataProvider);
-
-    // RequestFulfilled event. Emitted when a data provider has sent the data requested
-    event RequestFulfilled(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        bytes32 indexed requestId,
-        uint256 requestedData,
-        address gasPayer
-    );
-
-    // RequestCancelled event. Emitted when a data consumer cancels a request
-    event RequestCancelled(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        bytes32 indexed requestId
-    );
-
-    event GasToppedUp(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
-    event GasWithdrawnByConsumer(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
-    event GasRefundedToProvider(address indexed dataConsumer, address indexed dataProvider, uint256 amount);
-
-    constructor(address _router)
-    ConsumerBase(_router) {
+    constructor(address _router, address _xfund)
+    ConsumerBase(_router, _xfund) {
         price = 0;
+    }
+
+    function increaseRouterAllowance(uint256 _amount) external {
+        require(_increaseRouterAllowance(_amount));
     }
 
     /*
@@ -86,6 +27,10 @@ contract MockConsumer is ConsumerBase {
      */
     function setPrice(uint256 _price) external {
         price = _price;
+    }
+
+    function getData(address _dataProvider, uint256 _fee, bytes32 _data) external {
+        _requestData(_dataProvider, _fee, _data);
     }
 
     /*

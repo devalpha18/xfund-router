@@ -19,22 +19,14 @@ contract MockBadConsumerBigReceive is ConsumerBase {
     event DoneDeletified(bytes32 indexed requestId);
     event Counted(uint256 newCounterVal);
 
-    // Mirrored Router events for web3 client decoding & testing
-    // DataRequested event. Emitted when a data request has been initialised
-    event DataRequested(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint64 fee,
-        bytes32 data,
-        bytes32 indexed requestId,
-        uint64 gasPrice,
-        uint64 expires
-    );
-
-    constructor(address _router)
-    ConsumerBase(_router) {
+    constructor(address _router, address _xfund)
+    ConsumerBase(_router, _xfund) {
         price = 0;
         arbitraryCounter = 0;
+    }
+
+    function getData(address _dataProvider, uint256 _fee, bytes32 _data) external {
+        _requestData(_dataProvider, _fee, _data);
     }
 
     function setPrice(uint256 _price) external {

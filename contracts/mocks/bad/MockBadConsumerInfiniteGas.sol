@@ -11,20 +11,12 @@ contract MockBadConsumerInfiniteGas is ConsumerBase {
     uint256 public price;
     bytes32 public requestId;
 
-    // Mirrored Router events for web3 client decoding & testing
-    // DataRequested event. Emitted when a data request has been initialised
-    event DataRequested(
-        address indexed dataConsumer,
-        address indexed dataProvider,
-        uint64 fee,
-        bytes32 data,
-        bytes32 indexed requestId,
-        uint64 gasPrice,
-        uint64 expires
-    );
+    constructor(address _router, address _xfund)
+    ConsumerBase(_router, _xfund) { }
 
-    constructor(address _router)
-    ConsumerBase(_router) { }
+    function getData(address _dataProvider, uint256 _fee, bytes32 _data) external {
+        _requestData(_dataProvider, _fee, _data);
+    }
 
     function receiveData(
         uint256 _price,

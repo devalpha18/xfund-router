@@ -9,13 +9,12 @@ The instructions will outline the steps required to deploy on the Rinkeby testne
 will also work with mainnet.
 
 ::: danger IMPORTANT
-You **do not** need to implement or deploy either the `Router.sol` or `ConsumerLib.sol` 
-smart contracts.
+You **do not** need to implement or deploy the `Router.sol` smart contract.
 
-These are smart contracts deployed and maintained by the Unification Foundation and are
+This is a smart contract deployed and maintained by the Unification Foundation and is
 the core of the xFUND Router network. Your smart contract will only import and build on
-the `ConsumerBase.sol` base smart contract, which in turn links to the `ConsumerLib` and interacts
-with the `Router` smart contracts.
+the `ConsumerBase.sol` base smart contract, which in turn interacts
+with the `Router` smart contract.
 :::
 
 ## 1. Initialise your project & install dependencies
@@ -78,7 +77,7 @@ with the following contents:
 ```solidity
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.7.0 <0.8.0;
 
 contract MyDataConsumer {
 
@@ -96,17 +95,17 @@ The `price` variable is what we would like to be updated by OoO when we request 
 
 ### 2.1 Import the `xfund-router` Library contracts
 
-Next, we need to import the `ConsumerBase.sol` smart contract, which interfaces with the 
-`ConsumerLib.sol` library smart contract, and the `Router.sol` smart contract (both of which
-have been deployed and are maintained by the Unification Foundation). The `ConsumerBase.sol`
-smart contract contains all the required functions for interacting with the system, meaning that
-you only need to define a couple of simple functions in your own smart contract in order to
-use the OoO system.
+Next, we need to import the `ConsumerBase.sol` smart contract, which interacts with 
+the `Router.sol` smart contract (which has been deployed and is maintained by the Unification 
+Foundation). The `ConsumerBase.sol` smart contract contains required functions for 
+interacting with the system. You only need to define a couple of functions in your own 
+smart contract in order to use the OoO system, which override or extend the underlying
+`ConsumerBase` functions.
 
 ::: tip Note
 You can view the functions implemented by `ConsumerBase.sol` in the [Data Consumer smart contract
-API documentation](../api/lib/ConsumerBase.md). These functions are also callable from your
-smart contract.
+API documentation](../api/lib/ConsumerBase.md). There are some additional helper functions which
+can be wrapped in functions in your own smart contract.
 :::
 
 First, import the `ConsumerBase.sol` smart contract. After the `pragma` definition, add:
@@ -121,11 +120,12 @@ Then, edit the contract definition, so that it extends `ConsumerBase.sol`:
 contract MyDataConsumer is ConsumerBase {
 ```
 
-Finally, modify the `constructor` function to call the `ConsumerBase.sol`'s constructor:
+Finally, modify the `constructor` function to call the `ConsumerBase.sol`'s constructor,
+passing the contract addresses for `Router` and `xFUND`:
 
 ```solidity
-    constructor(address _router)
-    public ConsumerBase(_router) {
+    constructor(address _router, address _xfund)
+    public ConsumerBase(_router, _xfund) {
         price = 0;
     }
 ```
@@ -143,8 +143,8 @@ contract MyDataConsumer is ConsumerBase {
 
     uint256 public price;
 
-    constructor(address _router)
-    public ConsumerBase(_router) {
+    constructor(address _router, address _xfund)
+    public ConsumerBase(_router, _xfund) {
         price = 0;
     }
 }
@@ -153,7 +153,7 @@ contract MyDataConsumer is ConsumerBase {
 ## 3. Define the required `recieveData` smart contract function
 
 `recieveData` will be called by the Data Provider (indirectly - it is actually proxied 
-via the Router smart contract) in order to fulfil a data request and send data to 
+via the `Router` smart contract) in order to fulfil a data request and send data to 
 our smart contract. It should override the abstract `recieveData` function defined
 in the `ConsumerBase.sol` base smart contract, and must have the following parameters:
 
@@ -188,6 +188,35 @@ and emit within the `recieveData` function:
         emit GotSomeData(_requestId, _price);
 ```
 
+## 4. Define a function to initialise a data request
+
+Next, you'll need a function to request data. This needs to call the `ConsumerBase`'s
+`_requestData` function, which will forward the request to the `Router`:
+
+```solidity
+    function getData(address _provider, uint256 _fee, bytes32 _data) external returns (bytes32) {
+        return _requestData(_provider, _fee, _data);
+    }
+```
+
+## 5. Add a function to allow `Router` to transfer fees
+
+Finally, you'll need a function that calls `ConsumerBase`'s `_increaseRouterAllowance` function.
+This function will increase the `Router`s xFUND allowance, allowing it to pay data request fees on 
+behalf of your smart contract:
+
+```solidity
+    function increaseRouterAllowance(uint256 _amount) external {
+        require(_increaseRouterAllowance(_amount));
+    }
+```
+
+::: danger Note
+This function should be protected by a library such as OpenZeppelin's `Ownable`, and have the
+`onlyOwner` modifier applied such that only your contract's owner can all the function!
+:::
+
+
 The final `MyDataConsumer.sol` code should now look something like this:
 
 ```solidity
@@ -203,11 +232,22 @@ contract MyDataConsumer is ConsumerBase {
 
     event GotSomeData(bytes32 requestId, uint256 price);
 
-    constructor(address _router)
-    public ConsumerBase(_router) {
+    constructor(address _router, address _xfund)
+    public ConsumerBase(_router, _xfund) {
         price = 0;
     }
+    
+    // Optionally protect with a modifier to limit who can call
+    function getData(address _provider, uint256 _fee, bytes32 _data) external returns (bytes32) {
+        return _requestData(_provider, _fee, _data);
+    }
+    
+    // Todo - protect with a modifier to limit who can call!
+    function increaseRouterAllowance(uint256 _amount) external {
+        require(_increaseRouterAllowance(_amount));
+    }
 
+    // ConsumerBase ensures only the Router can call this
     function receiveData(uint256 _price, bytes32 _requestId)
     internal override {
         price = _price;
@@ -217,18 +257,24 @@ contract MyDataConsumer is ConsumerBase {
 }
 ```
 
-## 4. Set up the deployment .env and truffle-config.js
+**Finally, compile your contract:**
+
+```bash
+npx truffle compile
+```
+
+## 6. Set up the deployment .env and truffle-config.js
 
 Ensure that you have:
 
 1. an [Infura](https://infura.io/) account and API key
 2. a test wallet private key and address with [Test ETH on Rinkeby](https://faucet.rinkeby.io/) testnet
 
-### 4.1 .env
+### 6.1 .env
 
 ::: tip Note
-See [Contract Addresses](../contracts.md) for the latest **Rinkeby** contract addresses
-required for the `ROUTER_ADDRESS` and `CONSUMER_LIB_ADDRESS` variables
+See [Contract Addresses](../contracts.md) for the latest **Rinkeby** contract address
+required for the `ROUTER_ADDRESS` and `XFUND_ADDRESS` variables.
 :::
 
 Create a `.env` file in the root of your project with the following and set each value
@@ -242,11 +288,11 @@ ETH_PKEY=
 INFURA_PROJECT_ID=
 # Contract address of the xFUND Router
 ROUTER_ADDRESS=
-# Contract address of the deployed ConsumerLib
-CONSUMER_LIB_ADDRESS=
+# Contract address of xFUND
+XFUND_ADDRESS=
 ```
 
-### 4.2 truffle-config.js
+### 6.2 truffle-config.js
 
 Edit the `truffle-config.js` file in the root of your project with the following, set up
 for Rinkeby testnet:
@@ -293,7 +339,7 @@ module.exports = {
 };
 ```
 
-## 5. Set up the Truffle migrations scripts
+## 7. Set up the Truffle migrations scripts
 
 create the following Truffle migration script in `migrations/2_deploy.js`:
 
@@ -301,27 +347,16 @@ create the following Truffle migration script in `migrations/2_deploy.js`:
 require("dotenv").config()
 const MyDataConsumer = artifacts.require("MyDataConsumer")
 
-const {
-  CONSUMER_LIB_ADDRESS,
-  ROUTER_ADDRESS,
-} = process.env
+const { ROUTER_ADDRESS, XFUND_ADDRESS } = process.env
 
 module.exports = function(deployer) {
-  MyDataConsumer.link("ConsumerLib", CONSUMER_LIB_ADDRESS)
-  deployer.deploy(MyDataConsumer, ROUTER_ADDRESS)
+  deployer.deploy(MyDataConsumer, ROUTER_ADDRESS, XFUND_ADDRESS)
 }
 ```
 
-This will deploy your contract with the required parameters, and also link your contract
-to the already deployed `ConsumerLib.sol` smart contract.
+This will deploy your contract with the required parameters.
 
-::: danger IMPORTANT
-your contract must be linked to the deployed `ConsumerLib.sol` smart contract - either
-the version already deployed at the above address by the Unification Foundation, or via your
-own deployment. Without the link, the OoO functionality will not work.
-:::
-
-## 6. Deploy your contract
+## 8. Deploy your contract
 
 Finally, deploy your contract with the following command:
 

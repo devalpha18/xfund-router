@@ -22,19 +22,14 @@ contract("Router - deploy", (accounts) => {
     expect(await RouterContract.getTokenAddress()).to.equal(this.MockTokenContract.address)
   })
 
-  it("can deploy Router with Token - deployer has DEFAULT_ADMIN (0x00) role", async function () {
-    const RouterContract = await Router.new(this.MockTokenContract.address, { from: admin })
-    expect(await RouterContract.hasRole("0x00", admin)).to.equal(true)
-  })
-
   it("must deploy with token", async function () {
     await expectRevert(
       Router.new(constants.ZERO_ADDRESS, { from: admin }),
-      "Router: token cannot be zero address",
+      "token cannot be zero address",
     )
   })
 
   it("token address must be a contract", async function () {
-    await expectRevert(Router.new(eoa, { from: admin }), "Router: token address must be a contract")
+    await expectRevert(Router.new(eoa, { from: admin }), "token address must be a contract")
   })
 })
