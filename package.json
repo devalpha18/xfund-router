@@ -90,7 +90,7 @@
     "/contracts/**/*.sol",
     "/build/contracts/*.json",
     "/docs/**/*.md",
-    "!/contracts/mocks",
+    "!/contracts/mocks/**/*.sol",
     "!/contracts/Migrations.sol",
     "!/contracts/Router.sol",
     "!/build/contracts/Mock*.json",
