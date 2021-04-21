@@ -34,8 +34,9 @@ module.exports = {
                 title: "Contract Docs",
                 children: [
                     "/api/Router",
-                    "/api/lib/ConsumerLib",
                     "/api/lib/ConsumerBase",
+                    "/api/lib/RequestIdBase",
+                    "/api/examples/DemoConsumer",
                 ]
             },
         ],

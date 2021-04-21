@@ -27,11 +27,7 @@ smart contracts used by the xFUND Router network.
 1. [Router.sol](./api/Router.md) - the contract which controls data request and fulfilment
    routing between Consumers and Providers. This contract also handles fee payment and gas
    refunds. Deployed and maintained by the Unification Foundation
-2. [ConsumerLib.sol](./api/lib/ConsumerLib.md) - the Library contract containing all the required
-   functionality to interact with the system. Deployed and maintained by the Unification Foundation.
-   Developers need to link this deployed library to their own smart contract, as well as
-   importing the `ConsumerBase.sol` smart contract
-3. [ConsumerBase.sol](./api/lib/ConsumerBase.md) - the Consumer smart contract developers will need
+2. [ConsumerBase.sol](./api/lib/ConsumerBase.md) - the Consumer smart contract developers will need
    to import into their own smart contract in order to interact with the system. Contains the
    proxy functions required to utilise the `ConsumerLib.sol` library smart contract, which 
    must be linked to the this contract during deployment
