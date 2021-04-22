@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "../vendor/OOOSafeMath.sol";
 import "../interfaces/IERC20_Ex.sol";
 import "../interfaces/IRouter.sol";
 import "./RequestIdBase.sol";
@@ -18,6 +19,7 @@ import "./RequestIdBase.sol";
  *
  */
 abstract contract ConsumerBase is RequestIdBase {
+    using OOOSafeMath for uint256;
 
     /*
      * STATE VARIABLES
@@ -96,7 +98,7 @@ abstract contract ConsumerBase is RequestIdBase {
         bytes32 requestId = makeRequestId(address(this), _dataProvider, address(router), nonces[_dataProvider], _data);
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
         require(router.initialiseRequest(_dataProvider, _fee, _data));
-        nonces[_dataProvider] = nonces[_dataProvider] + 1;
+        nonces[_dataProvider] = nonces[_dataProvider].safeAdd(1);
         return requestId;
     }
 
