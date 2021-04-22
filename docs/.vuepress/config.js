@@ -16,9 +16,14 @@ module.exports = {
             {
                 title: "Introduction",
                 path: "/"
-            },{
+            },
+            {
                 title: "Contract Addresses",
                 path: "/contracts"
+            },
+            {
+                title: "Provider Addresses",
+                path: "/providers"
             },
             {
                 title: "Guides",

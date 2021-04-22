@@ -12,4 +12,4 @@ Router: TBD
 xFUND Mock Token: [`0x245330351344F9301690D5D8De2A07f5F32e1149`](https://rinkeby.etherscan.io/address/0x245330351344F9301690D5D8De2A07f5F32e1149#code)  
 Router: [`0x7fB80F5a3e23162cA63c03afAacBb304DB816763`](https://rinkeby.etherscan.io/address/0x7fB80F5a3e23162cA63c03afAacBb304DB816763#code)  
 
-See [OoO Data API Guide](guide/ooo_api.md) for the OoO Data Provider address
+See [Providers](providers.md) for OoO Data Provider addresses
