@@ -10,6 +10,6 @@ Router: TBD
 ## Testnet (Rinkeby)
 
 xFUND Mock Token: [`0x245330351344F9301690D5D8De2A07f5F32e1149`](https://rinkeby.etherscan.io/address/0x245330351344F9301690D5D8De2A07f5F32e1149#code)  
-Router: [`0x7fB80F5a3e23162cA63c03afAacBb304DB816763`](https://rinkeby.etherscan.io/address/0x7fB80F5a3e23162cA63c03afAacBb304DB816763#code)  
+Router: [`0x05AB63BeC9CfC3897a20dE62f5f812de10301FDf`](https://rinkeby.etherscan.io/address/0x05AB63BeC9CfC3897a20dE62f5f812de10301FDf#code)  
 
 See [Providers](providers.md) for OoO Data Provider addresses

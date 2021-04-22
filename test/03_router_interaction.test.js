@@ -110,7 +110,14 @@ contract("Router - direct interaction tests", (accounts) => {
         )
       })
 
-      it("getProviderGranularFee - returns expected fee", async function () {
+      it("getProviderGranularFee - returns global minFee when not set", async function () {
+        await this.RouterContract.registerAsProvider(defaultFee, { from: dataProvider })
+        expect(
+          await this.RouterContract.getProviderGranularFee(dataProvider, dataConsumerOwner),
+        ).to.be.bignumber.equal(new BN(defaultFee))
+      })
+
+      it("getProviderGranularFee - returns expected fee when set", async function () {
         const newFee = 200
         await this.RouterContract.registerAsProvider(defaultFee, { from: dataProvider })
         await this.RouterContract.setProviderGranularFee(dataConsumerOwner, newFee, { from: dataProvider })
