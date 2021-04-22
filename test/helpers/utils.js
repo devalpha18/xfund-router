@@ -16,7 +16,11 @@ const generateSigMsg = function (requestId, data, consumerAddress) {
 const getReqIdFromReceipt = function (receipt) {
   for (let i = 0; i < receipt.logs.length; i += 1) {
     const log = receipt.logs[i]
-    if (log.event === "DataRequestSubmitted" || log.event === "DataRequested") {
+    if (
+      log.event === "DataRequestSubmitted" ||
+      log.event === "DataRequested" ||
+      log.event === "RequestedSomeData"
+    ) {
       return log.args.requestId
     }
   }

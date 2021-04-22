@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.7.0 <0.8.0;
-
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+pragma solidity ^0.8.0;
 
 import "../interfaces/IERC20_Ex.sol";
 import "../interfaces/IRouter.sol";
@@ -21,8 +18,6 @@ import "./RequestIdBase.sol";
  *
  */
 abstract contract ConsumerBase is RequestIdBase {
-    using SafeMath for uint256;
-    using Address for address;
 
     /*
      * STATE VARIABLES
@@ -51,9 +46,7 @@ abstract contract ConsumerBase is RequestIdBase {
      */
     constructor(address _router, address _xfund) {
         require(_router != address(0), "router cannot be the zero address");
-        require(_router.isContract(), "router address must be a contract");
         require(_xfund != address(0), "xfund cannot be the zero address");
-        require(_xfund.isContract(), "xfund address must be a contract");
         router = IRouter(_router);
         xFUND = IERC20_Ex(_xfund);
     }
@@ -68,7 +61,6 @@ abstract contract ConsumerBase is RequestIdBase {
      */
     function _setRouter(address _router) internal returns (bool) {
         require(_router != address(0), "router cannot be the zero address");
-        require(_router.isContract(), "router address must be a contract");
         router = IRouter(_router);
         return true;
     }
@@ -104,7 +96,7 @@ abstract contract ConsumerBase is RequestIdBase {
         bytes32 requestId = makeRequestId(address(this), _dataProvider, address(router), nonces[_dataProvider], _data);
         // call the underlying ConsumerLib.sol lib's submitDataRequest function
         require(router.initialiseRequest(_dataProvider, _fee, _data));
-        nonces[_dataProvider] = nonces[_dataProvider].add(1);
+        nonces[_dataProvider] = nonces[_dataProvider] + 1;
         return requestId;
     }
 

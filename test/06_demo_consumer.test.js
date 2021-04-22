@@ -65,11 +65,6 @@ contract("Router - fulfillment & withdraw tests", (accounts) => {
       "router cannot be the zero address",
     )
 
-    await expectRevert(
-      this.DemoConsumer.setRouter(rando, { from: dataConsumerOwner }),
-      "router address must be a contract",
-    )
-
     const newRouterContract = await Router.new(this.MockTokenContract.address, { from: admin })
 
     await this.DemoConsumer.setRouter(newRouterContract.address, { from: dataConsumerOwner })

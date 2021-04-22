@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.7.0 <0.8.0;
+pragma solidity ^0.8.0;
 
 import "../lib/ConsumerBase.sol";
 
@@ -10,6 +10,7 @@ contract MockConsumer is ConsumerBase {
 
     // Can be called when data provider has sent data
     event GotSomeData(address router, bytes32 requestId, uint256 price);
+    event RequestedSomeData(bytes32 requestId, bytes32 endpoint);
 
     constructor(address _router, address _xfund)
     ConsumerBase(_router, _xfund) {
@@ -30,7 +31,8 @@ contract MockConsumer is ConsumerBase {
     }
 
     function getData(address _dataProvider, uint256 _fee, bytes32 _data) external {
-        _requestData(_dataProvider, _fee, _data);
+        bytes32 requestId = _requestData(_dataProvider, _fee, _data);
+        emit RequestedSomeData(requestId, _data);
     }
 
     /*
