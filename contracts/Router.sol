@@ -369,7 +369,11 @@ contract Router is RequestIdBase, ReentrancyGuard {
      * @return uint256
      */
     function getProviderGranularFee(address _provider, address _consumer) external view returns (uint256) {
-        return dataProviders[_provider].granularFees[_consumer];
+        if(dataProviders[_provider].granularFees[_consumer] > 0) {
+            return dataProviders[_provider].granularFees[_consumer];
+        } else {
+            return dataProviders[_provider].minFee;
+        }
     }
 
     /**
