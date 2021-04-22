@@ -8,7 +8,7 @@ library (required for interacting with the xFUND Router network) into your own s
 contract and how to interact with the network in order to request and receive data 
 in your smart contract from the Finchains OoO API.
 
-#### Contract & Provideraddresses
+#### Contract & Provider addresses
 
 1. [Contract Addresses](./contracts.md).
 2. [Provider Addresses](./providers.md).
