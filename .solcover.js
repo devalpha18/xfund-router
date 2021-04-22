@@ -4,7 +4,8 @@ module.exports = {
     "mocks/bad/MockBadConsumerInfiniteGas.sol",
     "mocks/MockConsumer.sol",
     "mocks/MockConsumerCustomRequest.sol",
-    "mocks/MockToken.sol"],
+    "mocks/MockToken.sol",
+    "vendor/OOOSafeMath.sol" ],
   providerOptions: {
     mnemonic: "myth like bonus scare over problem client lizard pioneer submit female collect",
     gasPrice: "0x4A817C800",
