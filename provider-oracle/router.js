@@ -11,6 +11,7 @@ const {
   WEB3_PROVIDER_HTTP,
   WEB3_PROVIDER_WS,
   MIN_FEE,
+  MAX_GAS,
 } = process.env
 
 class XFUNDRouter {
@@ -86,9 +87,11 @@ class XFUNDRouter {
         .estimateGas({ from: WALLET_ADDRESS })
         .then(function onEstimateGas(gasAmount) {
           console.log("gas estimate:", gasAmount)
+          const cappedGasAmount = Math.min(gasAmount, MAX_GAS)
+          console.log("capped gas:", cappedGasAmount)
           self.contractHttp.methods
             .fulfillRequest(requestId, priceToSend, sig.signature)
-            .send({ from: WALLET_ADDRESS })
+            .send({ from: WALLET_ADDRESS, gas: cappedGasAmount })
             .on("transactionHash", function onTransactionHash(txHash) {
               resolve(txHash)
             })

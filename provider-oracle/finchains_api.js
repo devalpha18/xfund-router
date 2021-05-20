@@ -227,6 +227,21 @@ const getPriceFromApi = async (dataToGet, supportedPairs) => {
   })
 }
 
+const getxFundPriceInEth = async () => {  
+  return new Promise((resolve, reject) => {
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=xfund&vs_currencies=eth`
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        resolve(data.xfund.eth)
+      })
+      .catch((err) => {
+        console.log(err.toString())
+        reject(err)
+      })
+  })
+}
 module.exports = {
   getPriceFromApi,
+  getxFundPriceInEth
 }
