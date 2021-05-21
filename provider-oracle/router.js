@@ -1,5 +1,6 @@
 require("dotenv").config()
 const HDWalletProvider = require("@truffle/hdwallet-provider")
+const BN = require("bn.js")
 const Web3 = require("web3")
 const Web3WsProvider = require("web3-providers-ws")
 
@@ -12,6 +13,7 @@ const {
   WEB3_PROVIDER_WS,
   MIN_FEE,
   MAX_GAS,
+  MAX_GAS_PRICE,
 } = process.env
 
 class XFUNDRouter {
@@ -80,18 +82,20 @@ class XFUNDRouter {
   async fulfillRequest(requestId, priceToSend, consumerContractAddress) {
     const sig = await this.signData(requestId, priceToSend, consumerContractAddress)
     const self = this
+    const gasPrice = await this.web3Http.eth.getGasPrice()
 
     return new Promise((resolve, reject) => {
       this.contractHttp.methods
         .fulfillRequest(requestId, priceToSend, sig.signature)
         .estimateGas({ from: WALLET_ADDRESS })
         .then(function onEstimateGas(gasAmount) {
-          console.log("gas estimate:", gasAmount)
           const cappedGasAmount = Math.min(gasAmount, MAX_GAS)
-          console.log("capped gas:", cappedGasAmount)
+          const cappedGasPrice = BN.min(new BN(gasPrice), new BN(1e9).muln(Number(MAX_GAS_PRICE)))
+          console.log(new Date(), "gas estimate:", cappedGasAmount)
+          console.log(new Date(), "gas price:", cappedGasPrice.toString())
           self.contractHttp.methods
             .fulfillRequest(requestId, priceToSend, sig.signature)
-            .send({ from: WALLET_ADDRESS, gas: cappedGasAmount })
+            .send({ from: WALLET_ADDRESS, gas: cappedGasAmount, gasPrice: cappedGasPrice.toString() })
             .on("transactionHash", function onTransactionHash(txHash) {
               resolve(txHash)
             })
@@ -207,9 +211,7 @@ class XFUNDRouter {
     const { requestId } = eventEmitted.returnValues
 
     // check it's for us
-    if (
-      Web3.utils.toChecksumAddress(provider) !== Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)
-    ) {
+    if (Web3.utils.toChecksumAddress(provider) !== Web3.utils.toChecksumAddress(process.env.WALLET_ADDRESS)) {
       console.log(new Date(), "request", requestId, "not for me (for ", provider, ")")
       return false
     }
