@@ -1,5 +1,5 @@
 const BN = require("bn.js")
-const BigNumber = require('bignumber.js')
+const BigNumber = require("bignumber.js")
 const Web3 = require("web3")
 const { serializeError } = require("serialize-error")
 const { XFUNDRouter } = require("./router")
@@ -51,7 +51,7 @@ class ProviderOracle {
     }
     console.log(new Date(), "get supported pairs")
     await updateSupportedPairs()
-    const analysisData = await this.analysisTransactions('0xB85a55a482DF2b155Ca37f4F30142410FD0d08a6', 100, true)
+    await this.analysisTransactions("0xB85a55a482DF2b155Ca37f4F30142410FD0d08a6", 100, true)
   }
 
   async runOracle() {
@@ -300,17 +300,23 @@ class ProviderOracle {
     })
   }
 
-   /**
+  /**
    * Analysis Transaction cost & simulate
    * It will quries the database and summarises data
    *
    * @returns {Promise<JSON>}
    */
-  async analysisTransactions(address, numberOfTx, simulation = false, sGasPrice = 1.2, sxFundFee = 0.015) {
-    const jobsToAnalysis = await getLastNJobsByAddress(numberOfTx, address);
-    const numRows = jobsToAnalysis.length;
-    const xFundInETH = await getxFundPriceInEth();
-    console.log(new Date(), "xFund2ETH", xFundInETH);
+  static async analysisTransactions(
+    address,
+    numberOfTx,
+    simulation = false,
+    sGasPrice = 1.2,
+    sxFundFee = 0.015,
+  ) {
+    const jobsToAnalysis = await getLastNJobsByAddress(numberOfTx, address)
+    const numRows = jobsToAnalysis.length
+    const xFundInETH = await getxFundPriceInEth()
+    console.log(new Date(), "xFund2ETH", xFundInETH)
 
     let xFundTotalFee = new BigNumber(0)
     let ethTotalFee = new BigNumber(0)
@@ -326,23 +332,24 @@ class ProviderOracle {
     let gasPriceSum = new BigNumber(0)
     let gasPriceMean = new BigNumber(0)
 
-    let maxGasConsumer = ''
-    let minGasConsumer = ''
-    
+    let maxGasConsumer = ""
+    let minGasConsumer = ""
+
     let profitLossEth = new BigNumber(0)
 
     for (let i = 0; i < jobsToAnalysis.length; i += 1) {
       const { consumer, gasUsed } = jobsToAnalysis[i]
       let { gasPrice, fee } = jobsToAnalysis[i]
-      if (simulation) { // simulate gas price and xFund fee
-        gasPrice = new BigNumber(sGasPrice).times(new BigNumber('1e9'))
-        fee = new BigNumber(sxFundFee).times(new BigNumber('1e9'))
+      if (simulation) {
+        // simulate gas price and xFund fee
+        gasPrice = new BigNumber(sGasPrice).times(new BigNumber("1e9"))
+        fee = new BigNumber(sxFundFee).times(new BigNumber("1e9"))
       }
-      
+
       xFundTotalFee = xFundTotalFee.plus(new BigNumber(fee))
       totalGasCost = totalGasCost.plus(new BigNumber(gasUsed).times(new BigNumber(gasPrice)))
-      
-      if (gasMin.gt(new BigNumber(gasUsed))){
+
+      if (gasMin.gt(new BigNumber(gasUsed))) {
         gasMin = new BigNumber(gasUsed)
         minGasConsumer = consumer
       }
@@ -352,50 +359,49 @@ class ProviderOracle {
       }
       gasSum = gasSum.plus(new BigNumber(gasUsed))
 
-      if (gasPriceMin.gt(new BigNumber(gasPrice)))
-        gasPriceMin = new BigNumber(gasPrice)
-      if (gasPriceMax.lt(new BigNumber(gasPrice)))
-        gasPriceMax = new BigNumber(gasPrice)
+      if (gasPriceMin.gt(new BigNumber(gasPrice))) gasPriceMin = new BigNumber(gasPrice)
+      if (gasPriceMax.lt(new BigNumber(gasPrice))) gasPriceMax = new BigNumber(gasPrice)
       gasPriceSum = gasPriceSum.plus(new BigNumber(gasPrice))
     }
 
     gasMean = gasSum.div(numRows)
     gasPriceMean = gasPriceSum.div(numRows)
-    xFundTotalFee = xFundTotalFee.div(new BigNumber('1e9'))
-    ethTotalFee =  new BigNumber(xFundTotalFee).times(xFundInETH)
-    let totalGasCostEth = new BigNumber(totalGasCost).div(new BigNumber('1e18'))
+    xFundTotalFee = xFundTotalFee.div(new BigNumber("1e9"))
+    ethTotalFee = new BigNumber(xFundTotalFee).times(xFundInETH)
+    const totalGasCostEth = new BigNumber(totalGasCost).div(new BigNumber("1e18"))
     profitLossEth = ethTotalFee.minus(totalGasCostEth)
 
-    console.log(new Date(),
-      xFundTotalFee.toString(),  //total xFUND fees earned
-      ethTotalFee.toString(),    // total ETH fees earned
-      gasSum.toString(),  //total spent on gas for fulfilling requests
-      gasMin.toString(),         //lowest gas consumption
-      gasMax.toString(),         //highest gas consumption
-      gasMean.toString(),        //mean gas consumption
-      gasPriceMin.toString(),    //lowest gas price
-      gasPriceMax.toString(),    //highest gas price
-      gasPriceMean.toString(),   //mean gas price
-      maxGasConsumer, //consumer contract consuming the most gas for fulfilments
-      minGasConsumer, //consumer contract consuming the least gas for fulfilments
+    console.log(
+      new Date(),
+      xFundTotalFee.toString(), // total xFUND fees earned
+      ethTotalFee.toString(), // total ETH fees earned
+      gasSum.toString(), // total spent on gas for fulfilling requests
+      gasMin.toString(), // lowest gas consumption
+      gasMax.toString(), // highest gas consumption
+      gasMean.toString(), // mean gas consumption
+      gasPriceMin.toString(), // lowest gas price
+      gasPriceMax.toString(), // highest gas price
+      gasPriceMean.toString(), // mean gas price
+      maxGasConsumer, // consumer contract consuming the most gas for fulfilments
+      minGasConsumer, // consumer contract consuming the least gas for fulfilments
       totalGasCostEth.toString(), // total gas cost in ETH for fulfilling requests
-      profitLossEth.toString(),  //profit/loss (ETH fees earned - total gas cost in ETH)
-    );
+      profitLossEth.toString(), // profit/loss (ETH fees earned - total gas cost in ETH)
+    )
 
     return {
-      xFundTotalFee,  //total xFUND fees earned
-      ethTotalFee,    // total ETH fees earned
-      gasSum,  //total spent on gas for fulfilling requests
-      gasMin,         //lowest gas consumption
-      gasMax,         //highest gas consumption
-      gasMean,        //mean gas consumption
-      gasPriceMin,    //lowest gas price
-      gasPriceMax,    //highest gas price
-      gasPriceMean,   //mean gas price
-      maxGasConsumer, //consumer contract consuming the most gas for fulfilments
-      minGasConsumer, //consumer contract consuming the least gas for fulfilments
+      xFundTotalFee, // total xFUND fees earned
+      ethTotalFee, // total ETH fees earned
+      gasSum, // total spent on gas for fulfilling requests
+      gasMin, // lowest gas consumption
+      gasMax, // highest gas consumption
+      gasMean, // mean gas consumption
+      gasPriceMin, // lowest gas price
+      gasPriceMax, // highest gas price
+      gasPriceMean, // mean gas price
+      maxGasConsumer, // consumer contract consuming the most gas for fulfilments
+      minGasConsumer, // consumer contract consuming the least gas for fulfilments
       totalGasCostEth, // total gas cost in ETH for fulfilling requests
-      profitLossEth,  //profit/loss (ETH fees earned - total gas cost in ETH)
+      profitLossEth, // profit/loss (ETH fees earned - total gas cost in ETH)
     }
   }
 }

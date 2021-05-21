@@ -57,10 +57,8 @@ const getLastNJobsByAddress = async (count, address) => {
       },
       requestStatus: REQUEST_STATUS.REQUEST_STATUS_FULFILLED,
     },
-    order:[
-        ["createdAt","DESC"]
-    ],
-    limit : count,
+    order: [["createdAt", "DESC"]],
+    limit: count,
   })
 }
 
@@ -68,5 +66,5 @@ module.exports = {
   getOpenJobs,
   getOpenOrStuckJobs,
   getStuckJobs,
-  getLastNJobsByAddress
+  getLastNJobsByAddress,
 }
