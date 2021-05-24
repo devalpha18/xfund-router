@@ -49,8 +49,22 @@ const getOpenOrStuckJobs = async (currentHeight) => {
   })
 }
 
+const getLastNJobsByAddress = async (count, address) => {
+  return Jobs.findAll({
+    where: {
+      consumer: {
+        [Op.lte]: address,
+      },
+      requestStatus: REQUEST_STATUS.REQUEST_STATUS_FULFILLED,
+    },
+    order: [["createdAt", "DESC"]],
+    limit: count,
+  })
+}
+
 module.exports = {
   getOpenJobs,
   getOpenOrStuckJobs,
   getStuckJobs,
+  getLastNJobsByAddress,
 }
