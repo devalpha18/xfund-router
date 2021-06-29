@@ -35,6 +35,10 @@ const run = async () => {
       await oracle.initOracle()
       await oracle.runOracle()
       break
+    case "analyse":
+      await ProviderOracle.analysisTransactions("0xC89Ce4735882C9F0f0FE26686c53074E09B0D550", 100)
+      process.exit(0)
+      break
     case "test-oracle":
       supportedPairs = await getSupportedPairs()
       console.log("test-oracle")
