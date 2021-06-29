@@ -4,8 +4,8 @@
 
 ### Mainnet
 
-**Provider Address**: TBD  
-**Fee**: TBD
+**Provider Address**: [`0xFDEc0386011d085A6b4F0e37Fab5d7f2601aCB33`](https://etherscan.io/address/0xFDEc0386011d085A6b4F0e37Fab5d7f2601aCB33)  
+**Fee**: 0.003 xFUND
 
 ### Rinkeby testnet
 
