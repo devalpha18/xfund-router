@@ -51,7 +51,6 @@ class ProviderOracle {
     }
     console.log(new Date(), "get supported pairs")
     await updateSupportedPairs()
-    await this.analysisTransactions("0xB85a55a482DF2b155Ca37f4F30142410FD0d08a6", 100, true)
   }
 
   async runOracle() {
