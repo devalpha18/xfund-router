@@ -50,13 +50,16 @@ const getOpenOrStuckJobs = async (currentHeight) => {
 }
 
 const getLastNJobsByAddress = async (count, address) => {
+  const where = {
+    requestStatus: REQUEST_STATUS.REQUEST_STATUS_FULFILLED,
+  }
+
+  if (address) {
+    where.consumer = address
+  }
+
   return Jobs.findAll({
-    where: {
-      consumer: {
-        [Op.lte]: address,
-      },
-      requestStatus: REQUEST_STATUS.REQUEST_STATUS_FULFILLED,
-    },
+    where,
     order: [["createdAt", "DESC"]],
     limit: count,
   })
