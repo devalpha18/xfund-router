@@ -36,11 +36,6 @@ const endpoint = web3.utils.asciiToHex("BTC.USD.PR.AVI")
 ```
 :::
 
-## Return data
-
-All price data is supplied as `actualPrice * (10 ** 18)` to standardise decimal removal, and
-allow integer calculations in smart contracts.
-
 ### BASE
 
 The three or four-letter code for the base currency for which the price will be returned, 
@@ -256,6 +251,11 @@ These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where
 Any supplementary request data _in addition_ to `SUPP1` and `SUPP2`.
 
 These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where appropriate.
+
+## Return data
+
+All price data is supplied by the Oracle as `actualPrice * (10 ^ 18)` to standardise 
+decimal removal, and allow integer calculations in smart contracts.
 
 ## Examples
 
