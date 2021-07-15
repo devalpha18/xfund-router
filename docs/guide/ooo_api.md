@@ -3,19 +3,10 @@
 This guide covers the supported data offered by the Finchains OoO API, which is available
 as a data request via the xFUND Router network.
 
-## Providers
+## Data Providers
 
-The following addresses supply data from the Finchains OoO API:
-
-### Mainnet
-
-**Provider Address**: TBD  
-**Fee**: TBD xFUND
-
-### Rinkeby TestNet
-
-**Provider Address**: [`0x611661f4B5D82079E924AcE2A6D113fAbd214b14`](https://rinkeby.etherscan.io/address/0x611661f4B5D82079E924AcE2A6D113fAbd214b14)  
-**Fee**: 0.1 xFUNDMOCK
+See [Providers](../providers.md) for a list of Oracles providing data for both Mainnet and Rinkeby, 
+along with their associated fees and wallet addresses.
 
 ## Introduction
 
