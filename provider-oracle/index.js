@@ -37,6 +37,8 @@ const run = async () => {
   const analyseSimulateXfundFee = args["--analyse-sim-fee"] || 0.01
   const newFee = args["--new-fee"]
   const newFeeConsumer = args["--new-fee-consumer"] || null
+  const xfundRouter = new XFUNDRouter()
+  await xfundRouter.initWeb3()
   const oracle = new ProviderOracle()
 
   let supportedPairs
@@ -47,7 +49,7 @@ const run = async () => {
       process.exit(0)
       break
     case "run-oracle":
-      await oracle.initOracle()
+      await oracle.initOracle(xfundRouter)
       await oracle.runOracle()
       break
     case "analyse":
@@ -60,11 +62,14 @@ const run = async () => {
       )
       process.exit(0)
       break
+    case "register-as-provider":
+      console.log("register with fee", newFee)
+      await xfundRouter.registerAsProvider(newFee)
+      process.exit(0)
+      break
     case "set-new-fee":
       if (newFee > 0) {
         console.log("set new fee", newFee, newFeeConsumer)
-        const xfundRouter = new XFUNDRouter()
-        await xfundRouter.initWeb3()
         await xfundRouter.setProviderFee(newFee, newFeeConsumer)
       } else {
         console.log("fee cannot be 0")

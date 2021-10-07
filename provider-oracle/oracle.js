@@ -21,9 +21,8 @@ const { Jobs, LastGethBlock } = require("./db/models")
 const { WATCH_FROM_BLOCK, WAIT_CONFIRMATIONS } = process.env
 
 class ProviderOracle {
-  async initOracle() {
-    this.router = new XFUNDRouter()
-    await this.router.initWeb3()
+  async initOracle(xfundRouter) {
+    this.router = xfundRouter
     this.currentBlock = await this.router.getBlockNumber()
 
     this.dataRequestEvent = "DataRequested"
