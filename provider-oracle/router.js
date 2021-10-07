@@ -66,10 +66,15 @@ class XFUNDRouter {
     )
   }
 
+  async getCurrentGasPrice() {
+    return this.web3Http.eth.getGasPrice()
+  }
+
   async registerAsProvider(fee) {
+    const gasPrice = await this.web3Http.eth.getGasPrice()
     await this.contractHttp.methods
       .registerAsProvider(fee)
-      .send({ from: WALLET_ADDRESS })
+      .send({ from: WALLET_ADDRESS, gasPrice })
       .on("transactionHash", function onTransactionHash(txHash) {
         console.log(new Date(), "Tx sent", txHash)
       })
@@ -79,10 +84,11 @@ class XFUNDRouter {
   }
 
   async setProviderFee(fee, consumerAddress) {
+    const gasPrice = await this.web3Http.eth.getGasPrice()
     if (consumerAddress) {
       await this.contractHttp.methods
         .setProviderGranularFee(consumerAddress, fee)
-        .send({ from: WALLET_ADDRESS })
+        .send({ from: WALLET_ADDRESS, gasPrice })
         .on("transactionHash", function onTransactionHash(txHash) {
           console.log(new Date(), "Tx sent", txHash)
         })
@@ -92,7 +98,7 @@ class XFUNDRouter {
     } else {
       await this.contractHttp.methods
         .setProviderMinFee(fee)
-        .send({ from: WALLET_ADDRESS })
+        .send({ from: WALLET_ADDRESS, gasPrice })
         .on("transactionHash", function onTransactionHash(txHash) {
           console.log(new Date(), "Tx sent", txHash)
         })
