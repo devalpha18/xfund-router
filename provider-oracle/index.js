@@ -42,6 +42,7 @@ const run = async () => {
   const oracle = new ProviderOracle()
 
   let supportedPairs
+  let gasPrice
 
   switch (runWhat) {
     case "update-supported-pairs":
@@ -60,6 +61,11 @@ const run = async () => {
         analyseSimulateGas,
         analyseSimulateXfundFee,
       )
+      process.exit(0)
+      break
+    case "get-gas-price":
+      gasPrice = await xfundRouter.getCurrentGasPrice()
+      console.log("current gas price:", gasPrice)
       process.exit(0)
       break
     case "register-as-provider":
