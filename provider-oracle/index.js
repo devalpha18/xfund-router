@@ -16,6 +16,8 @@ const args = arg({
   "--analyse-simulate": Boolean,
   "--analyse-sim-gas": Number,
   "--analyse-sim-fee": Number,
+  "--new-fee": Number,
+  "--new-fee-consumer": String,
 
   // Aliases
   "-r": "--run",
@@ -32,6 +34,8 @@ const run = async () => {
   const analyseSimulate = args["--analyse-simulate"] || false
   const analyseSimulateGas = args["--analyse-sim-gas"] || 120
   const analyseSimulateXfundFee = args["--analyse-sim-fee"] || 0.01
+  const newFee = args["--new-fee"]
+  const newFeeConsumer = args["--new-fee-consumer"] || null
   const oracle = new ProviderOracle()
 
   let supportedPairs
@@ -53,6 +57,14 @@ const run = async () => {
         analyseSimulateGas,
         analyseSimulateXfundFee,
       )
+      process.exit(0)
+      break
+    case "set-new-fee":
+      if (newFee > 0) {
+        await oracle.setProviderFee(newFee, newFeeConsumer)
+      } else {
+        console.log("fee cannot be 0")
+      }
       process.exit(0)
       break
     case "test-oracle":
