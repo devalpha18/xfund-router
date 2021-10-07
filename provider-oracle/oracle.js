@@ -299,11 +299,6 @@ class ProviderOracle {
     })
   }
 
-  async setProviderFee(fee, consumerAddress) {
-    console.log(new Date(), "set new fee", fee, consumerAddress)
-    await this.router.setProviderFee(fee, consumerAddress)
-  }
-
   /**
    * Analysis Transaction cost & simulate
    * It will quries the database and summarises data

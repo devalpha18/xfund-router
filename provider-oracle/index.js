@@ -3,6 +3,7 @@ const arg = require("arg")
 const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
 const { ProviderOracle } = require("./oracle")
 const { getPriceFromApi } = require("./finchains_api")
+const { XFUNDRouter } = require( "./router" );
 
 const env = process.env.NODE_ENV || "development"
 
@@ -61,7 +62,10 @@ const run = async () => {
       break
     case "set-new-fee":
       if (newFee > 0) {
-        await oracle.setProviderFee(newFee, newFeeConsumer)
+        console.log("set new fee", newFee, newFeeConsumer)
+        const xfundRouter = new XFUNDRouter()
+        await xfundRouter.initWeb3()
+        await xfundRouter.setProviderFee(newFee, newFeeConsumer)
       } else {
         console.log("fee cannot be 0")
       }
