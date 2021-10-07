@@ -66,6 +66,18 @@ class XFUNDRouter {
     )
   }
 
+  async registerAsProvider(fee) {
+    await this.contractHttp.methods
+      .registerAsProvider(fee)
+      .send({ from: WALLET_ADDRESS })
+      .on("transactionHash", function onTransactionHash(txHash) {
+        console.log(new Date(), "Tx sent", txHash)
+      })
+      .on("error", function onError(err) {
+        console.log(new Date(), "Failed", err)
+      })
+  }
+
   async setProviderFee(fee, consumerAddress) {
     if (consumerAddress) {
       await this.contractHttp.methods
