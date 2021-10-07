@@ -11,7 +11,6 @@ const {
   WALLET_ADDRESS,
   WEB3_PROVIDER_HTTP,
   WEB3_PROVIDER_WS,
-  MIN_FEE,
   MAX_GAS,
   MAX_GAS_PRICE,
 } = process.env
@@ -67,16 +66,28 @@ class XFUNDRouter {
     )
   }
 
-  async setProviderPaysGas(providerPays) {
-    await this.contractHttp.methods
-      .setProviderPaysGas(providerPays)
-      .send({ from: WALLET_ADDRESS })
-      .on("transactionHash", function onTransactionHash(txHash) {
-        console.log(new Date(), "Tx sent", txHash)
-      })
-      .on("error", function onError(err) {
-        console.log(new Date(), "Failed", err)
-      })
+  async setProviderFee(fee, consumerAddress) {
+    if (consumerAddress) {
+      await this.contractHttp.methods
+        .setProviderGranularFee(consumerAddress, fee)
+        .send({ from: WALLET_ADDRESS })
+        .on("transactionHash", function onTransactionHash(txHash) {
+          console.log(new Date(), "Tx sent", txHash)
+        })
+        .on("error", function onError(err) {
+          console.log(new Date(), "Failed", err)
+        })
+    } else {
+      await this.contractHttp.methods
+        .setProviderMinFee(fee)
+        .send({ from: WALLET_ADDRESS })
+        .on("transactionHash", function onTransactionHash(txHash) {
+          console.log(new Date(), "Tx sent", txHash)
+        })
+        .on("error", function onError(err) {
+          console.log(new Date(), "Failed", err)
+        })
+    }
   }
 
   async fulfillRequest(requestId, priceToSend, consumerContractAddress) {
@@ -91,8 +102,11 @@ class XFUNDRouter {
         .then(function onEstimateGas(gasAmount) {
           const cappedGasAmount = Math.min(gasAmount, MAX_GAS)
           const cappedGasPrice = BN.min(new BN(gasPrice), new BN(1e9).muln(Number(MAX_GAS_PRICE)))
-          console.log(new Date(), "gas estimate:", cappedGasAmount)
-          console.log(new Date(), "gas price:", cappedGasPrice.toString())
+          console.log(new Date(), "gas estimate:", gasAmount)
+          console.log(new Date(), "gas cap:", MAX_GAS)
+          console.log(new Date(), "gas to send:", cappedGasAmount)
+          console.log(new Date(), "gas price:", gasPrice)
+          console.log(new Date(), "gas price to send:", cappedGasPrice.toString())
           self.contractHttp.methods
             .fulfillRequest(requestId, priceToSend, sig.signature)
             .send({ from: WALLET_ADDRESS, gas: cappedGasAmount, gasPrice: cappedGasPrice.toString() })
