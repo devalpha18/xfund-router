@@ -4,6 +4,7 @@ const { getSupportedPairs, updateSupportedPairs } = require("./pairs")
 const { ProviderOracle } = require("./oracle")
 const { getPriceFromApi } = require("./finchains_api")
 const { XFUNDRouter } = require( "./router" );
+const BigNumber = require( "bignumber.js" );
 
 const env = process.env.NODE_ENV || "development"
 
@@ -43,6 +44,7 @@ const run = async () => {
 
   let supportedPairs
   let gasPrice
+  let gasPriceGwei
 
   switch (runWhat) {
     case "update-supported-pairs":
@@ -65,7 +67,8 @@ const run = async () => {
       break
     case "get-gas-price":
       gasPrice = await xfundRouter.getCurrentGasPrice()
-      console.log("current gas price:", gasPrice)
+      gasPriceGwei = new BigNumber(gasPrice).div(new BigNumber("1e9"))
+      console.log("current gas price:", gasPriceGwei.toString(), "gwei")
       process.exit(0)
       break
     case "register-as-provider":
