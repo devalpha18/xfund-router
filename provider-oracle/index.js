@@ -11,6 +11,11 @@ const args = arg({
   "--run": String,
   "--event": String,
   "--test": String,
+  "--analyse-address": String,
+  "--analyse-num-txs": Number,
+  "--analyse-simulate": Boolean,
+  "--analyse-sim-gas": Number,
+  "--analyse-sim-fee": Number,
 
   // Aliases
   "-r": "--run",
@@ -22,6 +27,11 @@ console.log(new Date(), "running in", env)
 const run = async () => {
   const runWhat = args["--run"]
   const testString = args["--test"] || "BTC.USD.PRC.AVG"
+  const analyseAddress = args["--analyse-address"] || null
+  const analyseNumTxs = args["--analyse-num-txs"] || 100
+  const analyseSimulate = args["--analyse-simulate"] || false
+  const analyseSimulateGas = args["--analyse-sim-gas"] || 120
+  const analyseSimulateXfundFee = args["--analyse-sim-fee"] || 0.01
   const oracle = new ProviderOracle()
 
   let supportedPairs
@@ -36,7 +46,13 @@ const run = async () => {
       await oracle.runOracle()
       break
     case "analyse":
-      await ProviderOracle.analysisTransactions("0xC89Ce4735882C9F0f0FE26686c53074E09B0D550", 100)
+      await ProviderOracle.analysisTransactions(
+        analyseAddress,
+        analyseNumTxs,
+        analyseSimulate,
+        analyseSimulateGas,
+        analyseSimulateXfundFee,
+      )
       process.exit(0)
       break
     case "test-oracle":
