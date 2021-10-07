@@ -226,11 +226,7 @@ class ProviderOracle {
               price = await getPriceFromApi(endpoint, supportedPairs)
             } catch (error) {
               // todo - handle this to retry getting the data
-              await updateJobWithStatusReason(
-                id,
-                REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS,
-                JSON.stringify(serializeError(error), null, 2),
-              )
+              await updateJobWithStatusReason(id, REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS, error.message)
               console.error(new Date(), "ERROR getPriceFromApi:")
               console.error(JSON.stringify(serializeError(error), null, 2))
             }
@@ -259,7 +255,7 @@ class ProviderOracle {
                 await updateJobWithStatusReason(
                   id,
                   REQUEST_STATUS.REQUEST_STATUS_ERROR_PROCESS,
-                  JSON.stringify(serializeError(error), null, 2),
+                  error.message,
                 )
                 console.error(new Date(), "ERROR fulfillRequest:")
                 console.error(JSON.stringify(serializeError(error), null, 2))
