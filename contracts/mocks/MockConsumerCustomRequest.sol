@@ -32,6 +32,10 @@ contract MockConsumerCustomRequest is ConsumerBase {
         price = _price;
     }
 
+    function increaseRouterAllowance(uint256 _amount) external {
+        require(_increaseRouterAllowance(_amount));
+    }
+
     function customRequestData(
         address _dataProvider,
         uint256 _fee,
