@@ -50,7 +50,7 @@ module.exports = {
     },
   },
 
-  plugins: ["truffle-plugin-verify", "solidity-coverage"],
+  plugins: ["truffle-plugin-verify", "solidity-coverage", "@chainsafe/truffle-plugin-abigen"],
 
   api_keys: {
     etherscan: ETHERSCAN_API,
