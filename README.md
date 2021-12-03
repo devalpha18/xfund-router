@@ -160,6 +160,8 @@ truffle(develop)> mockConsumer.getData(provider, 100000000, endpoint, {from: con
 
 #### Interaction - as a Provider
 
+**Note: the NodeJS implementation will eventually be deprecated in favour of the new Go implementation**
+
 A Consumer requests data, but a provider Oracle needs to be running in order to fulfill
 requests.
 
@@ -258,6 +260,22 @@ truffle(develop)> priceAfter.toString()
 
 The result should now be a non-zero
 value, e.g. `36547117907180545000000`.
+
+## Testing the go-ooo Oracle implementation
+
+```bash
+make dev-env
+make build
+./go-ooo/build/go-ooo init
+./go-ooo/build/go-ooo start --pass /path/to/pass.txt
+```
+
+Request data
+
+```bash
+docker exec -it ooo_dev_env /root/xfund-router/request.sh BTC GBP PR AVC 1H
+docker exec -it ooo_dev_env /root/xfund-router/request.sh LEASH WETH AD
+```
 
 #### Dev Notes
 

@@ -122,3 +122,6 @@ flattened_contracts
 
 # DB file
 provider-oracle/db/database.sqlite
+
+# local scripts
+scripts/tmp.js
