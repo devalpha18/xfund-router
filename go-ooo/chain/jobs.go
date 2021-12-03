@@ -58,11 +58,11 @@ func (o *OoORouterService) ProcessPendingJobQueue() {
 func (o *OoORouterService) preProcessPendingJob(job models.DataRequests, currentBlockNum uint64) {
 	requestId := job.GetRequestId()
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "preProcessPendingJob",
-		"action":   "preprocess job",
-		"request_id":  requestId,
-		"status": job.GetRequestStatusString(),
+		"package":    "chain",
+		"function":   "preProcessPendingJob",
+		"action":     "preprocess job",
+		"request_id": requestId,
+		"status":     job.GetRequestStatusString(),
 	}).Info()
 
 	// get request Tx receipt from chain
@@ -70,10 +70,10 @@ func (o *OoORouterService) preProcessPendingJob(job models.DataRequests, current
 	if err != nil {
 		// possibly not in Tx pool yet
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "preProcessPendingJob",
-			"action":   "get tx receipt from chain",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "preProcessPendingJob",
+			"action":     "get tx receipt from chain",
+			"request_id": requestId,
 			"request_tx": job.GetRequestTxHash(),
 		}).Error(err.Error())
 		return
@@ -127,18 +127,18 @@ func (o *OoORouterService) processFulfillmentFetchData(job models.DataRequests, 
 	requestId := job.GetRequestId()
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processFulfillmentFetchData",
-		"request_id":  requestId,
+		"package":    "chain",
+		"function":   "processFulfillmentFetchData",
+		"request_id": requestId,
 	}).Debug("begin fetching data")
 
 	err := o.RenewTransactOpts()
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "ProcessAdminTask",
-			"action": "RenewTransactOpts",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "ProcessAdminTask",
+			"action":     "RenewTransactOpts",
+			"request_id": requestId,
 		}).Error(err.Error())
 		return
 	}
@@ -148,10 +148,10 @@ func (o *OoORouterService) processFulfillmentFetchData(job models.DataRequests, 
 	if err != nil {
 		// possibly not in Tx pool yet
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processFulfillmentFetchData",
-			"action":   "update processing status in db",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "processFulfillmentFetchData",
+			"action":     "update processing status in db",
+			"request_id": requestId,
 		}).Error(err.Error())
 		return
 	}
@@ -161,10 +161,10 @@ func (o *OoORouterService) processFulfillmentFetchData(job models.DataRequests, 
 	if err != nil {
 		// possibly not in Tx pool yet
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processFulfillmentFetchData",
-			"action":   "update fulfilment attempts in db",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "processFulfillmentFetchData",
+			"action":     "update fulfilment attempts in db",
+			"request_id": requestId,
 		}).Error(err.Error())
 		return
 	}
@@ -174,10 +174,10 @@ func (o *OoORouterService) processFulfillmentFetchData(job models.DataRequests, 
 	if err != nil {
 		// possibly not in Tx pool yet
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processFulfillmentFetchData",
-			"action":   "update last fetch blocknum in db",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "processFulfillmentFetchData",
+			"action":     "update last fetch blocknum in db",
+			"request_id": requestId,
 		}).Error(err.Error())
 		return
 	}
@@ -196,10 +196,10 @@ func (o *OoORouterService) processFulfillmentFetchData(job models.DataRequests, 
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processFulfillmentFetchData",
-			"action":   "run api query",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "processFulfillmentFetchData",
+			"action":     "run api query",
+			"request_id": requestId,
 		}).Error(err.Error())
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_API_ERROR, err.Error())
 		return
@@ -208,21 +208,21 @@ func (o *OoORouterService) processFulfillmentFetchData(job models.DataRequests, 
 	if price == "" {
 		// no price returned
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processFulfillmentFetchData",
-			"action":   "query api",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "processFulfillmentFetchData",
+			"action":     "query api",
+			"request_id": requestId,
 		}).Error("empty price returned")
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_API_ERROR, "empty price returned")
 		return
 	}
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processFulfillmentFetchData",
-		"request_id":  requestId,
-		"endpoint": job.Endpoint,
-		"price":  price,
+		"package":    "chain",
+		"function":   "processFulfillmentFetchData",
+		"request_id": requestId,
+		"endpoint":   job.Endpoint,
+		"price":      price,
 	}).Debug("price fetched")
 
 	_ = o.db.UpdateDataFetched(requestId, price)
@@ -235,9 +235,9 @@ func (o *OoORouterService) sendFulfillmentTx(job models.DataRequests, currentBlo
 	price := job.GetPriceResult()
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "sendFulfillmentTx",
-		"request_id":  requestId,
+		"package":    "chain",
+		"function":   "sendFulfillmentTx",
+		"request_id": requestId,
 	}).Debug("begin send fulfillment transaction")
 
 	// https://ethereum.stackexchange.com/questions/51566/from-golang-sha3-to-solidity-sha3
@@ -261,10 +261,10 @@ func (o *OoORouterService) sendFulfillmentTx(job models.DataRequests, currentBlo
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "sendFulfillmentTx",
-			"action":   "sign message",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "sendFulfillmentTx",
+			"action":     "sign message",
+			"request_id": requestId,
 		}).Error(err.Error())
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_TX_FAILED, err.Error())
 		return
@@ -277,10 +277,10 @@ func (o *OoORouterService) sendFulfillmentTx(job models.DataRequests, currentBlo
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "sendFulfillmentTx",
-			"action":   "send transaction",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "sendFulfillmentTx",
+			"action":     "send transaction",
+			"request_id": requestId,
 		}).Error(err.Error())
 
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_TX_FAILED, err.Error())
@@ -288,11 +288,11 @@ func (o *OoORouterService) sendFulfillmentTx(job models.DataRequests, currentBlo
 	}
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "sendFulfillmentTx",
-		"action":   "send transaction",
-		"request_id":  requestId,
-		"tx":    tx.Hash().Hex(),
+		"package":    "chain",
+		"function":   "sendFulfillmentTx",
+		"action":     "send transaction",
+		"request_id": requestId,
+		"tx":         tx.Hash().Hex(),
 	}).Info("fulfill tx sent")
 
 	_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_TX_SENT, "")
@@ -306,20 +306,20 @@ func (o *OoORouterService) sendFulfillmentTx(job models.DataRequests, currentBlo
 func (o *OoORouterService) processPossiblyStuckDataFetch(job models.DataRequests, currentBlockNum uint64) {
 	requestId := job.GetRequestId()
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processPossiblyStuckDataFetch",
-		"action":   "start",
-		"request_id":  requestId,
+		"package":    "chain",
+		"function":   "processPossiblyStuckDataFetch",
+		"action":     "start",
+		"request_id": requestId,
 	}).Debug("begin processing possibly stuck data fetch")
 
 	// at some point, we just have to stop trying...
 	if job.GetFulfillmentAttempts() >= 3 {
 		// too many fails
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckDataFetch",
-			"action":   "check num attempts",
-			"request_id":  requestId,
+			"package":      "chain",
+			"function":     "processPossiblyStuckDataFetch",
+			"action":       "check num attempts",
+			"request_id":   requestId,
 			"num_attempts": job.GetFulfillmentAttempts(),
 		}).Warn()
 
@@ -332,9 +332,9 @@ func (o *OoORouterService) processPossiblyStuckDataFetch(job models.DataRequests
 	// still relatively new - ignore
 	if lastFetchBlockDiff < 5 {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckDataFetch",
-			"action":   "check request age",
+			"package":    "chain",
+			"function":   "processPossiblyStuckDataFetch",
+			"action":     "check request age",
 			"request_id": requestId,
 		}).Info("request < 5 blocks. Wait for data fetch timeout")
 		return
@@ -345,9 +345,9 @@ func (o *OoORouterService) processPossiblyStuckDataFetch(job models.DataRequests
 	// is the request > 1 hour old?
 	if requestBlockDiff > 250 {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckDataFetch",
-			"action":   "check request age",
+			"package":    "chain",
+			"function":   "processPossiblyStuckDataFetch",
+			"action":     "check request age",
 			"request_id": requestId,
 		}).Warn("request too old")
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_FULFILMENT_FAILED, "request too old")
@@ -363,10 +363,10 @@ func (o *OoORouterService) processSendFailedJob(job models.DataRequests, current
 
 	requestId := job.GetRequestId()
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processSendFailedJob",
-		"action":   "start",
-		"request_id":  requestId,
+		"package":    "chain",
+		"function":   "processSendFailedJob",
+		"action":     "start",
+		"request_id": requestId,
 	}).Debug("begin processing send failed job")
 
 	// Add fail info to failed Tx history table
@@ -376,10 +376,10 @@ func (o *OoORouterService) processSendFailedJob(job models.DataRequests, current
 	if job.GetFulfillmentAttempts() >= 3 {
 		// too many fails
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processSendFailedJob",
-			"action":   "check num attempts",
-			"request_id":  requestId,
+			"package":      "chain",
+			"function":     "processSendFailedJob",
+			"action":       "check num attempts",
+			"request_id":   requestId,
 			"num_attempts": job.GetFulfillmentAttempts(),
 		}).Warn("too many failed attempts")
 
@@ -392,9 +392,9 @@ func (o *OoORouterService) processSendFailedJob(job models.DataRequests, current
 	// is the request > 1 hour old?
 	if requestBlockDiff > 250 {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processSendFailedJob",
-			"action":   "check request age",
+			"package":    "chain",
+			"function":   "processSendFailedJob",
+			"action":     "check request age",
 			"request_id": requestId,
 		}).Warn("request too old")
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_FULFILMENT_FAILED, "request too old")
@@ -409,21 +409,21 @@ func (o *OoORouterService) processSendFailedJob(job models.DataRequests, current
 func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, currentBlockNum uint64) {
 	requestId := job.GetRequestId()
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processPossiblyStuckSentTx",
-		"action":   "start",
-		"request_id":  requestId,
+		"package":    "chain",
+		"function":   "processPossiblyStuckSentTx",
+		"action":     "start",
+		"request_id": requestId,
 	}).Debug("begin processing possibly stuck sent tx")
 
 	lastFulfillSentBlockDiff := currentBlockNum - job.GetLastFulfillSentBlockNumber()
 	if lastFulfillSentBlockDiff < 3 {
 		// too soon - may take a while for Tx to be broadcast/picked up
 		o.logger.WithFields(logrus.Fields{
-			"package":       "chain",
-			"function":      "processPossiblyStuckSentTx",
-			"action":        "check block diff since fulfill tx sent",
-			"request_id":    requestId,
-			"block_diff":    lastFulfillSentBlockDiff,
+			"package":    "chain",
+			"function":   "processPossiblyStuckSentTx",
+			"action":     "check block diff since fulfill tx sent",
+			"request_id": requestId,
+			"block_diff": lastFulfillSentBlockDiff,
 		}).Info("not enough blocks since last sent. Wait.")
 		return
 	}
@@ -435,11 +435,11 @@ func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, c
 	if err != nil {
 		// possibly not in Tx pool yet
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckSentTx",
-			"action":   "get fulfill tx",
-			"request_id":  requestId,
-			"tx_hash":  job.GetFulfillTxHash(),
+			"package":    "chain",
+			"function":   "processPossiblyStuckSentTx",
+			"action":     "get fulfill tx",
+			"request_id": requestId,
+			"tx_hash":    job.GetFulfillTxHash(),
 		}).Error(err.Error())
 		return
 	}
@@ -447,11 +447,11 @@ func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, c
 	// no point continuing if it's still pending. Log it and move on.
 	if isPending {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckSentTx",
-			"action":   "check fulfill tx pending",
-			"request_id":  requestId,
-			"tx_hash":  job.GetFulfillTxHash(),
+			"package":    "chain",
+			"function":   "processPossiblyStuckSentTx",
+			"action":     "check fulfill tx pending",
+			"request_id": requestId,
+			"tx_hash":    job.GetFulfillTxHash(),
 		}).Info("tx still pending - ignore")
 		return
 	}
@@ -460,11 +460,11 @@ func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, c
 	fulfillReceipt, err := o.client.TransactionReceipt(o.context, fulfilTxHash)
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckSentTx",
-			"action":   "get fulfil tx receipt",
-			"request_id":  job.GetRequestId(),
-			"tx_hash":  job.GetFulfillTxHash(),
+			"package":    "chain",
+			"function":   "processPossiblyStuckSentTx",
+			"action":     "get fulfil tx receipt",
+			"request_id": job.GetRequestId(),
+			"tx_hash":    job.GetFulfillTxHash(),
 		}).Error(err.Error())
 		return
 	}
@@ -474,15 +474,15 @@ func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, c
 		// in case it was missed
 
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processPossiblyStuckSentTx",
-			"action":   "check fulfill tx status",
-			"request_id":  requestId,
+			"package":    "chain",
+			"function":   "processPossiblyStuckSentTx",
+			"action":     "check fulfill tx status",
+			"request_id": requestId,
 		}).Info("tx was successful. check for RequestFulfilled event")
 		reqIdBytes := common.FromHex(requestId)
 		reqIdBytes32 := [32]byte{}
 		copy(reqIdBytes32[:], reqIdBytes)
-		reqArr := make([][32]byte,0,1)
+		reqArr := make([][32]byte, 0, 1)
 		reqArr = append(reqArr, reqIdBytes32)
 		opts := o.historicalFilterOpts
 		opts.Start = job.RequestBlockNumber
@@ -516,10 +516,10 @@ func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, c
 	if job.GetFulfillmentAttempts() >= 3 {
 		// too many fails
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processSendFailedJob",
-			"action":   "check num attempts",
-			"request_id":  requestId,
+			"package":      "chain",
+			"function":     "processSendFailedJob",
+			"action":       "check num attempts",
+			"request_id":   requestId,
 			"num_attempts": job.GetFulfillmentAttempts(),
 		}).Warn("too many failed attempts")
 
@@ -532,9 +532,9 @@ func (o *OoORouterService) processPossiblyStuckSentTx(job models.DataRequests, c
 	// is the request > 1 hour?
 	if requestBlockDiff > 250 {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processSendFailedJob",
-			"action":   "check request age",
+			"package":    "chain",
+			"function":   "processSendFailedJob",
+			"action":     "check request age",
 			"request_id": requestId,
 		}).Warn("request too old")
 		_ = o.db.UpdateRequestStatus(requestId, models.REQUEST_STATUS_FULFILMENT_FAILED, "request too old")

@@ -34,10 +34,10 @@ func (s *Service) AddAdminTask(c echo.Context) error {
 	json.NewDecoder(c.Request().Body).Decode(&request)
 
 	s.logger.WithFields(logrus.Fields{
-		"package":  "service",
-		"function": "AddAdminTask",
-		"task": request.Task,
-		"fee_or_amount": request.FeeOrAmount,
+		"package":        "service",
+		"function":       "AddAdminTask",
+		"task":           request.Task,
+		"fee_or_amount":  request.FeeOrAmount,
 		"to_or_consumer": request.ToOrConsumer,
 	}).Info("admin task received")
 
@@ -50,7 +50,7 @@ func (s *Service) AddAdminTask(c echo.Context) error {
 				return c.JSON(http.StatusOK, tr)
 			}
 			return c.JSON(http.StatusInternalServerError, tr.Error)
-	    }
+		}
 	}
 
 }

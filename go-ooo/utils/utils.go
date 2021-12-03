@@ -21,7 +21,6 @@ var ZeroAddress = common.Address{}
 // 0x0000000000000000000000000000000000000000000000000000000000000000
 var EmptyHash = common.Hash{}
 
-
 // RemoveHexPrefix removes the prefix (0x) of a given hex string.
 func RemoveHexPrefix(str string) string {
 	if HasHexPrefix(str) {
@@ -71,7 +70,7 @@ func AddHexPrefix(str string) string {
 
 func ParseBigFloat(value string) (*big.Float, error) {
 	f := new(big.Float)
-	f.SetPrec(236)  //  IEEE 754 octuple-precision binary floating-point format: binary256
+	f.SetPrec(236) //  IEEE 754 octuple-precision binary floating-point format: binary256
 	f.SetMode(big.ToNearestEven)
 	_, err := fmt.Sscan(value, f)
 	return f, err
@@ -81,9 +80,8 @@ func EtherToWei(eth *big.Float) *big.Int {
 	truncInt, _ := eth.Int(nil)
 	truncInt = new(big.Int).Mul(truncInt, big.NewInt(params.Ether))
 	fracStr := strings.Split(fmt.Sprintf("%.18f", eth), ".")[1]
-	fracStr += strings.Repeat("0", 18 - len(fracStr))
-	fracInt, _ :=  new(big.Int).SetString(fracStr, 10)
+	fracStr += strings.Repeat("0", 18-len(fracStr))
+	fracInt, _ := new(big.Int).SetString(fracStr, 10)
 	wei := new(big.Int).Add(truncInt, fracInt)
 	return wei
 }
-

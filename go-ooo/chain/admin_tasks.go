@@ -15,12 +15,12 @@ func (o *OoORouterService) ProcessAdminTask(task go_ooo_types.AdminTask) go_ooo_
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "ProcessAdminTask",
-			"action": "RenewTransactOpts",
+			"action":   "RenewTransactOpts",
 		}).Error(err.Error())
 		return go_ooo_types.AdminTaskResponse{
 			AdminTask: task,
-			Success: false,
-			Error: err.Error(),
+			Success:   false,
+			Error:     err.Error(),
 		}
 	}
 
@@ -42,7 +42,7 @@ func (o *OoORouterService) ProcessAdminTask(task go_ooo_types.AdminTask) go_ooo_
 	default:
 		return go_ooo_types.AdminTaskResponse{
 			AdminTask: task,
-			Error: "unknown task",
+			Error:     "unknown task",
 		}
 	}
 }
@@ -56,8 +56,8 @@ func (o *OoORouterService) registerAsProvider(task go_ooo_types.AdminTask) go_oo
 	o.logger.WithFields(logrus.Fields{
 		"package":  "chain",
 		"function": "registerAsProvider",
-		"address": o.oracleAddress.Hex(),
-		"fee": fee,
+		"address":  o.oracleAddress.Hex(),
+		"fee":      fee,
 	}).Debug("begin register as provider")
 
 	tx, err := o.contractInstance.RegisterAsProvider(o.transactOpts, big.NewInt(int64(fee)))
@@ -72,8 +72,8 @@ func (o *OoORouterService) registerAsProvider(task go_ooo_types.AdminTask) go_oo
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "registerAsProvider",
-			"address": o.oracleAddress.Hex(),
-			"tx": tx.Hash(),
+			"address":  o.oracleAddress.Hex(),
+			"tx":       tx.Hash(),
 		}).Info("register as provider tx sent")
 
 		o.setNextTxNonce(tx.Nonce(), false)
@@ -94,8 +94,8 @@ func (o *OoORouterService) setGlobalFee(task go_ooo_types.AdminTask) go_ooo_type
 	o.logger.WithFields(logrus.Fields{
 		"package":  "chain",
 		"function": "setGlobalFee",
-		"address": o.oracleAddress.Hex(),
-		"fee": fee,
+		"address":  o.oracleAddress.Hex(),
+		"fee":      fee,
 	}).Debug("begin set global fee")
 
 	tx, err := o.contractInstance.SetProviderMinFee(o.transactOpts, big.NewInt(int64(fee)))
@@ -103,8 +103,8 @@ func (o *OoORouterService) setGlobalFee(task go_ooo_types.AdminTask) go_ooo_type
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "setGlobalFee",
-			"address": o.oracleAddress.Hex(),
-			"fee": fee,
+			"address":  o.oracleAddress.Hex(),
+			"fee":      fee,
 		}).Error(err.Error())
 		resp.Success = false
 		resp.Error = err.Error()
@@ -112,9 +112,9 @@ func (o *OoORouterService) setGlobalFee(task go_ooo_types.AdminTask) go_ooo_type
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "setGlobalFee",
-			"address": o.oracleAddress.Hex(),
-			"fee": fee,
-			"tx": tx.Hash(),
+			"address":  o.oracleAddress.Hex(),
+			"fee":      fee,
+			"tx":       tx.Hash(),
 		}).Info("set global fee tx sent")
 
 		resp.Result = fmt.Sprintf("Sent! Tx Hash: %s", tx.Hash().String())
@@ -135,8 +135,8 @@ func (o *OoORouterService) setGranularFee(task go_ooo_types.AdminTask) go_ooo_ty
 	o.logger.WithFields(logrus.Fields{
 		"package":  "chain",
 		"function": "setGranularFee",
-		"address": o.oracleAddress.Hex(),
-		"fee": fee,
+		"address":  o.oracleAddress.Hex(),
+		"fee":      fee,
 		"consumer": consumer,
 	}).Debug("begin set granular fee")
 
@@ -145,8 +145,8 @@ func (o *OoORouterService) setGranularFee(task go_ooo_types.AdminTask) go_ooo_ty
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "setGranularFee",
-			"address": o.oracleAddress.Hex(),
-			"fee": fee,
+			"address":  o.oracleAddress.Hex(),
+			"fee":      fee,
 			"consumer": consumer,
 		}).Error(err.Error())
 		resp.Error = err.Error()
@@ -155,10 +155,10 @@ func (o *OoORouterService) setGranularFee(task go_ooo_types.AdminTask) go_ooo_ty
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "setGranularFee",
-			"address": o.oracleAddress.Hex(),
-			"fee": fee,
+			"address":  o.oracleAddress.Hex(),
+			"fee":      fee,
 			"consumer": consumer,
-			"tx": tx.Hash(),
+			"tx":       tx.Hash(),
 		}).Info("set granular fee tx sent")
 
 		resp.Result = fmt.Sprintf("Sent! Tx Hash: %s", tx.Hash().String())
@@ -178,20 +178,20 @@ func (o *OoORouterService) withdraw(task go_ooo_types.AdminTask) go_ooo_types.Ad
 	recipient := task.ToOrConsumer
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "withdraw",
+		"package":   "chain",
+		"function":  "withdraw",
 		"recipient": recipient,
-		"amount": task.FeeOrAmount,
+		"amount":    task.FeeOrAmount,
 	}).Debug("begin withdraw fees")
 
 	available, err := o.contractInstance.GetWithdrawableTokens(o.callOpts, o.oracleAddress)
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "setGranularFee",
+			"package":   "chain",
+			"function":  "setGranularFee",
 			"recipient": recipient,
-			"amount": task.FeeOrAmount,
+			"amount":    task.FeeOrAmount,
 		}).Error(err.Error())
 		resp.Error = err.Error()
 		resp.Success = false
@@ -207,20 +207,20 @@ func (o *OoORouterService) withdraw(task go_ooo_types.AdminTask) go_ooo_types.Ad
 	tx, err := o.contractInstance.Withdraw(o.transactOpts, common.HexToAddress(recipient), amountBig)
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "withdraw",
+			"package":   "chain",
+			"function":  "withdraw",
 			"recipient": recipient,
-			"amount": task.FeeOrAmount,
+			"amount":    task.FeeOrAmount,
 		}).Error(err.Error())
 		resp.Error = err.Error()
 		resp.Success = false
 	} else {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "withdraw",
+			"package":   "chain",
+			"function":  "withdraw",
 			"recipient": recipient,
-			"amount": task.FeeOrAmount,
-			"tx": tx.Hash(),
+			"amount":    task.FeeOrAmount,
+			"tx":        tx.Hash(),
 		}).Info("withdraw tx sent")
 
 		resp.Result = fmt.Sprintf("Sent! Tx Hash: %s", tx.Hash().String())
@@ -230,7 +230,6 @@ func (o *OoORouterService) withdraw(task go_ooo_types.AdminTask) go_ooo_types.Ad
 
 	return resp
 }
-
 
 func (o *OoORouterService) queryWithdrawable(task go_ooo_types.AdminTask) go_ooo_types.AdminTaskResponse {
 	var resp go_ooo_types.AdminTaskResponse

@@ -1,6 +1,5 @@
 package app
 
-
 import (
 	"fmt"
 	"io/ioutil"
@@ -49,4 +48,3 @@ func getPasswordFromFileOrFlag(flagValue string) string {
 
 	return strings.TrimSpace(password)
 }
-

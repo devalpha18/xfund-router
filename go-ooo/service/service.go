@@ -29,13 +29,13 @@ type Service struct {
 	updatePairsTicker *time.Ticker
 	oooRouterService  *chain.OoORouterService
 
-	echoService       *echo.Echo
-	oooApi            *ooo_api.OOOApi
+	echoService *echo.Echo
+	oooApi      *ooo_api.OOOApi
 
-	adminTasks        chan go_ooo_types.AdminTask
-	adminTasksResp    chan go_ooo_types.AdminTaskResponse
+	adminTasks     chan go_ooo_types.AdminTask
+	adminTasksResp chan go_ooo_types.AdminTaskResponse
 
-	authToken         string
+	authToken string
 }
 
 func NewService(ctx context.Context, logger *logrus.Logger, oraclePrivateKey []byte,
@@ -67,24 +67,23 @@ func NewService(ctx context.Context, logger *logrus.Logger, oraclePrivateKey []b
 	}
 
 	return &Service{
-		ctx: ctx,
-		client: client,
-		contractAddress: contractAddress,
-	    contractInstance: oooRouterInstance,
-		logger: logger,
-		db: db,
+		ctx:              ctx,
+		client:           client,
+		contractAddress:  contractAddress,
+		contractInstance: oooRouterInstance,
+		logger:           logger,
+		db:               db,
 		// https://stackoverflow.com/questions/16903348/scheduled-polling-task-in-go
-		jobTicker:        time.NewTicker(time.Second * pollInterval),
+		jobTicker:         time.NewTicker(time.Second * pollInterval),
 		updatePairsTicker: time.NewTicker(time.Minute * 30),
-		oooRouterService: oooRouterService,
-		adminTasks:       make(chan go_ooo_types.AdminTask),
-		adminTasksResp:   make(chan go_ooo_types.AdminTaskResponse),
-		echoService:      echo.New(),
-		oooApi:           oooApi,
-		authToken:        authToken,
+		oooRouterService:  oooRouterService,
+		adminTasks:        make(chan go_ooo_types.AdminTask),
+		adminTasksResp:    make(chan go_ooo_types.AdminTaskResponse),
+		echoService:       echo.New(),
+		oooApi:            oooApi,
+		authToken:         authToken,
 	}, nil
 }
-
 
 func (s *Service) Run() {
 
@@ -113,7 +112,7 @@ func (s *Service) Run() {
 		select {
 		case <-s.jobTicker.C:
 			s.oooRouterService.ProcessPendingJobQueue()
-		case <- s.updatePairsTicker.C:
+		case <-s.updatePairsTicker.C:
 			go func(s *Service) {
 				s.oooApi.UpdateSupportedPairs()
 			}(s)
@@ -132,7 +131,7 @@ func (s *Service) Stop() {
 		"function": "Stop",
 	}).Info("shutting down jobTicker")
 
-    s.jobTicker.Stop()
+	s.jobTicker.Stop()
 
 	s.logger.WithFields(logrus.Fields{
 		"package":  "service",

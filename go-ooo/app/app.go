@@ -30,9 +30,9 @@ func NewServer(decryptPass string) (*Server, error) {
 	log := logrus.New()
 
 	return &Server{
-		logger: log,
-		ctx: ctx,
-		Vers: version.NewInfo(),
+		logger:      log,
+		ctx:         ctx,
+		Vers:        version.NewInfo(),
 		decryptPass: decryptPass,
 	}, nil
 }

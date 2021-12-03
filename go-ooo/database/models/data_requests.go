@@ -3,15 +3,15 @@ package models
 import "gorm.io/gorm"
 
 const (
-	REQUEST_STATUS_UNKNOWN           = iota // Saywhatnow?
-	REQUEST_STATUS_INITIALISED              // Request initialised - used when RandomnessRequest event detected
-	REQUEST_STATUS_FETCHING_DATA            // processing has begun - fetching data.
-	REQUEST_STATUS_DATA_READY_TO_SEND       // data fetch finished - ready to send Tx
-	REQUEST_STATUS_TX_SENT                  // Fulfilment Tx broadcast
-	REQUEST_STATUS_API_ERROR                // Error getting the data from Finchains API
-	REQUEST_STATUS_TX_FAILED                // Fulfilment Tx failed and not broadcast
-	REQUEST_STATUS_SUCCESS                  // Fulfilment Tx successful and confirmed in RandomnessRequestFulfilled event
-	REQUEST_STATUS_FULFILMENT_FAILED        // Fulfilment failed - too many failed attempts.
+	REQUEST_STATUS_UNKNOWN            = iota // Saywhatnow?
+	REQUEST_STATUS_INITIALISED               // Request initialised - used when RandomnessRequest event detected
+	REQUEST_STATUS_FETCHING_DATA             // processing has begun - fetching data.
+	REQUEST_STATUS_DATA_READY_TO_SEND        // data fetch finished - ready to send Tx
+	REQUEST_STATUS_TX_SENT                   // Fulfilment Tx broadcast
+	REQUEST_STATUS_API_ERROR                 // Error getting the data from Finchains API
+	REQUEST_STATUS_TX_FAILED                 // Fulfilment Tx failed and not broadcast
+	REQUEST_STATUS_SUCCESS                   // Fulfilment Tx successful and confirmed in RandomnessRequestFulfilled event
+	REQUEST_STATUS_FULFILMENT_FAILED         // Fulfilment failed - too many failed attempts.
 )
 
 const (
@@ -180,4 +180,3 @@ func (d *DataRequests) GetJobStatusString() string {
 func (d *DataRequests) GetStatusReason() string {
 	return d.StatusReason
 }
-

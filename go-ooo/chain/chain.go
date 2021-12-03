@@ -31,23 +31,23 @@ type OoORouterService struct {
 	context          context.Context
 	logger           *logrus.Logger
 
-	transactOpts                  *bind.TransactOpts
-	callOpts                      *bind.CallOpts
+	transactOpts *bind.TransactOpts
+	callOpts     *bind.CallOpts
 
-	logDataRequestedHash common.Hash
+	logDataRequestedHash    common.Hash
 	logRequestFulfilledHash common.Hash
-	contractAbi      abi.ABI
+	contractAbi             abi.ABI
 
-	oracleAddress common.Address
+	oracleAddress    common.Address
 	oraclePrivateKey *ecdsa.PrivateKey
 
 	db *database.DB
 
-	oooApi           *ooo_api.OOOApi
+	oooApi *ooo_api.OOOApi
 
-	watchOpts             *bind.WatchOpts
-	chanDataRequests      chan *ooo_router.OooRouterDataRequested
-	chanRequestFulfilled  chan *ooo_router.OooRouterRequestFulfilled
+	watchOpts            *bind.WatchOpts
+	chanDataRequests     chan *ooo_router.OooRouterDataRequested
+	chanRequestFulfilled chan *ooo_router.OooRouterRequestFulfilled
 
 	// historical data
 	historicalFilterOpts *bind.FilterOpts
@@ -89,7 +89,7 @@ func NewOoORouter(ctx context.Context, logger *logrus.Logger, client *ethclient.
 	logger.WithFields(logrus.Fields{
 		"package":  "chain",
 		"function": "NewOoORouter",
-		"address": oracleAddressStr,
+		"address":  oracleAddressStr,
 	}).Debug("set our wallet address")
 
 	transactOpts, err := bind.NewKeyedTransactorWithChainID(oraclePrivateKeyECDSA, big.NewInt(viper.GetInt64(config.ChainNetworkId)))
@@ -130,8 +130,8 @@ func NewOoORouter(ctx context.Context, logger *logrus.Logger, client *ethclient.
 	}
 
 	logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "NewOoORouter",
+		"package":       "chain",
+		"function":      "NewOoORouter",
 		"initial_block": initialFromBlock,
 	}).Debug("set initial query from block")
 
@@ -143,26 +143,26 @@ func NewOoORouter(ctx context.Context, logger *logrus.Logger, client *ethclient.
 	historicalFilterOpts := &bind.FilterOpts{Context: ctx, Start: initialFromBlock, End: nil}
 
 	return &OoORouterService{
-		contractAddress: contractAddress,
-		client: client,
-		contractInstance: contractInstance,
+		contractAddress:         contractAddress,
+		client:                  client,
+		contractInstance:        contractInstance,
 		context:                 ctx,
 		logger:                  logger,
 		logDataRequestedHash:    logDataRequestedHash,
 		logRequestFulfilledHash: logRequestFulfilledHash,
 		contractAbi:             contractAbi,
 		oracleAddress:           oracleAddress,
-		transactOpts:         transactOpts,
-		callOpts:             callOpts,
-		db:                   db,
-		oooApi:               oooApi,
-		oraclePrivateKey:     oraclePrivateKeyECDSA,
-		watchOpts:            watchOpts,
-		chanDataRequests:     chanDataRequests,
-		chanRequestFulfilled: chanRequestFulfilled,
-		historicalFilterOpts: historicalFilterOpts,
-		lastBlockNumber:      initialFromBlock,
-		prevTxNonce:          nonce,
+		transactOpts:            transactOpts,
+		callOpts:                callOpts,
+		db:                      db,
+		oooApi:                  oooApi,
+		oraclePrivateKey:        oraclePrivateKeyECDSA,
+		watchOpts:               watchOpts,
+		chanDataRequests:        chanDataRequests,
+		chanRequestFulfilled:    chanRequestFulfilled,
+		historicalFilterOpts:    historicalFilterOpts,
+		lastBlockNumber:         initialFromBlock,
+		prevTxNonce:             nonce,
 	}, nil
 }
 
@@ -170,8 +170,8 @@ func (o *OoORouterService) setLastBlockNumber(blockNumber uint64) {
 
 	if blockNumber > o.lastBlockNumber {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "setLastBlockNumber",
+			"package":   "chain",
+			"function":  "setLastBlockNumber",
 			"block_num": blockNumber,
 		}).Debug("set last block number in db")
 
@@ -180,9 +180,9 @@ func (o *OoORouterService) setLastBlockNumber(blockNumber uint64) {
 
 		if err != nil {
 			o.logger.WithFields(logrus.Fields{
-				"package":  "chain",
-				"function": "setLastBlockNumber",
-				"action": "update db",
+				"package":   "chain",
+				"function":  "setLastBlockNumber",
+				"action":    "update db",
 				"block_num": blockNumber,
 			}).Error(err.Error())
 		}
@@ -229,7 +229,7 @@ func (o *OoORouterService) GetHistoricalEvents() {
 		"function": "GetHistoricalEvents",
 	}).Info("get event history")
 
-	me := make([]common.Address,0,1)
+	me := make([]common.Address, 0, 1)
 	me = append(me, o.oracleAddress)
 
 	itrDr, err := o.contractInstance.FilterDataRequested(o.historicalFilterOpts, nil, me, nil)
@@ -275,7 +275,7 @@ func (o *OoORouterService) subscribeToDataRequested(me []common.Address) {
 	}
 
 	b := backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = 10 *time.Minute
+	b.MaxElapsedTime = 10 * time.Minute
 
 	var sub event.Subscription
 
@@ -285,7 +285,7 @@ func (o *OoORouterService) subscribeToDataRequested(me []common.Address) {
 		return subErr
 	}
 
-	notify := func(err error, t time.Duration){
+	notify := func(err error, t time.Duration) {
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "subscribeToDataRequested",
@@ -310,7 +310,7 @@ func (o *OoORouterService) subscribeToRequestFulfilled(me []common.Address) {
 	}
 
 	b := backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = 10 *time.Minute
+	b.MaxElapsedTime = 10 * time.Minute
 
 	var sub event.Subscription
 
@@ -320,7 +320,7 @@ func (o *OoORouterService) subscribeToRequestFulfilled(me []common.Address) {
 		return subErr
 	}
 
-	notify := func(err error, t time.Duration){
+	notify := func(err error, t time.Duration) {
 		o.logger.WithFields(logrus.Fields{
 			"package":  "chain",
 			"function": "subscribeToRequestFulfilled",
@@ -344,7 +344,7 @@ func (o *OoORouterService) RunEventWatchers() {
 		"function": "RunEventWatchers",
 	}).Info("initialise event subscriptions")
 
-	me := make([]common.Address,0,1)
+	me := make([]common.Address, 0, 1)
 	me = append(me, o.oracleAddress)
 
 	o.subscribeToDataRequested(me)
@@ -390,8 +390,8 @@ func (o *OoORouterService) processIncomingRequests(event *ooo_router.OooRouterDa
 	endpointStr := string(common.TrimRightZeroes(event.Data[:]))
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processIncomingRequests",
+		"package":   "chain",
+		"function":  "processIncomingRequests",
 		"requestId": requestId,
 	}).Info("got data request event for me")
 
@@ -402,9 +402,9 @@ func (o *OoORouterService) processIncomingRequests(event *ooo_router.OooRouterDa
 
 	if reqDbRes.ID == 0 {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "chain",
-			"function": "processIncomingRequests",
-			"action":   "add job to db",
+			"package":   "chain",
+			"function":  "processIncomingRequests",
+			"action":    "add job to db",
 			"requestId": requestId,
 		}).Info("new request")
 
@@ -413,10 +413,10 @@ func (o *OoORouterService) processIncomingRequests(event *ooo_router.OooRouterDa
 		if err != nil {
 			// possibly not in Tx pool yet
 			o.logger.WithFields(logrus.Fields{
-				"package":  "chain",
-				"function": "processIncomingRequests",
-				"action":   "parse and check adhoc",
-				"request_id":  requestId,
+				"package":    "chain",
+				"function":   "processIncomingRequests",
+				"action":     "parse and check adhoc",
+				"request_id": requestId,
 			}).Error(err.Error())
 			// default to false
 			isAdHoc = false
@@ -454,8 +454,8 @@ func (o *OoORouterService) processIncomingFulfilments(event *ooo_router.OooRoute
 	requestId := common.Bytes2Hex(event.RequestId[:])
 
 	o.logger.WithFields(logrus.Fields{
-		"package":  "chain",
-		"function": "processIncomingFulfilments",
+		"package":   "chain",
+		"function":  "processIncomingFulfilments",
 		"requestId": requestId,
 	}).Info("got request fulfilment event for me")
 

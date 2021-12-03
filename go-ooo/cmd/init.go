@@ -91,7 +91,6 @@ Examples:
 			viper.SetDefault(config.JobsCheckDuration, 5)
 			viper.SetDefault(config.JobsWaitConfirmations, 2)
 
-
 			viper.SetDefault(config.DatabaseDialect, "sqlite")
 			viper.SetDefault(config.DatabaseStorage, dbPath)
 			viper.SetDefault(config.DatabaseHost, "localhost")

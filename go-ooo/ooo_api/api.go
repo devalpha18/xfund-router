@@ -17,18 +17,18 @@ import (
 )
 
 type OOOApi struct {
-	baseURL  string
-	client   *http.Client
-	db       *database.DB
-	logger   *logrus.Logger
+	baseURL string
+	client  *http.Client
+	db      *database.DB
+	logger  *logrus.Logger
 }
 
 func NewApi(db *database.DB, logger *logrus.Logger) *OOOApi {
 	return &OOOApi{
 		baseURL: viper.GetString(config.JobsOooApiUrl),
-		client: &http.Client{},
-		db: db,
-		logger: logger,
+		client:  &http.Client{},
+		db:      db,
+		logger:  logger,
 	}
 }
 
@@ -60,22 +60,22 @@ func (o *OOOApi) buildQuery(endpoint string) (string, error) {
 	}
 
 	o.logger.WithFields(logrus.Fields{
-		"package":   "ooo_api",
-		"function":  "buildQuery",
-		"endpoint":  endpoint,
-		"base":      base,
-		"target":    target,
-		"type":      qType,
-		"subtype":   subtype,
-		"supp1":     supp1,
-		"supp2":     supp2,
-		"supp3":     supp3,
+		"package":  "ooo_api",
+		"function": "buildQuery",
+		"endpoint": endpoint,
+		"base":     base,
+		"target":   target,
+		"type":     qType,
+		"subtype":  subtype,
+		"supp1":    supp1,
+		"supp2":    supp2,
+		"supp3":    supp3,
 	}).Debug("build finchains api query")
 
 	// check supported
 	supported, _ := o.db.PairIsSupportedByBaseAndTarget(base, target)
 	if supported.ID == 0 {
-	    return "", errors.New("pair not currently supported")
+		return "", errors.New("pair not currently supported")
 	}
 
 	pair := supported.GetName()
@@ -150,17 +150,17 @@ func (o *OOOApi) QueryFinchainsEndpoint(endpoint string, requestId string) (stri
 func (o *OOOApi) UpdateSupportedPairs() {
 
 	o.logger.WithFields(logrus.Fields{
-		"package":   "ooo_api",
-		"function":  "UpdateSupportedPairs",
+		"package":  "ooo_api",
+		"function": "UpdateSupportedPairs",
 	}).Info("begin update supported pairs")
 
 	req, err := http.NewRequest("GET", fmt.Sprint(o.baseURL, "/pairs"), nil)
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":   "ooo_api",
-			"function":  "UpdateSupportedPairs",
-			"action":    "generate http request",
+			"package":  "ooo_api",
+			"function": "UpdateSupportedPairs",
+			"action":   "generate http request",
 		}).Error(err.Error())
 
 		return
@@ -171,9 +171,9 @@ func (o *OOOApi) UpdateSupportedPairs() {
 	if err != nil {
 
 		o.logger.WithFields(logrus.Fields{
-			"package":   "ooo_api",
-			"function":  "UpdateSupportedPairs",
-			"action":    "run http request",
+			"package":  "ooo_api",
+			"function": "UpdateSupportedPairs",
+			"action":   "run http request",
 		}).Error(err.Error())
 
 		return
@@ -187,14 +187,14 @@ func (o *OOOApi) UpdateSupportedPairs() {
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":   "ooo_api",
-			"function":  "UpdateSupportedPairs",
-			"action":    "unmarshel json response",
+			"package":  "ooo_api",
+			"function": "UpdateSupportedPairs",
+			"action":   "unmarshel json response",
 		}).Error(err.Error())
 		return
 	}
 
-	currentPairs := make([]string,0,len(result))
+	currentPairs := make([]string, 0, len(result))
 
 	for _, p := range result {
 		dbRes, _ := o.db.PairIsSupportedByPairName(p.Name)
@@ -208,9 +208,9 @@ func (o *OOOApi) UpdateSupportedPairs() {
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
-			"package":   "ooo_api",
-			"function":  "UpdateSupportedPairs",
-			"action":    "get pairs not supported from DB",
+			"package":  "ooo_api",
+			"function": "UpdateSupportedPairs",
+			"action":   "get pairs not supported from DB",
 		}).Error(err.Error())
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return
@@ -219,10 +219,10 @@ func (o *OOOApi) UpdateSupportedPairs() {
 
 	for _, p := range noLongerSupported {
 		o.logger.WithFields(logrus.Fields{
-			"package":   "ooo_api",
-			"function":  "UpdateSupportedPairs",
-			"action":    "delete pair",
-			"pair":      p.Name,
+			"package":  "ooo_api",
+			"function": "UpdateSupportedPairs",
+			"action":   "delete pair",
+			"pair":     p.Name,
 		}).Info("pair no longer supported")
 
 		// delete permanently
@@ -249,13 +249,13 @@ func ParseEndpoint(endpoint string) (base string, target string, qType string,
 	ep := strings.Split(endpoint, ".")
 
 	if len(ep) < 3 {
-		err = errors.New( fmt.Sprintf("incorrect endpoint format: %s", endpoint))
+		err = errors.New(fmt.Sprintf("incorrect endpoint format: %s", endpoint))
 		return
 	}
 
-	base = ep[0] // BTC etc
+	base = ep[0]   // BTC etc
 	target = ep[1] // GBP etc
-	qType = ep[2] // PRC, EXC, DCS,
+	qType = ep[2]  // PRC, EXC, DCS,
 
 	if len(ep) > 3 {
 		subtype = ep[3] // AVG, LAT etc.
@@ -308,7 +308,7 @@ func cleanseDMax(dMax string) (string, error) {
 	if dMaxInt <= 0 {
 		return defaultDmax, nil
 	}
-    return strconv.Itoa(int(dMaxInt)), nil
+	return strconv.Itoa(int(dMaxInt)), nil
 }
 
 func getPriceSubType(subtype string, supp1 string, supp2 string) (string, error) {
@@ -317,7 +317,7 @@ func getPriceSubType(subtype string, supp1 string, supp2 string) (string, error)
 	s2 := ""
 	switch subtype {
 	case "AVG":
-		qStr =  fmt.Sprintf("avg/%s", tm)
+		qStr = fmt.Sprintf("avg/%s", tm)
 		break
 	case "AVI":
 		qStr = fmt.Sprintf("avg/iqd/%s", tm)

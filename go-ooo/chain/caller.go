@@ -15,7 +15,7 @@ func (o *OoORouterService) setNextTxNonce(nonce uint64, isFromPending bool) {
 	}
 
 	// only set if it's + 1
-	if nextNonce - o.prevTxNonce == 1 {
+	if nextNonce-o.prevTxNonce == 1 {
 
 		o.logger.WithFields(logrus.Fields{
 			"package":    "chain",

@@ -1,6 +1,5 @@
 package config
 
-
 const JobsOooApiUrl = "jobs.ooo_api_url"
 const JobsCheckDuration = "jobs.check_duration"
 const JobsWaitConfirmations = "jobs.wait_confirmations"

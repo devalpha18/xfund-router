@@ -67,4 +67,3 @@ func (d *KeyStorageModel) SetHash(hash string) {
 func (d *KeyStorageModel) SetToken(token string) {
 	d.Token = token
 }
-

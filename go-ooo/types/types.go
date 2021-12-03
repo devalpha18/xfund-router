@@ -8,9 +8,9 @@ type AdminTask struct {
 
 type AdminTaskResponse struct {
 	AdminTask
-	Success   bool
-	Result    string
-	Error     string
+	Success bool
+	Result  string
+	Error   string
 }
 
 type OoOAPIPairsResult struct {

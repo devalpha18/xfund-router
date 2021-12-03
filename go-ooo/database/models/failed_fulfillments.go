@@ -38,4 +38,3 @@ func (f FailedFulfilment) GetGasPrice() uint64 {
 func (f FailedFulfilment) GetFailReason() string {
 	return f.FailReason
 }
-

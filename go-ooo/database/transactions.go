@@ -8,7 +8,7 @@ import (
 
 /*
   DataRequests table
- */
+*/
 
 func (d *DB) InsertNewRequest(provider string,
 	consumer string, requestId string,
@@ -85,7 +85,7 @@ func (d *DB) IncrementFulfillmentAttempts(requestId string) error {
 	return err
 }
 
-func (d *DB) UpdateRequestStatus(requestId string,status int, reason string) error {
+func (d *DB) UpdateRequestStatus(requestId string, status int, reason string) error {
 	req := models.DataRequests{}
 	err := d.Where("request_id = ?", requestId).First(&req).Error
 	if err != nil {
@@ -149,7 +149,7 @@ func (d *DB) UpdateLastDataFetchBlockNumber(requestId string, blockNum uint64) e
 
 /*
   ToBlocks table
- */
+*/
 
 func (d *DB) InsertNewToBlock(toBlock uint64) (err error) {
 
@@ -166,12 +166,12 @@ func (d *DB) InsertNewToBlock(toBlock uint64) (err error) {
 
 /*
   SupportedPairs table
- */
+*/
 
 func (d *DB) AddNewSupportedPair(name string, base string, target string) (err error) {
 	err = d.Create(&models.SupportedPairs{
-		Name: name,
-		Base: base,
+		Name:   name,
+		Base:   base,
 		Target: target,
 	}).Error
 	return
@@ -179,14 +179,14 @@ func (d *DB) AddNewSupportedPair(name string, base string, target string) (err e
 
 /*
   FailedFulfillments table
- */
+*/
 
 func (d *DB) InsertNewFailedFulfilment(requestId string, txHash string, gasUsed uint64, gasPrice uint64, reason string) (err error) {
 	err = d.Create(&models.FailedFulfilment{
 		RequestId:  requestId,
 		TxHash:     txHash,
-		GasUsed: gasUsed,
-		GasPrice: gasPrice,
+		GasUsed:    gasUsed,
+		GasPrice:   gasPrice,
 		FailReason: reason,
 	}).Error
 	return
@@ -194,7 +194,7 @@ func (d *DB) InsertNewFailedFulfilment(requestId string, txHash string, gasUsed 
 
 /*
   DexTokens
- */
+*/
 
 func (d *DB) UpdateOrInsertNewDexToken(symbol string, tokenContractsId uint, dexName string) (err error) {
 
@@ -202,10 +202,10 @@ func (d *DB) UpdateOrInsertNewDexToken(symbol string, tokenContractsId uint, dex
 
 	if token.ID == 0 {
 		err = d.Create(&models.DexTokens{
-			DexName: dexName,
-			TokenSymbol: symbol,
+			DexName:          dexName,
+			TokenSymbol:      symbol,
 			TokenContractsId: tokenContractsId,
-			LastCheckDate: uint64(time.Now().Unix()),
+			LastCheckDate:    uint64(time.Now().Unix()),
 		}).Error
 	} else {
 		token.TokenContractsId = tokenContractsId
@@ -218,7 +218,7 @@ func (d *DB) UpdateOrInsertNewDexToken(symbol string, tokenContractsId uint, dex
 
 /*
   DexPairs
- */
+*/
 
 func (d *DB) UpdateOrInsertNewDexPair(t0 string, t1 string,
 	contractAddress string, dexName string) (err error) {

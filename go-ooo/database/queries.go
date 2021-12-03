@@ -7,7 +7,7 @@ import (
 
 /*
   ToBlocks Queries
- */
+*/
 
 func (d DB) GetLastBlockNumQueried() (models.ToBlocks, error) {
 	toBlock := models.ToBlocks{}
@@ -17,7 +17,7 @@ func (d DB) GetLastBlockNumQueried() (models.ToBlocks, error) {
 
 /*
   DataRequests Queries
- */
+*/
 
 func (d *DB) FindByRequestId(requestId string) (models.DataRequests, error) {
 	result := models.DataRequests{}
@@ -56,7 +56,7 @@ func (d *DB) PairsNoLongerSupported(pairs []string) ([]models.SupportedPairs, er
 
 /*
   DexPairs queries
- */
+*/
 
 func (d *DB) FindByDexPairName(base string, target string, dexName string) (models.DexPairs, error) {
 	pair := fmt.Sprintf("%s-%s", base, target)
@@ -68,7 +68,7 @@ func (d *DB) FindByDexPairName(base string, target string, dexName string) (mode
 
 /*
   DexTokens queries
- */
+*/
 
 func (d *DB) FindByDexTokenSymbol(symbol string, dexName string) (models.DexTokens, error) {
 	result := models.DexTokens{}
@@ -78,7 +78,7 @@ func (d *DB) FindByDexTokenSymbol(symbol string, dexName string) (models.DexToke
 
 /*
   TokenContracts queries
- */
+*/
 
 func (d *DB) FindByTokenAndAddress(symbol string, address string) (models.TokenContracts, error) {
 	result := models.TokenContracts{}

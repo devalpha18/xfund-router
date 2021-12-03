@@ -28,9 +28,9 @@ type GraphQlTokenResponse struct {
 }
 
 type GraphQlPairContent struct {
-	Id string
-	Token0 GraphQlToken
-	Token1 GraphQlToken
+	Id          string
+	Token0      GraphQlToken
+	Token1      GraphQlToken
 	Token0Price string `json:"token0Price"`
 	Token1Price string `json:"token1Price"`
 }
@@ -51,33 +51,33 @@ type GraphQlPairResponse struct {
 
 // currently supported DEXs for ad-hoc queries
 func getQlApis() []map[string]string {
-	return []map[string]string {
+	return []map[string]string{
 		{
-			"name": "shibaswap",
-			"url": "https://api.thegraph.com/subgraphs/name/shibaswaparmy/exchange",
-			"pairs_endpoint": "pairs",
-			"pair_endpoint": "pair",
+			"name":            "shibaswap",
+			"url":             "https://api.thegraph.com/subgraphs/name/shibaswaparmy/exchange",
+			"pairs_endpoint":  "pairs",
+			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
 		},
 		{
-			"name": "sushiswap",
-			"url": "https://api.thegraph.com/subgraphs/name/sushiswap/exchange",
-			"pairs_endpoint": "pairs",
-			"pair_endpoint": "pair",
+			"name":            "sushiswap",
+			"url":             "https://api.thegraph.com/subgraphs/name/sushiswap/exchange",
+			"pairs_endpoint":  "pairs",
+			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
 		},
 		{
-			"name": "uniswapv2",
-			"url": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
-			"pairs_endpoint": "pairs",
-			"pair_endpoint": "pair",
+			"name":            "uniswapv2",
+			"url":             "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+			"pairs_endpoint":  "pairs",
+			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
 		},
 		{
-			"name": "uniswapv3",
-			"url": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
-			"pairs_endpoint": "pools",
-			"pair_endpoint": "pair",
+			"name":            "uniswapv3",
+			"url":             "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+			"pairs_endpoint":  "pools",
+			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
 		},
 	}
@@ -98,9 +98,9 @@ func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 	for _, a := range qlApiUrls {
 		price := o.getPrice(base, target, a)
 		if price != "" {
-            p, e := utils.ParseBigFloat(price)
-            if e == nil {
-            	wei := utils.EtherToWei(p)
+			p, e := utils.ParseBigFloat(price)
+			if e == nil {
+				wei := utils.EtherToWei(p)
 				if wei.Cmp(big.NewInt(0)) > 0 {
 					total = new(big.Int).Add(total, wei)
 					priceCount++
@@ -146,7 +146,7 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 		// otherwise skip, and let the crawler try to update
 		// pair data
 		// todo - clean up and put in its own function
-		if dbPairRes.ID == 0 || (dbPairRes.LastCheckDate > 0 && uint64(time.Now().Unix()) - dbPairRes.LastCheckDate > 3600) {
+		if dbPairRes.ID == 0 || (dbPairRes.LastCheckDate > 0 && uint64(time.Now().Unix())-dbPairRes.LastCheckDate > 3600) {
 			t0 := ""
 			t1 := ""
 			// check db for tokens
@@ -188,20 +188,20 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 
 	if hasData {
 		o.logger.WithFields(logrus.Fields{
-			"package":  "ooo_api",
-			"function": "getNewPairPrice",
-			"action":   "result",
-			"url": api["url"],
-			"base": base,
-			"target": target,
-			"pair": pair.Id,
+			"package":       "ooo_api",
+			"function":      "getNewPairPrice",
+			"action":        "result",
+			"url":           api["url"],
+			"base":          base,
+			"target":        target,
+			"pair":          pair.Id,
 			"token0_symbol": pair.Token0.Symbol,
 			"token1_symbol": pair.Token1.Symbol,
-			"token0_id": pair.Token0.Id,
-			"token1_id": pair.Token1.Id,
+			"token0_id":     pair.Token0.Id,
+			"token1_id":     pair.Token1.Id,
 			"token_0_price": pair.Token0Price,
 			"token_1_price": pair.Token1Price,
-			"price": price,
+			"price":         price,
 		}).Debug()
 
 		return price
@@ -212,10 +212,10 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 
 func (o *OOOApi) getKnownPairPrice(pairAddress string, api map[string]string) GraphQlPairContent {
 	o.logger.WithFields(logrus.Fields{
-		"package":  "ooo_api",
-		"function": "getKnownPairPrice",
-		"dex": api["name"],
-		"url": api["url"],
+		"package":      "ooo_api",
+		"function":     "getKnownPairPrice",
+		"dex":          api["name"],
+		"url":          api["url"],
 		"pair_address": pairAddress,
 	}).Debug()
 
@@ -233,12 +233,12 @@ func (o *OOOApi) getNewPairPrice(t0 string, t1 string, base string, target strin
 	o.logger.WithFields(logrus.Fields{
 		"package":  "ooo_api",
 		"function": "getNewPairPrice",
-		"dex": api["name"],
-		"url": api["url"],
-		"t0": t0,
-		"t1": t1,
-		"base": base,
-		"target": target,
+		"dex":      api["name"],
+		"url":      api["url"],
+		"t0":       t0,
+		"t1":       t1,
+		"base":     base,
+		"target":   target,
 	}).Debug()
 
 	query := generateNewPairQuery(t0, t1, api["pairs_endpoint"])
@@ -251,10 +251,10 @@ func (o *OOOApi) getNewPairPrice(t0 string, t1 string, base string, target strin
 		o.logger.WithFields(logrus.Fields{
 			"package":  "ooo_api",
 			"function": "getNewPairPrice",
-			"dex": api["name"],
-			"url": api["url"],
-			"base": base,
-			"target": target,
+			"dex":      api["name"],
+			"url":      api["url"],
+			"base":     base,
+			"target":   target,
 		}).Warn("pair not found")
 		return GraphQlPairContent{}, false
 	}
@@ -268,9 +268,9 @@ func (o *OOOApi) getToken(api map[string]string, symbol string) string {
 	o.logger.WithFields(logrus.Fields{
 		"package":  "ooo_api",
 		"function": "getToken",
-		"dex": api["name"],
-		"url": api["url"],
-		"symbol": symbol,
+		"dex":      api["name"],
+		"url":      api["url"],
+		"symbol":   symbol,
 	}).Debug()
 
 	query := generateTokenQuery(symbol, api["tokens_endpoint"])
@@ -283,9 +283,9 @@ func (o *OOOApi) getToken(api map[string]string, symbol string) string {
 		o.logger.WithFields(logrus.Fields{
 			"package":  "ooo_api",
 			"function": "getToken",
-			"dex": api["name"],
-			"url": api["url"],
-			"symbol": symbol,
+			"dex":      api["name"],
+			"url":      api["url"],
+			"symbol":   symbol,
 		}).Warn("token not found")
 		return ""
 	}

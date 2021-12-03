@@ -1,24 +1,24 @@
 package keystore
 
 import (
-"crypto/aes"
-"crypto/cipher"
-cryptoRand "crypto/rand"
-"crypto/sha256"
-"encoding/base64"
-"encoding/json"
-"fmt"
-"github.com/sirupsen/logrus"
-"golang.org/x/crypto/bcrypt"
-"io"
-"io/ioutil"
-"math/rand"
-//"go-ooo/models/keystorage"
-"go-ooo/utils"
-"go-ooo/utils/walletworker"
-"os"
-"sync"
-"time"
+	"crypto/aes"
+	"crypto/cipher"
+	cryptoRand "crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
+	"io"
+	"io/ioutil"
+	"math/rand"
+	//"go-ooo/models/keystorage"
+	"go-ooo/utils"
+	"go-ooo/utils/walletworker"
+	"os"
+	"sync"
+	"time"
 )
 
 type Keystorage struct {
@@ -210,7 +210,6 @@ func (d Keystorage) GetByAccount(account string) (*KeyStorageKeyModel, error) {
 	return &KeyStorageKeyModel{}, fmt.Errorf("Can't find user, sorry.")
 }
 
-
 func (d Keystorage) Exists() bool {
 	if len((d.KeyStore.GetKey())) > 0 {
 		return true
@@ -365,4 +364,3 @@ func GenerateRandomBytes(strSize int) string {
 	}
 	return string(bytes)
 }
-
