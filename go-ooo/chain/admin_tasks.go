@@ -267,7 +267,8 @@ func (o *OoORouterService) queryFees(task go_ooo_types.AdminTask) go_ooo_types.A
 		resp.Error = err.Error()
 		resp.Success = false
 	} else {
-		humanFee := big.NewInt(0).Quo(fee, big.NewInt(params.GWei))
+		feeAsBigFloat, _ := new(big.Float).SetString(fee.String())
+		humanFee := new(big.Float).Quo(feeAsBigFloat, big.NewFloat(params.GWei))
 		resp.Result = fmt.Sprintf("global fee: %s (%s)", fee.String(), humanFee.String())
 		resp.Success = true
 	}
@@ -289,7 +290,8 @@ func (o *OoORouterService) queryGranularFees(task go_ooo_types.AdminTask) go_ooo
 		resp.Error = err.Error()
 		resp.Success = false
 	} else {
-		humanFee := big.NewInt(0).Quo(fee, big.NewInt(params.GWei))
+		feeAsBigFloat, _ := new(big.Float).SetString(fee.String())
+		humanFee := new(big.Float).Quo(feeAsBigFloat, big.NewFloat(params.GWei))
 		resp.Result = fmt.Sprintf("granular fee for %s: %s (%s)", task.ToOrConsumer, fee.String(), humanFee.String())
 		resp.Success = true
 	}
