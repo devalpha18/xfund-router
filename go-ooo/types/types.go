@@ -23,6 +23,7 @@ type AnalyticsTask struct {
 	NumTxs           int
 	CurrXfundPrice   float64
 	Simulate         bool
+	SuggestFee       bool
 	SimulationParams AnalyticsSimulationParams
 }
 
@@ -64,6 +65,7 @@ type AnalyticsData struct {
 	MostGasUsedConsumer  string        `json:"most_gas_used_consumer,omitempty"`
 	LeastGasUsedConsumer string        `json:"least_gas_used_consumer,omitempty"`
 	NumberAnalysed       uint64        `json:"number_requests_analysed"`
+	SuggestedFee         float64       `json:"suggested_fee"`
 }
 
 type AnalyticsResult struct {

@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"go-ooo/database/models"
 	go_ooo_types "go-ooo/types"
+	"math"
 	"math/big"
 )
 
@@ -42,11 +43,19 @@ func (s *Service) ProcessAnalyticsTask(task go_ooo_types.AnalyticsTask) go_ooo_t
 		leastGasUSedContract = lgu.Consumer
 	}
 
-	analyticsData := runAnalytics(jobs, task)
+	var analyticsData go_ooo_types.AnalyticsData
 
-	if task.Consumer == "" {
-		analyticsData.MostGasUsedConsumer = mostGasUsedContract
-		analyticsData.LeastGasUsedConsumer = leastGasUSedContract
+	if task.SuggestFee {
+		suggestedFee, profit := runSuggestFee(jobs, task)
+		analyticsData.SuggestedFee = suggestedFee
+		analyticsData.Earnings.ProfitLossEth = profit
+	} else {
+		analyticsData = runAnalytics(jobs, task)
+
+		if task.Consumer == "" {
+			analyticsData.MostGasUsedConsumer = mostGasUsedContract
+			analyticsData.LeastGasUsedConsumer = leastGasUSedContract
+		}
 	}
 
 	filters := go_ooo_types.AnalyticsFilter{
@@ -65,6 +74,49 @@ func (s *Service) ProcessAnalyticsTask(task go_ooo_types.AnalyticsTask) go_ooo_t
 	}
 
 	return resp
+}
+
+func runSuggestFee(rows []models.DataRequests, task go_ooo_types.AnalyticsTask) (float64, float64) {
+	numRows := float64(len(rows))
+
+	costSum := big.NewFloat(0)
+
+	for _, reqRow := range rows {
+
+		gasVal := int64(reqRow.FulfillGasUsed)
+
+		// gas prices
+		gasPriceVal := int64(reqRow.FulfillGasPrice)
+
+		// cost
+		cost := new(big.Float).Mul(new(big.Float).SetInt64(gasVal), new(big.Float).SetInt64(gasPriceVal))
+		costSum = big.NewFloat(0).Add(costSum, cost)
+
+	}
+
+	totalCostEth := new(big.Float).Quo(costSum, big.NewFloat(params.Ether))
+	meanCost := new(big.Float).Quo(totalCostEth, big.NewFloat(numRows))
+
+	feeXfund := big.NewFloat(0)
+	feeEth := new(big.Float).Mul(feeXfund, big.NewFloat(task.CurrXfundPrice))
+	profitLoss := new(big.Float).Sub(feeEth, meanCost)
+
+	for profitLoss.Cmp(big.NewFloat(0)) <= 0 {
+		feeXfund = big.NewFloat(0).Add(feeXfund, big.NewFloat(0.00001))
+		feeEth = new(big.Float).Mul(feeXfund, big.NewFloat(task.CurrXfundPrice))
+		profitLoss = new(big.Float).Sub(feeEth, meanCost)
+	}
+
+	suggestedFee, _ := feeXfund.Float64()
+
+	// round
+	finalSuggestion := math.Ceil(suggestedFee*10000) / 10000
+	feeEth = new(big.Float).Mul(big.NewFloat(finalSuggestion), big.NewFloat(task.CurrXfundPrice))
+	profitLoss = new(big.Float).Sub(feeEth, meanCost)
+
+	profit, _ := profitLoss.Float64()
+
+	return finalSuggestion, profit
 }
 
 func runAnalytics(rows []models.DataRequests, task go_ooo_types.AnalyticsTask) go_ooo_types.AnalyticsData {
@@ -109,6 +161,7 @@ func runAnalytics(rows []models.DataRequests, task go_ooo_types.AnalyticsTask) g
 		if task.Simulate {
 			gasPriceVal = int64(task.SimulationParams.GasPrice * 1e9)
 		}
+
 		if gasPriceMin.Cmp(big.NewInt(0)) == 0 || gasPriceMin.Cmp(big.NewInt(gasPriceVal)) > 0 {
 			gasPriceMin = big.NewInt(gasPriceVal)
 		}
@@ -133,11 +186,11 @@ func runAnalytics(rows []models.DataRequests, task go_ooo_types.AnalyticsTask) g
 		costSum = big.NewFloat(0).Add(costSum, cost)
 
 		// fees
-		reqFee := reqRow.Fee
+		reqFee := new(big.Float).SetUint64(reqRow.Fee)
 		if task.Simulate {
-			reqFee = uint64(task.SimulationParams.XfundFee * 10e9)
+			reqFee = big.NewFloat(0).Mul(big.NewFloat(task.SimulationParams.XfundFee), big.NewFloat(params.GWei))
 		}
-		totalFees = big.NewFloat(0).Add(totalFees, new(big.Float).SetUint64(reqFee))
+		totalFees = big.NewFloat(0).Add(totalFees, reqFee)
 	}
 
 	// gas

@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go-ooo/config"
 	go_ooo_types "go-ooo/types"
 	"golang.org/x/term"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"strings"
 	"syscall"
@@ -56,6 +58,7 @@ var analyticsCmd = &cobra.Command{
 			NumTxs:         aNumTxs,
 			CurrXfundPrice: currXfundPrice,
 			Simulate:       isSim,
+			SuggestFee:     false,
 			SimulationParams: go_ooo_types.AnalyticsSimulationParams{
 				GasPrice: aSimGasPrice,
 				XfundFee: simXfundFee,
@@ -66,13 +69,44 @@ var analyticsCmd = &cobra.Command{
 	},
 }
 
+// suggestFeeCmd represents the analytics command
+var suggestFeeCmd = &cobra.Command{
+	Use:   "suggestFee",
+	Short: "suggest xFUND fee",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if aNumTxs <= 0 {
+			aNumTxs = 100
+		}
+
+		currXfundPrice := float64(0)
+		if aCurrXfundPrice > 0 {
+			currXfundPrice = aCurrXfundPrice
+		} else {
+			prices := getXfundPrice()
+			currXfundPrice = prices.Xfund.Eth
+		}
+
+		analyticsTask := go_ooo_types.AnalyticsTask{
+			NumTxs:         aNumTxs,
+			CurrXfundPrice: currXfundPrice,
+			Simulate:       false,
+			SuggestFee:     true,
+		}
+
+		processAnalyticsTask(analyticsTask)
+	},
+}
+
 func init() {
 
-	analyticsCmd.Flags().IntVar(&aNumTxs, "num-txs", 100, "number of Txs to analyse")
-	analyticsCmd.Flags().Float64Var(&aCurrXfundPrice, "xfund-price", 0.0, "Current xFUND price in ETH")
-	analyticsCmd.Flags().StringVar(&aConsumer, "consumer", "", "filter by consumer contract address")
+	analyticsCmd.PersistentFlags().IntVar(&aNumTxs, "num-txs", 100, "number of Txs to analyse")
+	analyticsCmd.PersistentFlags().Float64Var(&aCurrXfundPrice, "xfund-price", 0.0, "Current xFUND price in ETH")
+	analyticsCmd.PersistentFlags().StringVar(&aConsumer, "consumer", "", "filter by consumer contract address")
 	analyticsCmd.Flags().Uint64Var(&aSimGasPrice, "sim-gas-price", 0, "simulated gas prices in gwei")
 	analyticsCmd.Flags().Float64Var(&aSimXfundFee, "sim-xfund-fee", 0.0, "simulated xFUND fee")
+
+	analyticsCmd.AddCommand(suggestFeeCmd)
 
 	rootCmd.AddCommand(analyticsCmd)
 }
@@ -122,19 +156,27 @@ func processAnalyticsTask(task go_ooo_types.AnalyticsTask) {
 	}
 
 	if resp.StatusCode == 200 {
-		//var decodedResponse go_ooo_types.AnalyticsTaskResponse
-		//err = json.Unmarshal(body, &decodedResponse)
-		//if err != nil {
-		//	fmt.Println(err.Error())
-		//	return
-		//}
+		var decodedResponse go_ooo_types.AnalyticsTaskResponse
+		err = json.Unmarshal(body, &decodedResponse)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
 		var prettyJSON bytes.Buffer
 		err = json.Indent(&prettyJSON, body, "", "  ")
 		if err != nil {
 			fmt.Println("JSON parse error: ", err)
 			return
 		}
-		fmt.Println(string(prettyJSON.Bytes()))
+		if decodedResponse.Task.SuggestFee {
+			usableSuggestedFee := new(big.Float).Mul(big.NewFloat(decodedResponse.Result.SuggestedFee), big.NewFloat(params.GWei))
+			fee, _ := usableSuggestedFee.Uint64()
+			fmt.Println("Suggested fee              :", decodedResponse.Result.SuggestedFee, "xFUND")
+			fmt.Println("Fee in lowest denomination :", fee)
+			fmt.Println("Profit/Loss                :", fmt.Sprintf("%.18f", decodedResponse.Result.Earnings.ProfitLossEth), "ETH")
+		} else {
+			fmt.Println(string(prettyJSON.Bytes()))
+		}
 	} else {
 		fmt.Println("Error   :", resp.Status)
 		fmt.Println("Body :", string(body))

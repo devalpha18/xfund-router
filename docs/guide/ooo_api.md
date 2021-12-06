@@ -8,6 +8,10 @@ as a data request via the xFUND Router network.
 See [Providers](../providers.md) for a list of Oracles providing data for both Mainnet and Rinkeby, 
 along with their associated fees and wallet addresses.
 
+**Note** OoO data providers may wait for 2 - 3 or more block confirmations before processing a request. Depending
+on network congestion and gas prices, it may therefore take up to a minute or more for data to be sent to your 
+smart contract from the time your request Tx was received by the provider oracle.
+
 ## Introduction
 
 Data is acquired via the OoO API using dot-separated strings to define the desired data - for example
@@ -56,7 +60,7 @@ The code for the data point being requested, for example `PR` etc.
 The currently implemented types are as follows:
 
 - `PR`
-- `AD`
+- `AD` (__beta__ on Rinkeby testnet)
 
 ### TYPE: `PR`
 
@@ -64,6 +68,9 @@ Price, calculated using all available exchange data for the selected pair. See `
 query endpoints.
 
 ### TYPE: `AD`
+
+**Note: this `TYPE` endpoint is currently in __beta__ testing and as such is currently only processed by
+the Rinkeby testnet OoO provider**
 
 Adhoc data requests for pairs not yet supported by Finchains. There are currently no `SUBTYPE`s for `AD` 
 endpoint `TYPE`s.
