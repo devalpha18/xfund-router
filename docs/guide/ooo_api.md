@@ -55,16 +55,54 @@ to each exchange are linked below.
 The code for the data point being requested, for example `PR` etc.
 The currently implemented types are as follows:
 
-- `PR`: Price, calculated using all available exchange data for the selected pair
-- `AD`: Adhoc data requests for pairs not yet supported by Finchains
+- `PR`
+- `AD`
+
+### TYPE: `PR`
+
+Price, calculated using all available exchange data for the selected pair. See `SUBTYPE`s for supported
+query endpoints.
+
+### TYPE: `AD`
+
+Adhoc data requests for pairs not yet supported by Finchains. There are currently no `SUBTYPE`s for `AD` 
+endpoint `TYPE`s.
+
+The OoO provider will __attempt__ to query supported DEXs' subgraphs to determine whether the `BASE` and `TARGET` symbols 
+are known to the DEX, and also whether the DEX has a liquidity pool representing the pair. If a pair exists, it will 
+attempt to retrieve the latest price from each DEX before calculating the mean price from all data found.
+
+**Note**: If a DEX is aware of more than one token contract address for a given token symbol, the contract address with the 
+highest transaction count will be used for the query.
+
+The currently supported DEXs are:
+
+- Uniswap v2
+- Uniswap v3
+- Shibaswap
+- Sushiswap
+
+**IMPORTANT** `BASE` and `TARGET` are **CaSe SeNsItIvE** for adhoc queries! `XFUND` is __not__ the same as `xFUND`.
+**Always check your request endpoints before sending a data request!**
+
+**Example**
+
+The token `JAZZHANDS` is not yet tracked by Finchains, but we'd like to acquire the `WETH` price for `JAZZHANDS`. We know that
+`JAZZHANDS/WETH` pair is listed on Uniswap v2 and Shibaswap, so we can use the query endpoint:
+
+`JAZZHANDS.WETH.AD`
+
+The OoO provider will pick up the request, and since it is an `AD` endpoint `TYPE`, will try to find the token contract 
+addresses for `JAZZHANDS` and `WETH` instead of querying Finchains' API. From these, it will attempt to discover the 
+pair contract addresses for the respective DEXs. If a DEX supports the pair, it will query the latest price from all supported 
+DEXes, and calculate the mean price from all results.
 
 ### SUBTYPE
 
-Used with `TYPE` `PR`.
+Used with `TYPE` endpoint `PR`.
 
 The data sub-type, for example `AVG` (mean), `AVI` (mean with outliers
-removed). Some `TYPE`s, _require_ additional 
-`SUPPN` data in the query. Some may have _optional_ data defined in `SUPPN`.
+removed). Some `TYPE`s, _require_ additional `SUPPN` data in the query. Some may have _optional_ data defined in `SUPPN`.
 
 The currently implemented types are as follows:
 
