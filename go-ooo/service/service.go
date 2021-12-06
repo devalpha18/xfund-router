@@ -35,6 +35,10 @@ type Service struct {
 	adminTasks     chan go_ooo_types.AdminTask
 	adminTasksResp chan go_ooo_types.AdminTaskResponse
 
+	// todo - analytics channels, functions and echo endpoint
+	analyticsTasks     chan go_ooo_types.AnalyticsTask
+	analyticsTasksResp chan go_ooo_types.AnalyticsTaskResponse
+
 	authToken string
 }
 
@@ -74,14 +78,16 @@ func NewService(ctx context.Context, logger *logrus.Logger, oraclePrivateKey []b
 		logger:           logger,
 		db:               db,
 		// https://stackoverflow.com/questions/16903348/scheduled-polling-task-in-go
-		jobTicker:         time.NewTicker(time.Second * pollInterval),
-		updatePairsTicker: time.NewTicker(time.Minute * 30),
-		oooRouterService:  oooRouterService,
-		adminTasks:        make(chan go_ooo_types.AdminTask),
-		adminTasksResp:    make(chan go_ooo_types.AdminTaskResponse),
-		echoService:       echo.New(),
-		oooApi:            oooApi,
-		authToken:         authToken,
+		jobTicker:          time.NewTicker(time.Second * pollInterval),
+		updatePairsTicker:  time.NewTicker(time.Minute * 30),
+		oooRouterService:   oooRouterService,
+		adminTasks:         make(chan go_ooo_types.AdminTask),
+		adminTasksResp:     make(chan go_ooo_types.AdminTaskResponse),
+		analyticsTasks:     make(chan go_ooo_types.AnalyticsTask),
+		analyticsTasksResp: make(chan go_ooo_types.AnalyticsTaskResponse),
+		echoService:        echo.New(),
+		oooApi:             oooApi,
+		authToken:          authToken,
 	}, nil
 }
 
@@ -116,6 +122,8 @@ func (s *Service) Run() {
 			go func(s *Service) {
 				s.oooApi.UpdateSupportedPairs()
 			}(s)
+		case t := <-s.analyticsTasks:
+			s.analyticsTasksResp <- s.ProcessAnalyticsTask(t)
 		case t := <-s.adminTasks:
 			// At any time we can process a request to add a new admin task
 			// such as changing fees etc.

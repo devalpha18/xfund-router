@@ -24,6 +24,7 @@ func (s *Service) initEcho() {
 	}))
 
 	s.echoService.POST("/admin", s.AddAdminTask)
+	s.echoService.POST("/analytics", s.AddAnalyticsTask)
 
 	s.echoService.Logger.Fatal(s.echoService.Start(fmt.Sprintf("%s:%d", viper.GetString(config.ServeHost), viper.GetInt(config.ServePort))))
 }
@@ -41,8 +42,10 @@ func (s *Service) AddAdminTask(c echo.Context) error {
 		"to_or_consumer": request.ToOrConsumer,
 	}).Info("admin task received")
 
+	// send received task to chanel for processing
 	s.adminTasks <- request
 
+	// listen for result and send HTTP response back
 	for {
 		select {
 		case tr := <-s.adminTasksResp:
@@ -53,4 +56,28 @@ func (s *Service) AddAdminTask(c echo.Context) error {
 		}
 	}
 
+}
+
+func (s *Service) AddAnalyticsTask(c echo.Context) error {
+	var request go_ooo_types.AnalyticsTask
+	json.NewDecoder(c.Request().Body).Decode(&request)
+
+	s.logger.WithFields(logrus.Fields{
+		"package":  "service",
+		"function": "AddAnalyticsTask",
+	}).Info("analytics task received")
+
+	// send received task to chanel for processing
+	s.analyticsTasks <- request
+
+	// listen for result and send HTTP response back
+	for {
+		select {
+		case tr := <-s.analyticsTasksResp:
+			if tr.Success {
+				return c.JSON(http.StatusOK, tr)
+			}
+			return c.JSON(http.StatusInternalServerError, tr.Error)
+		}
+	}
 }

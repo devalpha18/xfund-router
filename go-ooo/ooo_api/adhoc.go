@@ -145,6 +145,7 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 		// only run if there's currently no entry in the DB
 		// otherwise skip, and let the crawler try to update
 		// pair data
+		// todo - implement timed crawler...
 		// todo - clean up and put in its own function
 		if dbPairRes.ID == 0 || (dbPairRes.LastCheckDate > 0 && uint64(time.Now().Unix())-dbPairRes.LastCheckDate > 3600) {
 			t0 := ""

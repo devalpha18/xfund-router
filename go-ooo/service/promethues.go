@@ -1,5 +1,13 @@
 package service
 
+// add:
+// _ "net/http/pprof"
+// to import statement for profiling
+// curl http://localhost:9000/debug/pprof/heap > heap.out
+// curl http://localhost:9000/debug/pprof/goroutine > goroutine.out
+// go tool pprof -http=:8080 heap.out
+// go tool pprof heap.out
+
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"

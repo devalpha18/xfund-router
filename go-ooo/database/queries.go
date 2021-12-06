@@ -32,6 +32,35 @@ func (d *DB) GetPendingJobs() ([]models.DataRequests, error) {
 	return jobs, err
 }
 
+func (d *DB) GetLastXSuccessfulRequests(limit int, consumer string) ([]models.DataRequests, error) {
+	var requests = []models.DataRequests{}
+	var err error
+
+	where := map[string]interface{}{"job_status": models.JOB_STATUS_SUCCESS}
+	if len(consumer) > 0 {
+		where = map[string]interface{}{"job_status": models.JOB_STATUS_SUCCESS, "consumer": consumer}
+	}
+
+	if limit > 0 {
+		err = d.Where(where).Order(fmt.Sprintf("id %s", "desc")).Limit(limit).Find(&requests).Error
+	} else {
+		err = d.Where(where).Order(fmt.Sprintf("id %s", "desc")).Find(&requests).Error
+	}
+	return requests, err
+}
+
+func (d *DB) GetMostGasUsed() (models.DataRequests, error) {
+	request := models.DataRequests{}
+	err := d.Where("job_status = ?", models.JOB_STATUS_SUCCESS).Order(fmt.Sprintf("fulfill_gas_used %s", "desc")).Limit(1).First(&request).Error
+	return request, err
+}
+
+func (d *DB) GetLeastGasUsed() (models.DataRequests, error) {
+	request := models.DataRequests{}
+	err := d.Where("job_status = ?", models.JOB_STATUS_SUCCESS).Order(fmt.Sprintf("fulfill_gas_used %s", "asc")).Limit(1).First(&request).Error
+	return request, err
+}
+
 /*
   SupportedPairs queries
 */
