@@ -3,6 +3,7 @@ package chain
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/sirupsen/logrus"
 	go_ooo_types "go-ooo/types"
 	"math/big"
@@ -266,7 +267,8 @@ func (o *OoORouterService) queryFees(task go_ooo_types.AdminTask) go_ooo_types.A
 		resp.Error = err.Error()
 		resp.Success = false
 	} else {
-		resp.Result = fmt.Sprintf("global fee: %s", fee.String())
+		humanFee := big.NewInt(0).Quo(fee, big.NewInt(params.GWei))
+		resp.Result = fmt.Sprintf("global fee: %s (%s)", fee.String(), humanFee.String())
 		resp.Success = true
 	}
 
@@ -287,7 +289,8 @@ func (o *OoORouterService) queryGranularFees(task go_ooo_types.AdminTask) go_ooo
 		resp.Error = err.Error()
 		resp.Success = false
 	} else {
-		resp.Result = fmt.Sprintf("granular fee for %s: %s", task.ToOrConsumer, fee.String())
+		humanFee := big.NewInt(0).Quo(fee, big.NewInt(params.GWei))
+		resp.Result = fmt.Sprintf("granular fee for %s: %s (%s)", task.ToOrConsumer, fee.String(), humanFee.String())
 		resp.Success = true
 	}
 
