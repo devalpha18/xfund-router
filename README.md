@@ -30,7 +30,11 @@ installations.
 
 [Yarn](https://classic.yarnpkg.com/en/docs/install) is recommended for package management.
 
-### Compile
+#### Go
+
+Go v1.16+ is required to compile the `go-ooo` application.
+
+### Compile Contracts
 
 Run:
 
@@ -55,14 +59,6 @@ To run all tests:
 yarn test
 ```
 
-Running all tests will take a few minutes.
-
-To run individual test files:
-
-```bash
-npx truffle test/[TEST_FILE]
-```
-
 Test Coverage
 
 ```bash
@@ -72,210 +68,93 @@ yarn run coverage
 Running unit test coverage will take a long time. Results are saved to 
 `converage.json` and `./coverage`
 
-### Deployment & Interaction
+### Development Environment - Testing & Interaction
 
-Compile the contracts, if not already compiled:
+The repo contains a complete, self-contained `ganache-cli` development environment, which can be used
+to test contracts, developing and testing Consumer contracts and testing the `go-ooo` Provider Oracle app.
 
-```
-npx truffle compile
-```
+**Note**: the NodeJS implementation of the `provider-oracle` is deprecated.
 
-Run the `truffle` development console:
+#### Docker Dev Environment
 
-```bash
-npx truffle develop
-```
-
-**Note**: Make a note of the address and private key for `account[1]`. This will be
-required later for Data Provider interaction.
-
-#### Deploy the smart contracts
-
-Run the `truffle` migrations, within the `development` console:
-
-```bash
-truffle(develop)> migrate
-```
-
-#### Interaction - as a Consumer
-
-Within the `truffle` development console, load the contract instances, and accounts
-ready for interaction
-
-```bash 
-truffle(develop)> let accounts = await web3.eth.getAccounts()
-truffle(develop)> let mockToken = await MockToken.deployed()
-truffle(develop)> let mockConsumer = await MockConsumer.deployed()
-truffle(develop)> let router = await Router.deployed()
-truffle(develop)> let consumerOwner = accounts[0]
-truffle(develop)> let provider = accounts[1]
-```
-
-##### Initialisation
-
-1. Grab some tokens from the `MockToken` smart contract for the `consumerOwner`. Run:
-
-```bash
-truffle(develop)> mockToken.gimme({from: consumerOwner})
-```
-
-2. Increase the `Router` Token allowance for the `MockConsumer` contract, so that the Router
-   can hold and forward fees to the provider. Run:
-
-```bash
-truffle(develop)> mockConsumer.increaseRouterAllowance("115792089237316195423570985008687907853269984665640564039457584007913129639935", {from: consumerOwner})
-```
-
-3. Have the `provider` register with `Router`, with a minimum fee of 0.1 `xFUNDMOCK`:
-
-```bash
-truffle(develop)> router.registerAsProvider(100000000, {from: provider})
-```
-
-4. Transfer some `MOCK` tokens to your `MockConsumer` smart contract. Run:
-
-```bash
-truffle(develop)> mockToken.transfer(mockConsumer.address, 10000000000, {from: consumerOwner})
-```
-
-This will send 10 MOCKs to the MockConsumer smart contract.
-
-##### Requesting Data
-
-First, check the current `price` in your `MockConsumer` contract. Run:
-
-```bash
-truffle(develop)> let priceBefore = await mockConsumer.price()
-truffle(develop)> priceBefore.toString()
-```
-
-The result should be 0.
-
-Next, request some data from the provider. Run:
-
-```bash
-truffle(develop)> let endpoint = web3.utils.asciiToHex("BTC.GBP.PR.AVC.24H")
-truffle(develop)> mockConsumer.getData(provider, 100000000, endpoint, {from: consumerOwner})
-```
-
-#### Interaction - as a Provider
-
-**Note: the NodeJS implementation will eventually be deprecated in favour of the new Go implementation**
-
-A Consumer requests data, but a provider Oracle needs to be running in order to fulfill
-requests.
-
-1. Copy `example.provider.env` to a `.env` file, and modify the following values. The
-   `CONTRACT_ADDRESS` is the Router smart contract's address, and can be acquired
-   by running:
-   
-```bash 
-truffle(develop)> router.address
-```
-
-The values for `WALLET_PKEY` and `WALLET_ADDRESS` are whatever you noted down when initialising 
-`truffle develop` earlier.
-
-``` 
-CONTRACT_ADDRESS=
-WALLET_PKEY=
-WALLET_ADDRESS=
-```
-
-**Note:** the `CONTRACT_ADDRESS` should be the address of the `Router` smart contract.
-
-In a separate terminal, run:
-
-```bash
-npx sequelize-cli db:migrate
-```
-
-to initialise the oracle's database. If required, run
-
-```bash
-npx sequelize-cli db:migrate:undo:all
-```
-
-first to wipe the database.
-
-**Note**: the default `NODE_ENV` environment is `development`. In the `development` environment,
-the Oracle will initialise a local SQLite database and save it to `provider-oracle/db/database.sqlite`.
-This is intended for rapid testing/development, and is not meant for extensive testing. To test
-in a more realistic environment, install PostgreSQL and change the `NODE_ENV` in `.env`
-to `test`. Configure the appropriate `DB_` values in `.env` and re-run the above `sequelize`
-commands to initialise the PostgreSQL database.
-
-Run the oracle with:
-
-``` 
-yarn run dev:oracle
-```
-
-This will run, watching the `Router` smart contract for any `DataRequested` events. If
-one is emitted, and the `dataProvider` value is the provider's wallet address, it will
-grab the data, and call the `Router`'s `fulfillRequest` function, which in turn forwards
-the data to the requesting `MockConsumer` smart contract.
-
-``` 
-2021-03-08T11:36:23.293Z current Eth height 15
-2021-03-08T11:36:23.302Z get supported pairs
-2021-03-08T11:36:37.055Z watching DataRequested from block 0
-2021-03-08T11:36:37.055Z BEGIN watchIncommingRequests
-2021-03-08T11:36:37.056Z running watcher for DataRequested
-2021-03-08T11:36:37.065Z watching RequestFulfilled from block 0
-2021-03-08T11:36:37.066Z BEGIN watchIncommingFulfillments
-2021-03-08T11:36:37.066Z running watcher for RequestFulfilled
-2021-03-08T11:36:37.067Z watching RequestCancelled from block 0
-2021-03-08T11:36:37.068Z BEGIN watchIncommingCancellations
-2021-03-08T11:36:37.068Z running watcher for RequestCancelled
-2021-03-08T11:36:37.069Z watching blocks for jobs to process from block 0
-2021-03-08T11:36:37.070Z BEGIN fulfillRequests
-2021-03-08T11:36:37.081Z running block watcher
-2021-03-08T11:36:37.135Z watchEvent DataRequested connected 0x1
-2021-03-08T11:36:37.136Z watchEvent RequestFulfilled connected 0x2
-2021-03-08T11:36:37.142Z watchBlocks newBlockHeaders connected 0x3
-```
-
-**Note**: The price returned by the Oracle is always standardised to `actualPrice * (10 ** 18)`
-
-##### Check Price in `MockConsumer`
-
-Depending on what is configured for the `WAIT_CONFIRMATIONS` in `.env`, you will need
-to run the following command in the Truffle console a few times to mine blocks:
-
-```bash
-truffle(develop)> await web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_mine", id: 12345 }, function(err, result) { return })
-```
-
-This will force `ganache-cli` to mine new blocks until the required number of block confirmations
-have been achieved for the Provider Oracle to process and fulfil the data request.
-
-Once the provider has fulfilled the request, the `price` value should have been updated
-in the `MockConsumer` smart contract. Run:
-
-```bash
-truffle(develop)> let priceAfter = await mockConsumer.price()
-truffle(develop)> priceAfter.toString()
-```
-
-The result should now be a non-zero
-value, e.g. `36547117907180545000000`.
-
-## Testing the go-ooo Oracle implementation
+To run the development environment, run
 
 ```bash
 make dev-env
-make build
-./go-ooo/build/go-ooo init
-./go-ooo/build/go-ooo start --pass /path/to/pass.txt
 ```
 
-Request data
+This will run a local `ganache-cli` chain, deploy the Router and demo consumer contract, and also initialise
+the accounts with some Dev xFUND. The chain's RPC endpoint will be exposed on `http://127.0.0.1:8545`, and can be
+accessed via the `truffle-config`'s `develop` network.
+
+#### Running `go-ooo`
+
+First, build the Go application:
+
+```bash
+make build
+```
+
+`go-ooo` will need initialising before it can run:
+
+```bash
+./go-ooo/build/go-ooo init <network>
+```
+
+Where `<network>` is one of `dev`, `rinkeby` or `mainnet`. Using `dev` will configure `go-ooo` for the Docker 
+development environment.
+
+This will save the default configuration to `$HOME/.go-ooo`, with the initial values for the `dev` network. 
+This config location can be changed using the `--home` flag to specify a custom location, e.g.
+
+```bash
+./go-ooo/build/go-ooo init dev --home $HOME/.go-ooo_dev
+```
+
+This initialisation script will ask whether you want to import an exisitng private key, or generate a new one. 
+You can enter anything for the account name. For the purposes of quick testing, the Docker development environment 
+initialises by pre-registering account #3 on the `ganache-cli` chain as a Provider Oracle. The private key to import is:
+
+`0x646f1ce2fdad0e6deeeb5c7e8e5543bdde65e86029e2fd9fc169899c440a7913`
+
+Make a note of the generated decryption password - this will be required to run the application (to decrypt the keystore)
+and to execute any admin commands. For the sake of simplicity, save it to `$HOME/.go-ooo/pass.txt`
+
+The application should now have the default configuration saved to `$HOME/.go-ooo/config.toml`. It will use `sqlite` as
+the default database, but can easily be configured for PostgreSQL.
+
+Now, you can start the Provider Oracle:
+
+```bash
+./go-ooo/build/go-ooo start
+```
+
+This will prompt you for the decryption password, and start the application. If you saved the password, you can pass the
+path to the file using the `--pass` flag, e.g.
+
+```bash
+./go-ooo/build/go-ooo start --home $HOME/.go-ooo_dev --pass $HOME/.go-ooo_dev/pass.txt
+```
+
+#### Requesting Data
+
+The development environment is deployed with a pre-configured and deployed demo Consumer contract, along with a script
+for requesting and waiting for data. This script can be called using `docker exec`:
+
+```bash
+docker exec -it ooo_dev_env /root/xfund-router/request.sh <BASE> <TARGET> <TYPE> [SUBTYPE] [SUPP1] [SUPP2]
+```
+
+For example:
 
 ```bash
 docker exec -it ooo_dev_env /root/xfund-router/request.sh BTC GBP PR AVC 1H
-docker exec -it ooo_dev_env /root/xfund-router/request.sh LEASH WETH AD
 ```
+
+This will request data using the OoO endpoint `BTC.GBP.PR.AVC.1H`, which is the mean GBP price of Bitcoin for the
+past hour, using the Chauvenet Criterion to remove statistical outliers.
+
+See the [OoO API Guide](docs/guide/ooo_api.md) for more information on endpoint construction.
 
 #### Dev Notes
 

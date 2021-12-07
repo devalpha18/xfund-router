@@ -5,8 +5,6 @@
   "main": "index.js",
   "scripts": {
     "build": "truffle compile",
-    "dev:oracle": "nodemon --exec babel-node -- provider-oracle --run=run-oracle",
-    "build:oracle": "rimraf dist && babel provider-oracle -d dist/provider-oracle",
     "test": "truffle test",
     "coverage": "truffle run coverage",
     "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol",
@@ -24,8 +22,7 @@
     "info:addr:mn": "node scripts/export_abi.js -w addr -n mainnet",
     "info:dev": "yarn run info:abi:dev && yarn run info:addr:dev",
     "info:tn": "yarn run info:abi:tn && yarn run info:addr:tn",
-    "info:mn": "yarn run info:abi:mn && yarn run info:addr:mn",
-    "lint:oracle": "eslint './provider-oracle/**/*.js'"
+    "info:mn": "yarn run info:abi:mn && yarn run info:addr:mn"
   },
   "repository": {
     "type": "git",

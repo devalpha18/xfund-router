@@ -8,9 +8,11 @@ as a data request via the xFUND Router network.
 See [Providers](../providers.md) for a list of Oracles providing data for both Mainnet and Rinkeby, 
 along with their associated fees and wallet addresses.
 
-**Note** OoO data providers may wait for 2 - 3 or more block confirmations before processing a request. Depending
+::: tip Note
+OoO data providers may wait for 2 - 3 or more block confirmations before processing a request. Depending
 on network congestion and gas prices, it may therefore take up to a minute or more for data to be sent to your 
 smart contract from the time your request Tx was received by the provider oracle.
+:::
 
 ## Introduction
 
@@ -69,8 +71,10 @@ query endpoints.
 
 ### TYPE: `AD`
 
-**Note: this `TYPE` endpoint is currently in __beta__ testing and as such is currently only processed by
-the Rinkeby testnet OoO provider**
+::: tip Note
+This `TYPE` endpoint is currently in __beta__ testing and as such is currently only processed by
+the Rinkeby testnet OoO provider
+:::
 
 Adhoc data requests for pairs not yet supported by Finchains. There are currently no `SUBTYPE`s for `AD` 
 endpoint `TYPE`s.
@@ -79,8 +83,10 @@ The OoO provider will __attempt__ to query supported DEXs' subgraphs to determin
 are known to the DEX, and also whether the DEX has a liquidity pool representing the pair. If a pair exists, it will 
 attempt to retrieve the latest price from each DEX before calculating the mean price from all data found.
 
-**Note**: If a DEX is aware of more than one token contract address for a given token symbol, the contract address with the 
+::: tip Note
+If a DEX is aware of more than one token contract address for a given token symbol, the contract address with the 
 highest transaction count will be used for the query.
+:::
 
 The currently supported DEXs are:
 
@@ -89,8 +95,10 @@ The currently supported DEXs are:
 - Shibaswap
 - Sushiswap
 
-**IMPORTANT** `BASE` and `TARGET` are **CaSe SeNsItIvE** for adhoc queries! `XFUND` is __not__ the same as `xFUND`.
+::: danger IMPORTANT
+`BASE` and `TARGET` are **CaSe SeNsItIvE** for adhoc queries! `XFUND` is __not__ the same as `xFUND`.
 **Always check your request endpoints before sending a data request!**
+:::
 
 **Example**
 
