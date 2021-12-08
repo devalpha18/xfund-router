@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const MIN_LIQUIDITY = 100000
+
 type GraphQlToken struct {
 	Id             string `json:"id,omitempty"`
 	Name           string `json:"name,omitempty"`
@@ -33,6 +35,7 @@ type GraphQlPairContent struct {
 	Token1      GraphQlToken
 	Token0Price string `json:"token0Price"`
 	Token1Price string `json:"token1Price"`
+	ReserveUSD  string `json:"reserveUSD"`
 }
 
 type GraphQlPairs struct {
@@ -118,8 +121,37 @@ func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 	return meanPrice.String(), nil
 }
 
-func processPriceData(base string, target string, pair GraphQlPairContent) string {
+func (o *OOOApi) processPriceData(base string, target string, dexName string, pair GraphQlPairContent) string {
 	price := ""
+
+	// check reserve USD and reject if < $100,000
+	reserve, err := utils.ParseBigFloat(pair.ReserveUSD)
+
+	limit := big.NewFloat(MIN_LIQUIDITY)
+
+	if err != nil {
+		o.logger.WithFields(logrus.Fields{
+			"package":  "ooo_api",
+			"function": "processPriceData",
+			"dex":      dexName,
+			"base":     base,
+			"target":   target,
+		}).Error(err.Error())
+		return price
+	}
+
+	if reserve.Cmp(limit) == -1 {
+		o.logger.WithFields(logrus.Fields{
+			"package":  "ooo_api",
+			"function": "processPriceData",
+			"dex":      dexName,
+			"base":     base,
+			"target":   target,
+			"reserve":  reserve.String(),
+		}).Warn("low liquidity")
+		return price
+	}
+
 	if base == pair.Token0.Symbol && target == pair.Token1.Symbol {
 		price = pair.Token1Price
 	}
@@ -139,7 +171,7 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 	if dbPairRes.ID != 0 && dbPairRes.HasPair {
 		// pair address is known for this dex. Query directly
 		pair = o.getKnownPairPrice(dbPairRes.ContractAddress, api)
-		price = processPriceData(base, target, pair)
+		price = o.processPriceData(base, target, api["name"], pair)
 		hasData = true
 	} else {
 		// only run if there's currently no entry in the DB
@@ -182,7 +214,7 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 					_ = o.db.UpdateOrInsertNewDexPair(base, target, "", api["name"])
 				}
 
-				price = processPriceData(base, target, pair)
+				price = o.processPriceData(base, target, api["name"], pair)
 			}
 		}
 	}
@@ -387,7 +419,8 @@ func generateNewPairQuery(t0 string, t1 string, pairEndpoint string) map[string]
                      where :
                      {
                           token0_in : ["%s", "%s"],
-                          token1_in : ["%s", "%s"]
+                          token1_in : ["%s", "%s"],
+                          reserveUSD_gt: "%d"
                      }
                  ) {
                      id
@@ -403,9 +436,10 @@ func generateNewPairQuery(t0 string, t1 string, pairEndpoint string) map[string]
                      }
                      token0Price
                      token1Price
+                     reserveUSD
                  }
             }
-        `, pairEndpoint, t0, t1, t0, t1),
+        `, pairEndpoint, t0, t1, t0, t1, MIN_LIQUIDITY),
 	}
 
 	return jsonData
@@ -429,6 +463,7 @@ func generateKnownPairQuery(pairAddress string, pairEndpoint string) map[string]
                      }
                      token0Price
                      token1Price
+                     reserveUSD
                 }
 	        }
         `, pairEndpoint, pairAddress),
