@@ -30,23 +30,26 @@ type GraphQlTokenResponse struct {
 }
 
 type GraphQlPairContent struct {
-	Id          string
-	Token0      GraphQlToken
-	Token1      GraphQlToken
-	Token0Price string `json:"token0Price"`
-	Token1Price string `json:"token1Price"`
-	ReserveUSD  string `json:"reserveUSD"`
+	Id                  string
+	Token0              GraphQlToken
+	Token1              GraphQlToken
+	Token0Price         string `json:"token0Price"`
+	Token1Price         string `json:"token1Price"`
+	ReserveUSD          string `json:"reserveUSD,omitempty"`
+	TotalValueLockedUSD string `json:"totalValueLockedUSD,omitempty"`
 }
 
 type GraphQlPairs struct {
-	Pairs []GraphQlPairContent
+	Pairs []GraphQlPairContent `json:"pairs,omitempty"`
+	Pools []GraphQlPairContent `json:"pools,omitempty"`
 }
 type GraphQlPairsResponse struct {
 	Data GraphQlPairs
 }
 
 type GraphQlPair struct {
-	Pair GraphQlPairContent
+	Pair GraphQlPairContent `json:"pair,omitempty"`
+	Pool GraphQlPairContent `json:"pool,omitempty"`
 }
 type GraphQlPairResponse struct {
 	Data GraphQlPair
@@ -61,6 +64,9 @@ func getQlApis() []map[string]string {
 			"pairs_endpoint":  "pairs",
 			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
+			"token_order_by":  "txCount",
+			"pairs_order_by":  "reserveUSD",
+			"chain":           "eth",
 		},
 		{
 			"name":            "sushiswap",
@@ -68,6 +74,9 @@ func getQlApis() []map[string]string {
 			"pairs_endpoint":  "pairs",
 			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
+			"token_order_by":  "txCount",
+			"pairs_order_by":  "reserveUSD",
+			"chain":           "eth",
 		},
 		{
 			"name":            "uniswapv2",
@@ -75,13 +84,38 @@ func getQlApis() []map[string]string {
 			"pairs_endpoint":  "pairs",
 			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
+			"token_order_by":  "txCount",
+			"pairs_order_by":  "reserveUSD",
+			"chain":           "eth",
 		},
 		{
 			"name":            "uniswapv3",
-			"url":             "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+			"url":             "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
 			"pairs_endpoint":  "pools",
+			"pair_endpoint":   "pool",
+			"tokens_endpoint": "tokens",
+			"token_order_by":  "txCount",
+			"pairs_order_by":  "totalValueLockedUSD",
+			"chain":           "eth",
+		},
+		//{
+		//	"name":            "pancakeswap",
+		//	"url":             "https://api.thegraph.com/subgraphs/name/pancakeswap/exchange",
+		//	"pairs_endpoint":  "pairs",
+		//	"pair_endpoint":   "pair",
+		//	"tokens_endpoint": "tokens",
+		//  "pairs_order_by":  "reserveUSD",
+		//  "chain":           "bsc",
+		//},
+		{
+			"name":            "quickswap",
+			"url":             "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap05",
+			"pairs_endpoint":  "pairs",
 			"pair_endpoint":   "pair",
 			"tokens_endpoint": "tokens",
+			"token_order_by":  "tradeVolumeUSD",
+			"pairs_order_by":  "reserveUSD",
+			"chain":           "matic",
 		},
 	}
 }
@@ -125,9 +159,15 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 	price := ""
 
 	// check reserve USD and reject if < $100,000
-	reserve, err := utils.ParseBigFloat(pair.ReserveUSD)
+	dexRes := pair.ReserveUSD
+	// todo - betterize
+	if dexName == "uniswapv3" {
+		dexRes = pair.TotalValueLockedUSD
+	}
 
 	limit := big.NewFloat(MIN_LIQUIDITY)
+
+	reserve, err := utils.ParseBigFloat(dexRes)
 
 	if err != nil {
 		o.logger.WithFields(logrus.Fields{
@@ -136,6 +176,7 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 			"dex":      dexName,
 			"base":     base,
 			"target":   target,
+			"dexRes":   dexRes,
 		}).Error(err.Error())
 		return price
 	}
@@ -148,6 +189,7 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 			"base":     base,
 			"target":   target,
 			"reserve":  reserve.String(),
+			"price":    price,
 		}).Warn("low liquidity")
 		return price
 	}
@@ -158,6 +200,7 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 	if base == pair.Token1.Symbol && target == pair.Token0.Symbol {
 		price = pair.Token0Price
 	}
+
 	return price
 }
 
@@ -190,7 +233,7 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 				t0 = o.getToken(api, base)
 				// record in DB
 				if t0 != "" {
-					t0Id, _ := o.db.FindOrInsertNewTokenContract(base, t0)
+					t0Id, _ := o.db.FindOrInsertNewTokenContract(base, t0, api["chain"])
 					_ = o.db.UpdateOrInsertNewDexToken(base, t0Id.ID, api["name"])
 				}
 			}
@@ -201,7 +244,7 @@ func (o *OOOApi) getPrice(base string, target string, api map[string]string) str
 				t1 = o.getToken(api, target)
 				// record in DB
 				if t1 != "" {
-					t1Id, _ := o.db.FindOrInsertNewTokenContract(target, t1)
+					t1Id, _ := o.db.FindOrInsertNewTokenContract(target, t1, api["chain"])
 					_ = o.db.UpdateOrInsertNewDexToken(target, t1Id.ID, api["name"])
 				}
 			}
@@ -252,12 +295,16 @@ func (o *OOOApi) getKnownPairPrice(pairAddress string, api map[string]string) Gr
 		"pair_address": pairAddress,
 	}).Debug()
 
-	query := generateKnownPairQuery(pairAddress, api["pair_endpoint"])
+	query := generateKnownPairQuery(pairAddress, api["pair_endpoint"], api["pairs_order_by"])
 
 	var decodedResponse GraphQlPairResponse
 
 	o.runQuery(query, api["url"], &decodedResponse)
 
+	// todo - betterize
+	if api["name"] == "uniswapv3" {
+		return decodedResponse.Data.Pool
+	}
 	return decodedResponse.Data.Pair
 }
 
@@ -274,13 +321,13 @@ func (o *OOOApi) getNewPairPrice(t0 string, t1 string, base string, target strin
 		"target":   target,
 	}).Debug()
 
-	query := generateNewPairQuery(t0, t1, api["pairs_endpoint"])
+	query := generateNewPairQuery(t0, t1, api["pairs_endpoint"], api["pairs_order_by"])
 
 	var decodedResponse GraphQlPairsResponse
 
 	o.runQuery(query, api["url"], &decodedResponse)
 
-	if len(decodedResponse.Data.Pairs) == 0 {
+	if len(decodedResponse.Data.Pairs) == 0 && len(decodedResponse.Data.Pools) == 0 {
 		o.logger.WithFields(logrus.Fields{
 			"package":  "ooo_api",
 			"function": "getNewPairPrice",
@@ -292,7 +339,15 @@ func (o *OOOApi) getNewPairPrice(t0 string, t1 string, base string, target strin
 		return GraphQlPairContent{}, false
 	}
 
-	return decodedResponse.Data.Pairs[0], true
+	if len(decodedResponse.Data.Pairs) > 0 {
+		return decodedResponse.Data.Pairs[0], true
+	}
+
+	if len(decodedResponse.Data.Pools) > 0 {
+		return decodedResponse.Data.Pools[0], true
+	}
+
+	return GraphQlPairContent{}, false
 }
 
 // getToken will attempt to get the token address for a symbol
@@ -306,7 +361,7 @@ func (o *OOOApi) getToken(api map[string]string, symbol string) string {
 		"symbol":   symbol,
 	}).Debug()
 
-	query := generateTokenQuery(symbol, api["tokens_endpoint"])
+	query := generateTokenQuery(symbol, api["tokens_endpoint"], api["token_order_by"])
 
 	var decodedResponse GraphQlTokenResponse
 
@@ -383,7 +438,7 @@ func (o *OOOApi) runQuery(query interface{}, url string, decodedResponse interfa
 }
 
 // generateTokenQuery uses a fuzzy token query to get token ids from symbol names
-func generateTokenQuery(symbol string, tokensEndpoint string) map[string]string {
+func generateTokenQuery(symbol string, tokensEndpoint string, tokenOrderBy string) map[string]string {
 
 	// since there may be multiple potentially fake tokens using the same
 	// symbol we'll try and grab the one with the most Txs, using
@@ -393,7 +448,7 @@ func generateTokenQuery(symbol string, tokensEndpoint string) map[string]string 
             { 
                 %s (
                     first:1,
-                    orderBy: txCount,
+                    orderBy: %s,
                     orderDirection: desc,
                     where: { symbol: "%s"}){
                     id
@@ -401,26 +456,26 @@ func generateTokenQuery(symbol string, tokensEndpoint string) map[string]string 
                     name
                 }
             }
-        `, tokensEndpoint, symbol),
+        `, tokensEndpoint, tokenOrderBy, symbol),
 	}
 
 	return jsonData
 }
 
 // generateNewPairQuery uses a fuzzy token query to get the top pair by txCount
-func generateNewPairQuery(t0 string, t1 string, pairEndpoint string) map[string]string {
+func generateNewPairQuery(t0 string, t1 string, pairEndpoint string, pairOrderBy string) map[string]string {
 	jsonData := map[string]string{
 		"query": fmt.Sprintf(`
             {
                  %s (
                      first:1
-                     orderBy:txCount
+                     orderBy:%s
                      orderDirection: desc
                      where :
                      {
                           token0_in : ["%s", "%s"],
                           token1_in : ["%s", "%s"],
-                          reserveUSD_gt: "%d"
+                          %s_gt: "%d"
                      }
                  ) {
                      id
@@ -436,16 +491,16 @@ func generateNewPairQuery(t0 string, t1 string, pairEndpoint string) map[string]
                      }
                      token0Price
                      token1Price
-                     reserveUSD
+                     %s
                  }
             }
-        `, pairEndpoint, t0, t1, t0, t1, MIN_LIQUIDITY),
+        `, pairEndpoint, pairOrderBy, t0, t1, t0, t1, pairOrderBy, MIN_LIQUIDITY, pairOrderBy),
 	}
 
 	return jsonData
 }
 
-func generateKnownPairQuery(pairAddress string, pairEndpoint string) map[string]string {
+func generateKnownPairQuery(pairAddress string, pairEndpoint string, pairOrderBy string) map[string]string {
 	jsonData := map[string]string{
 		"query": fmt.Sprintf(`
             {
@@ -463,10 +518,10 @@ func generateKnownPairQuery(pairAddress string, pairEndpoint string) map[string]
                      }
                      token0Price
                      token1Price
-                     reserveUSD
+                     %s
                 }
 	        }
-        `, pairEndpoint, pairAddress),
+        `, pairEndpoint, pairAddress, pairOrderBy),
 	}
 
 	return jsonData
