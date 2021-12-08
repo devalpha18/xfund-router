@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type OOOApi struct {
@@ -26,9 +27,11 @@ type OOOApi struct {
 func NewApi(db *database.DB, logger *logrus.Logger) *OOOApi {
 	return &OOOApi{
 		baseURL: viper.GetString(config.JobsOooApiUrl),
-		client:  &http.Client{},
-		db:      db,
-		logger:  logger,
+		client: &http.Client{
+			Timeout: 15 * time.Second,
+		},
+		db:     db,
+		logger: logger,
 	}
 }
 
