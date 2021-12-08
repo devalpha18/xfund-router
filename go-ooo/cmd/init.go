@@ -123,7 +123,7 @@ func initForRinkeby() {
 	viper.SetDefault(config.ChainEthHttpHost, "")
 	viper.SetDefault(config.ChainEthWsHost, "")
 	viper.SetDefault(config.ChainNetworkId, 4)
-	viper.SetDefault(config.ChainFirstBlock, 1)
+	viper.SetDefault(config.ChainFirstBlock, 8456980)
 }
 
 func initForMainnet() {
@@ -131,7 +131,7 @@ func initForMainnet() {
 	viper.SetDefault(config.ChainEthHttpHost, "")
 	viper.SetDefault(config.ChainEthWsHost, "")
 	viper.SetDefault(config.ChainNetworkId, 1)
-	viper.SetDefault(config.ChainFirstBlock, 1)
+	viper.SetDefault(config.ChainFirstBlock, 12728316)
 }
 
 func initForDevnet() {
@@ -168,7 +168,7 @@ func initNewKeystore(ks *keystore.Keystorage) (err error, addusername string) {
 	}
 	fmt.Println("")
 	fmt.Println("Do you want to add an existing private key or generate a new one?")
-	fmt.Print("[ 1-add existing; 2-generate new ]:	")
+	fmt.Print("[ 1-import private key; 2-generate new key ]:	")
 
 	fmt.Scanf("%s\n", &addgenerate)
 
@@ -195,7 +195,7 @@ func initNewKeystore(ks *keystore.Keystorage) (err error, addusername string) {
 			fmt.Println(err.Error())
 			return
 		}
-		fmt.Println("\nSuccessfully generated a private key:")
+		fmt.Println("\nSuccessfully generated a new private key:")
 
 		if !utils.HasHexPrefix(privateKey) {
 			privateKey = utils.AddHexPrefix(privateKey)
@@ -207,9 +207,11 @@ func initNewKeystore(ks *keystore.Keystorage) (err error, addusername string) {
 		err, _ = initNewKeystore(ks)
 	}
 
-	fmt.Print("Your keystore decryption & admin password:   ")
+	fmt.Print("Your keystore decryption & admin password:")
+	fmt.Println("")
 	fmt.Println(token)
-	fmt.Println("KEEP THIS KEY SAFE! You will need it to run the server and admin tasks!")
+	fmt.Println("")
+	fmt.Println("KEEP THIS KEY SAFE! You will need it to run the application and admin tasks!")
 	fmt.Println("")
 	fmt.Println("Your oracle wallet address:")
 	walletAddress, err = walletworker.AddressFromPrivateKeyString(privateKey)
