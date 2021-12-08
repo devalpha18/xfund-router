@@ -260,19 +260,20 @@ func (d *DB) UpdateOrInsertNewDexPair(t0 string, t1 string,
   TokenContracts queries
 */
 
-func (d *DB) FindOrInsertNewTokenContract(symbol string, contractAddress string) (models.TokenContracts, error) {
+func (d *DB) FindOrInsertNewTokenContract(symbol string, contractAddress string, chain string) (models.TokenContracts, error) {
 	res, err := d.FindByTokenAndAddress(symbol, contractAddress)
 	if res.ID == 0 {
-		return d.InsertNewTokenContract(symbol, contractAddress)
+		return d.InsertNewTokenContract(symbol, contractAddress, chain)
 	}
 	return res, err
 }
 
-func (d *DB) InsertNewTokenContract(symbol string, contractAddress string) (models.TokenContracts, error) {
+func (d *DB) InsertNewTokenContract(symbol string, contractAddress string, chain string) (models.TokenContracts, error) {
 
 	data := models.TokenContracts{
 		TokenSymbol:     symbol,
 		ContractAddress: contractAddress,
+		Chain:           chain,
 	}
 
 	err := d.Create(&data).Error
