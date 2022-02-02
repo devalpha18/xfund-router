@@ -48,6 +48,16 @@ module.exports = {
       gasPrice: 12000000000, // 12 gwei
       skipDryRun: true,
     },
+    polygon: {
+      provider: () =>
+        new HDWalletProvider({
+          privateKeys: [ETH_PKEY_MAINNET],
+          providerOrUrl: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID_MAINNET}`,
+        }),
+      network_id: "137",
+      gasPrice: 40000000000, // 40 gwei
+      skipDryRun: true,
+    },
   },
 
   plugins: ["truffle-plugin-verify", "solidity-coverage", "@chainsafe/truffle-plugin-abigen"],

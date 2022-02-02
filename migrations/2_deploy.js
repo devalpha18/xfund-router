@@ -41,5 +41,10 @@ module.exports = function (deployer, network) {
       // Router
       deployer.deploy(Router, "0x892A6f9dF0147e5f079b0993F486F9acA3c87881")
       break
+    case "polygon":
+    case "polygon-fork":
+      // Router
+      deployer.deploy(Router, "0x77a3840f78e4685afaf9c416b36e6eae6122567b")
+      break
   }
 }
