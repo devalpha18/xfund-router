@@ -98,15 +98,6 @@ func getQlApis() []map[string]string {
 			"pairs_order_by":  "totalValueLockedUSD",
 			"chain":           "eth",
 		},
-		//{
-		//	"name":            "pancakeswap",
-		//	"url":             "https://api.thegraph.com/subgraphs/name/pancakeswap/exchange",
-		//	"pairs_endpoint":  "pairs",
-		//	"pair_endpoint":   "pair",
-		//	"tokens_endpoint": "tokens",
-		//  "pairs_order_by":  "reserveUSD",
-		//  "chain":           "bsc",
-		//},
 		{
 			"name":            "quickswap",
 			"url":             "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap05",
