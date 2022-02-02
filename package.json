@@ -7,7 +7,7 @@
     "build": "truffle compile",
     "test": "truffle test",
     "coverage": "truffle run coverage",
-    "flatten": "./node_modules/.bin/poa-solidity-flattener contracts/Router.sol",
+    "flatten": "node scripts/flatten_contracts.js",
     "prepublishOnly": "truffle compile",
     "docs:api:clean": "rimraf docs/api",
     "docs:api:postclean": "rimraf docs/api/Migrations.md && rimraf docs/api/interfaces && rimraf docs/api/vendor",
@@ -77,6 +77,7 @@
     "solidity-coverage": "^0.7.14",
     "solidity-docgen": "^0.5.11",
     "truffle": "^5.1.57",
+    "truffle-flattener": "^1.5.0",
     "truffle-plugin-verify": "^0.5.2",
     "vuepress": "^1.7.1"
   },
