@@ -66,6 +66,9 @@ Examples:
 			case "mainnet":
 				initForMainnet()
 				break
+			case "polygon":
+				initForPolygon()
+				break
 			case "dev":
 				initForDevnet()
 				break
@@ -132,6 +135,14 @@ func initForMainnet() {
 	viper.SetDefault(config.ChainEthWsHost, "")
 	viper.SetDefault(config.ChainNetworkId, 1)
 	viper.SetDefault(config.ChainFirstBlock, 12728316)
+}
+
+func initForPolygon() {
+	viper.SetDefault(config.ChainContractAddress, "0x5E9405888255C142207Ab692C72A8cd6fc85C3A2")
+	viper.SetDefault(config.ChainEthHttpHost, "")
+	viper.SetDefault(config.ChainEthWsHost, "")
+	viper.SetDefault(config.ChainNetworkId, 137)
+	viper.SetDefault(config.ChainFirstBlock, 24460663)
 }
 
 func initForDevnet() {
