@@ -62,7 +62,7 @@ The code for the data point being requested, for example `PR` etc.
 The currently implemented types are as follows:
 
 - `PR`
-- `AD` (__beta__ on Rinkeby testnet)
+- `AD`
 
 ### TYPE: `PR`
 
@@ -94,10 +94,11 @@ The currently supported DEXs are:
 - Uniswap v3
 - Shibaswap
 - Sushiswap
+- Quickswap
 
 ::: danger IMPORTANT
 `BASE` and `TARGET` are **CaSe SeNsItIvE** for adhoc queries! `XFUND` is __not__ the same as `xFUND`.
-**Always check your request endpoints before sending a data request!**
+**Always check your request endpoints, and that at least one DEX supports the pair before sending a data request!**
 :::
 
 **Example**
