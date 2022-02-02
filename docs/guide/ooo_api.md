@@ -8,6 +8,12 @@ as a data request via the xFUND Router network.
 See [Providers](../providers.md) for a list of Oracles providing data for both Mainnet and Rinkeby, 
 along with their associated fees and wallet addresses.
 
+::: tip Note
+OoO data providers may wait for 2 - 3 or more block confirmations before processing a request. Depending
+on network congestion and gas prices, it may therefore take up to a minute or more for data to be sent to your 
+smart contract from the time your request Tx was received by the provider oracle.
+:::
+
 ## Introduction
 
 Data is acquired via the OoO API using dot-separated strings to define the desired data - for example
@@ -25,7 +31,7 @@ The Finchains OoO Data Provider picks up this request, and supplies the data via
 
 The request format follows `BASE.TARGET.TYPE.SUBTYPE[.SUPP1][.SUPP2][.SUPP3]`
 
-`BASE`, `TARGET`, `TYPE`, and `SUBTYPE` are all required parameters.
+`BASE`, `TARGET`, and `TYPE` are all required parameters. `SUBTYPE` is required for type `PR`
 
 ::: tip NOTE
 The data request string should be converted to a `Bytes32` (Hex) value before submitting it to
@@ -52,44 +58,67 @@ to each exchange are linked below.
 
 ### TYPE
 
-The code for the data point being requested, for example `PR`, `EX`, `DS` etc.
+The code for the data point being requested, for example `PR` etc.
 The currently implemented types are as follows:
 
-- `PR`: Price, calculated using all available exchange data for the selected pair
-- `EX`: Exchange data - returns data from the selected exchange, if available
+- `PR`
+- `AD`
 
-For Type `EX`, the exchange abbreviation is required in `SUPP1`:
+### TYPE: `PR`
 
-- `BNC`: Binance ([supported pairs](https://crypto.finchains.io/api/exchange/binance/pairs))
-- `BFI`: Bitfinex ([supported pairs](https://crypto.finchains.io/api/exchange/bitfinex/pairs))
-- `BFO`: Bitforex ([supported pairs](https://crypto.finchains.io/api/exchange/bitforex/pairs))
-- `BMR`: Bitmart ([supported pairs](https://crypto.finchains.io/api/exchange/bitmart/pairs))
-- `BTS`: Bitstamp ([supported pairs](https://crypto.finchains.io/api/exchange/bitstamp/pairs))
-- `BTX`: Bittrex ([supported pairs](https://crypto.finchains.io/api/exchange/bittrex/pairs))
-- `CBT`: Coinsbit ([supported pairs](https://crypto.finchains.io/api/exchange/coinsbit/pairs))
-- `CRY`: crypto.com ([supported pairs](https://crypto.finchains.io/api/exchange/crypto_com/pairs))
-- `DFX`: Digifinex ([supported pairs](https://crypto.finchains.io/api/exchange/digifinex/pairs))
-- `GAT`: Gate ([supported pairs](https://crypto.finchains.io/api/exchange/gate/pairs))
-- `GDX`: Coinbase ([supported pairs](https://crypto.finchains.io/api/exchange/gdax/pairs))
-- `GMN`: Gemini ([supported pairs](https://crypto.finchains.io/api/exchange/gemini/pairs))
-- `HUO`: Huobi ([supported pairs](https://crypto.finchains.io/api/exchange/huobi/pairs))
-- `KRK`: Kraken ([supported pairs](https://crypto.finchains.io/api/exchange/kraken/pairs))
-- `PRB`: Probit ([supported pairs](https://crypto.finchains.io/api/exchange/probit/pairs))
+Price, calculated using all available exchange data for the selected pair. See `SUBTYPE`s for supported
+query endpoints.
 
-A full list of exchanges and their `tla` can be found at
-[https://crypto.finchains.io/api/exchange](https://crypto.finchains.io/api/exchange)
+### TYPE: `AD`
 
-The exchanges being tracked for a pair can be found via the Finchains API URL
-`https://crypto.finchains.io/api/pairs/[BASE]/[TARGET]/exchanges`. For example:
+::: tip Note
+This `TYPE` endpoint is currently in __beta__ testing and as such is currently only processed by
+the Rinkeby testnet OoO provider
+:::
 
-[https://crypto.finchains.io/api/pairs/ETH/USD/exchanges](https://crypto.finchains.io/api/pairs/ETH/USD/exchanges)
-will return the exchanges being tracked for the `ETH`/`USD` pair.
+Adhoc data requests for pairs not yet supported by Finchains. There are currently no `SUBTYPE`s for `AD` 
+endpoint `TYPE`s.
+
+The OoO provider will __attempt__ to query supported DEXs' subgraphs to determine whether the `BASE` and `TARGET` symbols 
+are known to the DEX, and also whether the DEX has a liquidity pool representing the pair. If a pair exists, it will 
+attempt to retrieve the latest price from each DEX before calculating the mean price from all data found.
+
+::: tip Note
+If a DEX is aware of more than one token contract address for a given token symbol, the contract address with the 
+highest transaction count will be used for the query.
+:::
+
+The currently supported DEXs are:
+
+- Uniswap v2
+- Uniswap v3
+- Shibaswap
+- Sushiswap
+- Quickswap
+
+::: danger IMPORTANT
+`BASE` and `TARGET` are **CaSe SeNsItIvE** for adhoc queries! `XFUND` is __not__ the same as `xFUND`.
+**Always check your request endpoints, and that at least one DEX supports the pair before sending a data request!**
+:::
+
+**Example**
+
+The token `JAZZHANDS` is not yet tracked by Finchains, but we'd like to acquire the `WETH` price for `JAZZHANDS`. We know that
+`JAZZHANDS/WETH` pair is listed on Uniswap v2 and Shibaswap, so we can use the query endpoint:
+
+`JAZZHANDS.WETH.AD`
+
+The OoO provider will pick up the request, and since it is an `AD` endpoint `TYPE`, will try to find the token contract 
+addresses for `JAZZHANDS` and `WETH` instead of querying Finchains' API. From these, it will attempt to discover the 
+pair contract addresses for the respective DEXs. If a DEX supports the pair, it will query the latest price from all supported 
+DEXes, and calculate the mean price from all results.
 
 ### SUBTYPE
 
-The data sub-type, for example `AVG` (mean), `LAT` (latest), `AVI` (mean with outliers
-removed). Some `TYPE`s, for example `EX` _require_ additional 
-`SUPPN` data defining Exchanges to query. Some may have _optional_ data defined in `SUPPN`.
+Used with `TYPE` endpoint `PR`.
+
+The data sub-type, for example `AVG` (mean), `AVI` (mean with outliers
+removed). Some `TYPE`s, _require_ additional `SUPPN` data in the query. Some may have _optional_ data defined in `SUPPN`.
 
 The currently implemented types are as follows:
 
@@ -97,7 +126,6 @@ The currently implemented types are as follows:
 - [AVI](#subtype-avi): Mean price using [Median and Interquartile Deviation Method](http://www.mathwords.com/o/outlier.htm) to remove outliers
 - [AVP](#subtype-avp): Mean price with outliers removed using [Peirce's criterion](https://en.wikipedia.org/wiki/Peirce%27s_criterion)
 - [AVC](#subtype-avc): Mean price with outliers removed using [Chauvenet's criterion](https://en.wikipedia.org/wiki/Chauvenet%27s_criterion)
-- [LAT](#subtype-lat): Latest price received
 
 #### SUBTYPE: `AVG`
 
@@ -199,39 +227,6 @@ If a custom `dMax` value is required, then **timespan must also be set in `SUPP1
 `BTC.USD.PR.AVC.30M` - as above, but data from the last 30 minutes  
 `BTC.USD.PR.AVC.24H.2` - as above, but data from the last 24 hours, with `dMax` of 2
 
-#### SUBTYPE: `LAT`
-
-**Supported `TYPE`s**: `PR`, `EX`
-
-The latest price submitted by the Oracles. In the case of `EX`, the latest price
-received from the selected exchange oracle. In the case of `PR`, the latest price received
-from _any_ exchange oracle.
-
-For Type `EX`, the exchange abbreviation is required in `SUPP1`:
-
-- `BNC`: Binance ([supported pairs](https://crypto.finchains.io/api/exchange/binance/pairs))
-- `BFI`: Bitfinex ([supported pairs](https://crypto.finchains.io/api/exchange/bitfinex/pairs))
-- `BFO`: Bitforex ([supported pairs](https://crypto.finchains.io/api/exchange/bitforex/pairs))
-- `BMR`: Bitmart ([supported pairs](https://crypto.finchains.io/api/exchange/bitmart/pairs))
-- `BTS`: Bitstamp ([supported pairs](https://crypto.finchains.io/api/exchange/bitstamp/pairs))
-- `BTX`: Bittrex ([supported pairs](https://crypto.finchains.io/api/exchange/bittrex/pairs))
-- `CBT`: Coinsbit ([supported pairs](https://crypto.finchains.io/api/exchange/coinsbit/pairs))
-- `CRY`: crypto.com ([supported pairs](https://crypto.finchains.io/api/exchange/crypto_com/pairs))
-- `DFX`: Digifinex ([supported pairs](https://crypto.finchains.io/api/exchange/digifinex/pairs))
-- `GAT`: Gate ([supported pairs](https://crypto.finchains.io/api/exchange/gate/pairs))
-- `GDX`: Coinbase ([supported pairs](https://crypto.finchains.io/api/exchange/gdax/pairs))
-- `GMN`: Gemini ([supported pairs](https://crypto.finchains.io/api/exchange/gemini/pairs))
-- `HUO`: Huobi ([supported pairs](https://crypto.finchains.io/api/exchange/huobi/pairs))
-- `KRK`: Kraken ([supported pairs](https://crypto.finchains.io/api/exchange/kraken/pairs))
-- `PRB`: Probit ([supported pairs](https://crypto.finchains.io/api/exchange/probit/pairs))
-
-A full list of exchanges and their `tla` can be found at 
-[https://crypto.finchains.io/api/exchange](https://crypto.finchains.io/api/exchange)
-
-**Examples**
-
-`BTC.GBP.EX.LAT.GDX` - latest BTC/GBP price from Coinbase
-
 ### SUPP1
 
 Any supplementary request data, e.g. GDX (coinbase) etc. required for `TYPE.SUBTYPE` queries such as `EX.LAT`,
@@ -242,7 +237,7 @@ These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where
 ### SUPP2
 
 Any supplementary request data _in addition_ to `SUPP1`, e.g. `GDX` (coinbase) etc. required
-for comparisons on `TYPE`s such as `DS`.
+for comparisons on `TYPE`s.
 
 These are outlined in the respective `TYPE` or `SUBTYPE` definitions above where appropriate.
 
@@ -267,7 +262,5 @@ Based on the currently implemented API functionality, some examples are as follo
   over the last hour, removing outliers (extremely high/low values) from the calculation.
 - `ETH.USD.PR.AVI.24H`: average ETH/USD price, calculated from all supported exchanges
   over the last 24 hours, removing outliers (extremely high/low values) from the calculation.
-- `BTC.GBP.PR.LAT`: latest BTC/GBP received. Exchange agnostic - returns whatever the latest
-  value is available
-- `BTC.GBP.EX.LAT.GDX`: latest BTC/GBP price from Coinbase
+- `COOL.WETH.AD`: adhoc request for COOL/WETH pair. Will query DEXs for current price and return the mean price.
   

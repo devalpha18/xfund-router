@@ -1,7 +1,7 @@
 const MockToken = artifacts.require("MockToken")
 const Router = artifacts.require("Router")
 const MockConsumer = artifacts.require("MockConsumer")
-const MockConsumerCustomRequest = artifacts.require("MockConsumerCustomRequest")
+const DemoConsumer = artifacts.require("DemoConsumer2")
 
 module.exports = function (deployer, network) {
   // deployment steps
@@ -22,7 +22,13 @@ module.exports = function (deployer, network) {
         })
         .then(function () {
           // 4. MockConsumerCustomRequest
-          return deployer.deploy(MockConsumerCustomRequest, Router.address, MockToken.address)
+          return deployer.deploy(
+            DemoConsumer,
+            Router.address,
+            MockToken.address,
+            "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
+            "10000000",
+          )
         })
       break
     case "rinkeby":
