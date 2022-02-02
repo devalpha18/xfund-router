@@ -43,7 +43,7 @@ lint:
 
 # Dev environment
 dev-env:
-	docker rm ooo_dev_env
+	docker rm -f ooo_dev_env
 	docker build -t ooo_dev_env -f docker/dev.Dockerfile .
 	docker run --name ooo_dev_env -it -p 8545:8545 ooo_dev_env
 
