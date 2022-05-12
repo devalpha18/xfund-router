@@ -101,7 +101,7 @@ make build
 ./go-ooo/build/go-ooo init <network>
 ```
 
-Where `<network>` is one of `dev`, `rinkeby` or `mainnet`. Using `dev` will configure `go-ooo` for the Docker 
+Where `<network>` is one of `dev`, `rinkeby`, `mainnet` or `polygon`. Using `dev` will configure `go-ooo` for the Docker 
 development environment.
 
 This will save the default configuration to `$HOME/.go-ooo`, with the initial values for the `dev` network. 
@@ -123,6 +123,20 @@ and to execute any admin commands. For the sake of simplicity, save it to `$HOME
 The application should now have the default configuration saved to `$HOME/.go-ooo/config.toml`. It will use `sqlite` as
 the default database, but can easily be configured for PostgreSQL.
 
+#### Registering a new Oracle Provider
+
+If `go-ooo` has been initialised for a network other than `dev`, and using a key other than the pre-defined test key,
+then registration as an Oracle Provider is required. First, ensure the wallet being used has funds on the target
+chain, then run the registration admin command:
+
+```bash
+go-ooo admin register [FEE] --home /path/to/.go-ooo --pass /path/to/pass.txt
+```
+
+Where `[FEE]` is your fee, for example `1000000` for 0.001 xFUND.
+
+#### Start the Oracle
+
 Now, you can start the Provider Oracle:
 
 ```bash
@@ -135,6 +149,8 @@ path to the file using the `--pass` flag, e.g.
 ```bash
 ./go-ooo/build/go-ooo start --home $HOME/.go-ooo_dev --pass $HOME/.go-ooo_dev/pass.txt
 ```
+
+
 
 #### Requesting Data
 
