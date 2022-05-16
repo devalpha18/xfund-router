@@ -5,16 +5,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/montanaflynn/stats"
 	"github.com/sirupsen/logrus"
 	"go-ooo/utils"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"net/http"
 	"strconv"
 )
 
-const MIN_LIQUIDITY = 50000
-const MIN_TX_COUNT = 500
+// MinLiquidity ToDo - make configurable in config.toml
+// MinLiquidity - min liquidity a pair should have for the DEX pair search
+const MinLiquidity = 50000
+
+// MinTxCount ToDo - make configurable in config.toml
+// MinTxCount - min tx count a pair should have for the DEX pair search
+const MinTxCount = 500
 
 // currently supported DEXs for ad-hoc queries
 func getQlApis() []map[string]string {
@@ -231,30 +238,67 @@ func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 		return "", err
 	}
 
+	o.logger.WithFields(logrus.Fields{
+		"package":   "ooo_api",
+		"function":  "QueryAdhoc",
+		"action":    "ParseEndpoint",
+		"requestId": requestId,
+		"endpoint":  endpoint,
+		"base":      base,
+		"target":    target,
+	}).Debug("AdHoc endpoint parsed")
+
+	var rawPrices []float64
+	var outliersRemoved []float64
 	priceCount := 0
 	total := big.NewInt(0)
 
 	for _, a := range qlApiUrls {
-		prices := o.getPairPricesFromDex(base, target, a, currentBlocks[a["chain"]])
-		for _, price := range prices {
-			if price != "" {
-				o.logger.WithFields(logrus.Fields{
-					"package":  "ooo_api",
-					"function": "QueryAdhoc",
-					"dex":      a["name"],
-					"base":     base,
-					"target":   target,
-					"price":    price,
-				}).Info("found pairs")
-				p, e := utils.ParseBigFloat(price)
-				if e == nil {
-					wei := utils.EtherToWei(p)
-					if wei.Cmp(big.NewInt(0)) > 0 {
-						total = new(big.Int).Add(total, wei)
-						priceCount++
-					}
-				}
+		dexPrices := o.getPairPricesFromDex(base, target, a, currentBlocks[a["chain"]])
+		for _, price := range dexPrices {
+			if price != 0 {
+				rawPrices = append(rawPrices, price)
 			}
+		}
+	}
+
+	mean, err := stats.Mean(rawPrices)
+
+	if err != nil {
+		return "", err
+	}
+
+	stdDev, err := stats.StandardDeviation(rawPrices)
+
+	if err != nil {
+		return "", err
+	}
+
+	dMax := float64(3)
+	chauvenetUsed := false
+
+	// remove outliers with Chauvenet Criterion, but only if stdDev > 0
+	// as some pair prices are too small to calculate stdDev
+	for _, p := range rawPrices {
+		if stdDev > 0 {
+			chauvenetUsed = true
+			d := math.Abs(p-mean) / stdDev
+			if dMax > d {
+				outliersRemoved = append(outliersRemoved, p)
+			}
+		} else {
+			// prices are too small to use Chauvenet Criterion
+			outliersRemoved = append(outliersRemoved, p)
+		}
+	}
+
+	// calculate mean from data set with outliers removed
+	for _, o := range outliersRemoved {
+		p := big.NewFloat(o)
+		wei := utils.EtherToWei(p)
+		if wei.Cmp(big.NewInt(0)) > 0 {
+			total = new(big.Int).Add(total, wei)
+			priceCount++
 		}
 	}
 
@@ -264,11 +308,25 @@ func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 
 	meanPrice := new(big.Int).Div(total, big.NewInt(int64(priceCount)))
 
+	o.logger.WithFields(logrus.Fields{
+		"package":            "ooo_api",
+		"function":           "QueryAdhoc",
+		"base":               base,
+		"target":             target,
+		"num_prices_raw":     len(rawPrices),
+		"num_prices_chauv":   len(outliersRemoved),
+		"num_prices_removed": len(rawPrices) - len(outliersRemoved),
+		"raw_prices_mean":    mean,
+		"raw_std_dev":        stdDev,
+		"final_wei_mean":     meanPrice.String(),
+		"chauvenet_used":     chauvenetUsed,
+	}).Debug("price stats")
+
 	return meanPrice.String(), nil
 }
 
-func (o *OOOApi) processPriceData(base string, target string, dexName string, pair GraphQlPairContent) string {
-	price := ""
+func (o *OOOApi) processPriceData(base string, target string, dexName string, pair GraphQlPairContent) float64 {
+	price := float64(0)
 
 	// check reserve USD and reject if < MIN_LIQUIDITY
 	dexRes := pair.ReserveUSD
@@ -277,7 +335,7 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 		dexRes = pair.TotalValueLockedUSD
 	}
 
-	limit := big.NewFloat(MIN_LIQUIDITY)
+	limit := big.NewFloat(MinLiquidity)
 
 	reserve, err := utils.ParseBigFloat(dexRes)
 
@@ -306,21 +364,36 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 		return price
 	}
 
+	priceBf := big.NewFloat(MinLiquidity)
+
 	if base == pair.Token0.Symbol && target == pair.Token1.Symbol {
-		price = pair.Token1Price
+		priceBf, err = utils.ParseBigFloat(pair.Token1Price)
+	} else {
+		priceBf, err = utils.ParseBigFloat(pair.Token0Price)
 	}
-	if base == pair.Token1.Symbol && target == pair.Token0.Symbol {
-		price = pair.Token0Price
+
+	if err != nil {
+		o.logger.WithFields(logrus.Fields{
+			"package":  "ooo_api",
+			"function": "processPriceData",
+			"action":   "utils.ParseBigFloat",
+			"dex":      dexName,
+			"base":     base,
+			"target":   target,
+			"price":    price,
+		}).Error(err)
+		return price
 	}
+
+	price, _ = priceBf.Float64()
 
 	return price
 }
 
-func (o *OOOApi) getPairPricesFromDex(base string, target string, api map[string]string, currentBlock uint64) []string {
+func (o *OOOApi) getPairPricesFromDex(base string, target string, api map[string]string, currentBlock uint64) []float64 {
 
-	var prices []string
+	var prices []float64
 	// check DB for pair contract address
-	// Todo - improve. Order by liquidity descending and get top one (may be more than one pair with same token symbols)
 	dbPairRes, _ := o.db.FindByDexPairName(base, target, api["name"])
 
 	if dbPairRes.ID != 0 {
@@ -350,10 +423,9 @@ func (o *OOOApi) getPairPricesFromDex(base string, target string, api map[string
 			"package":  "ooo_api",
 			"function": "getPairPricesFromDex",
 			"dex":      api["name"],
-			"url":      api["url"],
 			"base":     base,
 			"target":   target,
-		}).Error("pair not found in database")
+		}).Error("pair not found in database for this dex")
 	}
 
 	return prices
@@ -469,7 +541,7 @@ func generatePairsListQuery(pairEndpoint, pairOrderBy, txCount string, skip uint
 
 	txCountFilter := ""
 	if txCount != "" {
-		txCountFilter = fmt.Sprintf(`txCount_gt: "%d"`, MIN_TX_COUNT)
+		txCountFilter = fmt.Sprintf(`txCount_gt: "%d"`, MinTxCount)
 	}
 	skipFilter := ""
 	if skip > 0 {
@@ -514,7 +586,7 @@ func generatePairsListQuery(pairEndpoint, pairOrderBy, txCount string, skip uint
                          __typename
 	                 }
 	            }
-	        }`, pairEndpoint, skipFilter, pairOrderBy, pairOrderBy, MIN_LIQUIDITY, txCountFilter, pairOrderBy, txCount),
+	        }`, pairEndpoint, skipFilter, pairOrderBy, pairOrderBy, MinLiquidity, txCountFilter, pairOrderBy, txCount),
 	}
 
 	return jsonData
@@ -552,7 +624,7 @@ func generateNewPairQuery(t0 string, t1 string, pairEndpoint string, pairOrderBy
                      %s
                  }
             }
-        `, pairEndpoint, pairOrderBy, t0, t1, t0, t1, pairOrderBy, MIN_LIQUIDITY, pairOrderBy),
+        `, pairEndpoint, pairOrderBy, t0, t1, t0, t1, pairOrderBy, MinLiquidity, pairOrderBy),
 	}
 
 	return jsonData

@@ -91,7 +91,9 @@ func (d *DB) FindByDexPairName(base string, target string, dexName string) (mode
 	pair := fmt.Sprintf("%s-%s", base, target)
 	pairRev := fmt.Sprintf("%s-%s", target, base)
 	result := models.DexPairs{}
-	err := d.Where("(pair = ? OR pair = ?) AND dex_name = ?", pair, pairRev, dexName).First(&result).Error
+	err := d.Where(
+		"(pair = ? OR pair = ?) AND dex_name = ?", pair, pairRev, dexName,
+	).Order("reserve_usd desc").First(&result).Error
 	return result, err
 }
 
