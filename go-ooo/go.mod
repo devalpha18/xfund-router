@@ -7,6 +7,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.12 // indirect
 	github.com/labstack/echo/v4 v4.6.1 // indirect
 	github.com/miguelmota/go-solidity-sha3 v0.1.1 // indirect
+	github.com/montanaflynn/stats v0.6.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect

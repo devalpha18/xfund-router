@@ -5,114 +5,246 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/montanaflynn/stats"
 	"github.com/sirupsen/logrus"
 	"go-ooo/utils"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"net/http"
-	"time"
+	"strconv"
 )
 
-const MIN_LIQUIDITY = 100000
+// MinLiquidity ToDo - make configurable in config.toml
+// MinLiquidity - min liquidity a pair should have for the DEX pair search
+const MinLiquidity = 30000
 
-type GraphQlToken struct {
-	Id             string `json:"id,omitempty"`
-	Name           string `json:"name,omitempty"`
-	Symbol         string `json:"symbol,omitempty"`
-	TotalLiquidity string `json:"totalLiquidity,omitempty"`
-	TxCount        string `json:"txCount,omitempty"`
-}
-type GraphQlTokens struct {
-	Tokens []GraphQlToken
-}
-type GraphQlTokenResponse struct {
-	Data GraphQlTokens
-}
-
-type GraphQlPairContent struct {
-	Id                  string
-	Token0              GraphQlToken
-	Token1              GraphQlToken
-	Token0Price         string `json:"token0Price"`
-	Token1Price         string `json:"token1Price"`
-	ReserveUSD          string `json:"reserveUSD,omitempty"`
-	TotalValueLockedUSD string `json:"totalValueLockedUSD,omitempty"`
-}
-
-type GraphQlPairs struct {
-	Pairs []GraphQlPairContent `json:"pairs,omitempty"`
-	Pools []GraphQlPairContent `json:"pools,omitempty"`
-}
-type GraphQlPairsResponse struct {
-	Data GraphQlPairs
-}
-
-type GraphQlPair struct {
-	Pair GraphQlPairContent `json:"pair,omitempty"`
-	Pool GraphQlPairContent `json:"pool,omitempty"`
-}
-type GraphQlPairResponse struct {
-	Data GraphQlPair
-}
+// MinTxCount ToDo - make configurable in config.toml
+// MinTxCount - min tx count a pair should have for the DEX pair search
+const MinTxCount = 250
 
 // currently supported DEXs for ad-hoc queries
 func getQlApis() []map[string]string {
 	return []map[string]string{
 		{
-			"name":            "shibaswap",
-			"url":             "https://api.thegraph.com/subgraphs/name/shibaswaparmy/exchange",
-			"pairs_endpoint":  "pairs",
-			"pair_endpoint":   "pair",
-			"tokens_endpoint": "tokens",
-			"token_order_by":  "txCount",
-			"pairs_order_by":  "reserveUSD",
-			"chain":           "eth",
+			"name":              "shibaswap",
+			"url":               "https://api.thegraph.com/subgraphs/name/shibaswaparmy/exchange",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "txCount",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "txCount",
+			"chain":             "eth",
+			"blocks_in_one_min": "5",
 		},
 		{
-			"name":            "sushiswap",
-			"url":             "https://api.thegraph.com/subgraphs/name/sushiswap/exchange",
-			"pairs_endpoint":  "pairs",
-			"pair_endpoint":   "pair",
-			"tokens_endpoint": "tokens",
-			"token_order_by":  "txCount",
-			"pairs_order_by":  "reserveUSD",
-			"chain":           "eth",
+			"name":              "sushiswap",
+			"url":               "https://api.thegraph.com/subgraphs/name/sushiswap/exchange",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "txCount",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "txCount",
+			"chain":             "eth",
+			"blocks_in_one_min": "5",
 		},
 		{
-			"name":            "uniswapv2",
-			"url":             "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
-			"pairs_endpoint":  "pairs",
-			"pair_endpoint":   "pair",
-			"tokens_endpoint": "tokens",
-			"token_order_by":  "txCount",
-			"pairs_order_by":  "reserveUSD",
-			"chain":           "eth",
+			"name":              "uniswapv2",
+			"url":               "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "txCount",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "txCount",
+			"chain":             "eth",
+			"blocks_in_one_min": "5",
 		},
 		{
-			"name":            "uniswapv3",
-			"url":             "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
-			"pairs_endpoint":  "pools",
-			"pair_endpoint":   "pool",
-			"tokens_endpoint": "tokens",
-			"token_order_by":  "txCount",
-			"pairs_order_by":  "totalValueLockedUSD",
-			"chain":           "eth",
+			"name":              "uniswapv3",
+			"url":               "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+			"pairs_endpoint":    "pools",
+			"pair_endpoint":     "pool",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "txCount",
+			"pairs_order_by":    "totalValueLockedUSD",
+			"tx_count":          "txCount",
+			"chain":             "eth",
+			"blocks_in_one_min": "5",
 		},
 		{
-			"name":            "quickswap",
-			"url":             "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap05",
-			"pairs_endpoint":  "pairs",
-			"pair_endpoint":   "pair",
-			"tokens_endpoint": "tokens",
-			"token_order_by":  "tradeVolumeUSD",
-			"pairs_order_by":  "reserveUSD",
-			"chain":           "matic",
+			"name":              "quickswap",
+			"url":               "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap05",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "tradeVolumeUSD",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "",
+			"chain":             "polygon",
+			"blocks_in_one_min": "20",
 		},
+		{
+			"name":              "pancakeswap",
+			"url":               "https://api.bscgraph.org/subgraphs/name/cakeswap",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "tradeVolumeUSD",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "txCount",
+			"chain":             "bsc",
+			"blocks_in_one_min": "20",
+		},
+		{
+			"name":              "honeyswap",
+			"url":               "https://api.thegraph.com/subgraphs/name/1hive/honeyswap-xdai",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "txCount",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "txCount",
+			"chain":             "xdai",
+			"blocks_in_one_min": "12",
+		},
+	}
+}
+
+func getChains() []string {
+	qlApiUrls := getQlApis()
+	var chains []string
+
+	for _, a := range qlApiUrls {
+		contains := false
+		for _, c := range chains {
+			if a["chain"] == c {
+				contains = true
+			}
+		}
+		if !contains {
+			chains = append(chains, a["chain"])
+		}
+	}
+
+	return chains
+}
+
+func (o *OOOApi) getCurrentBlockNumForChain(chain string) (uint64, error) {
+	switch chain {
+	case "eth":
+		return o.subchainEthClient.BlockNumber(o.ctx)
+	case "polygon":
+		return o.subchainPolygonClient.BlockNumber(o.ctx)
+	case "bsc":
+		return o.subchainBscClient.BlockNumber(o.ctx)
+	case "xdai":
+		return o.subchainXdaiClient.BlockNumber(o.ctx)
+	}
+
+	return 0, nil
+}
+
+func (o *OOOApi) UpdateDexTokensAndPairs() {
+	o.logger.WithFields(logrus.Fields{
+		"package":  "ooo_api",
+		"function": "UpdateDexTokensAndPairs",
+	}).Info("begin update popular tokens")
+
+	qlApiUrls := getQlApis()
+
+	for _, api := range qlApiUrls {
+		o.updateAllTokensAndPairs(api)
+	}
+}
+
+func (o *OOOApi) updateAllTokensAndPairs(api map[string]string) {
+
+	pairs := o.getPairsFromGraphQl(api, 0)
+
+	o.logger.WithFields(logrus.Fields{
+		"package":   "ooo_api",
+		"function":  "updateAllTokensAndPairs",
+		"dex":       api["name"],
+		"num_pairs": len(pairs),
+	}).Info("found pairs")
+
+	o.updatePairsInDb(pairs, api["name"], api["chain"])
+
+	skip := uint64(1000)
+
+	for len(pairs) == 1000 {
+		o.logger.WithFields(logrus.Fields{
+			"package":  "ooo_api",
+			"function": "updateAllTokensAndPairs",
+			"dex":      api["name"],
+		}).Info("pairs > 1000. Get next pairs")
+
+		pairs = o.getPairsFromGraphQl(api, skip)
+		skip += 1000
+
+		o.logger.WithFields(logrus.Fields{
+			"package":   "ooo_api",
+			"function":  "updateAllTokensAndPairs",
+			"dex":       api["name"],
+			"num_pairs": len(pairs),
+		}).Info("found more pairs")
+
+		o.updatePairsInDb(pairs, api["name"], api["chain"])
+	}
+}
+
+func (o *OOOApi) getPairsFromGraphQl(api map[string]string, skip uint64) []GraphQlPairContent {
+	query := generatePairsListQuery(api["pairs_endpoint"], api["pairs_order_by"], api["tx_count"], skip)
+
+	var decodedResponse GraphQlPairsResponse
+
+	o.runQuery(query, api["url"], &decodedResponse)
+
+	pairs := decodedResponse.Data.Pairs
+	if api["name"] == "uniswapv3" {
+		pairs = decodedResponse.Data.Pools
+	}
+
+	return pairs
+}
+
+func (o *OOOApi) updatePairsInDb(pairs []GraphQlPairContent, dex, chain string) {
+	for _, pair := range pairs {
+		// pair.Token0.Id is the token's contract address
+		t0Db, _ := o.db.FindOrInsertNewTokenContract(pair.Token0.Symbol, pair.Token0.Id, chain)
+		t1Db, _ := o.db.FindOrInsertNewTokenContract(pair.Token1.Symbol, pair.Token1.Id, chain)
+
+		t0DtDb, _ := o.db.FindOrInsertNewDexToken(pair.Token0.Symbol, t0Db.ID, dex, chain)
+		t1DtDb, _ := o.db.FindOrInsertNewDexToken(pair.Token1.Symbol, t1Db.ID, dex, chain)
+
+		dexReserveUSD := pair.ReserveUSD
+		// todo - betterize
+		if dex == "uniswapv3" {
+			dexReserveUSD = pair.TotalValueLockedUSD
+		}
+
+		// store liquidity
+		reserve, _ := utils.ParseBigFloat(dexReserveUSD)
+		reserveUsd, _ := reserve.Float64()
+
+		// todo - update latest liquidity
+		_, _ = o.db.FindOrInsertNewDexPair(pair.Token0.Symbol, pair.Token1.Symbol, pair.Id, dex, t0DtDb.ID, t1DtDb.ID, reserveUsd)
 	}
 }
 
 func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 	qlApiUrls := getQlApis()
+
+	currentBlocks := make(map[string]uint64)
+	for _, api := range qlApiUrls {
+		if _, ok := currentBlocks[api["chain"]]; !ok {
+			currentBlock, _ := o.getCurrentBlockNumForChain(api["chain"])
+			currentBlocks[api["chain"]] = currentBlock
+		}
+	}
 
 	base, target, _, _, _, _, _, err := ParseEndpoint(endpoint)
 
@@ -120,20 +252,67 @@ func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 		return "", err
 	}
 
+	o.logger.WithFields(logrus.Fields{
+		"package":   "ooo_api",
+		"function":  "QueryAdhoc",
+		"action":    "ParseEndpoint",
+		"requestId": requestId,
+		"endpoint":  endpoint,
+		"base":      base,
+		"target":    target,
+	}).Debug("AdHoc endpoint parsed")
+
+	var rawPrices []float64
+	var outliersRemoved []float64
 	priceCount := 0
 	total := big.NewInt(0)
 
 	for _, a := range qlApiUrls {
-		price := o.getPrice(base, target, a)
-		if price != "" {
-			p, e := utils.ParseBigFloat(price)
-			if e == nil {
-				wei := utils.EtherToWei(p)
-				if wei.Cmp(big.NewInt(0)) > 0 {
-					total = new(big.Int).Add(total, wei)
-					priceCount++
-				}
+		dexPrices := o.getPairPricesFromDex(base, target, a, currentBlocks[a["chain"]])
+		for _, price := range dexPrices {
+			if price != 0 {
+				rawPrices = append(rawPrices, price)
 			}
+		}
+	}
+
+	mean, err := stats.Mean(rawPrices)
+
+	if err != nil {
+		return "", err
+	}
+
+	stdDev, err := stats.StandardDeviation(rawPrices)
+
+	if err != nil {
+		return "", err
+	}
+
+	dMax := float64(3)
+	chauvenetUsed := false
+
+	// remove outliers with Chauvenet Criterion, but only if stdDev > 0
+	// as some pair prices are too small to calculate stdDev
+	for _, p := range rawPrices {
+		if stdDev > 0 {
+			chauvenetUsed = true
+			d := math.Abs(p-mean) / stdDev
+			if dMax > d {
+				outliersRemoved = append(outliersRemoved, p)
+			}
+		} else {
+			// prices are too small to use Chauvenet Criterion
+			outliersRemoved = append(outliersRemoved, p)
+		}
+	}
+
+	// calculate mean from data set with outliers removed
+	for _, o := range outliersRemoved {
+		p := big.NewFloat(o)
+		wei := utils.EtherToWei(p)
+		if wei.Cmp(big.NewInt(0)) > 0 {
+			total = new(big.Int).Add(total, wei)
+			priceCount++
 		}
 	}
 
@@ -143,20 +322,34 @@ func (o *OOOApi) QueryAdhoc(endpoint string, requestId string) (string, error) {
 
 	meanPrice := new(big.Int).Div(total, big.NewInt(int64(priceCount)))
 
+	o.logger.WithFields(logrus.Fields{
+		"package":            "ooo_api",
+		"function":           "QueryAdhoc",
+		"base":               base,
+		"target":             target,
+		"num_prices_raw":     len(rawPrices),
+		"num_prices_chauv":   len(outliersRemoved),
+		"num_prices_removed": len(rawPrices) - len(outliersRemoved),
+		"raw_prices_mean":    mean,
+		"raw_std_dev":        stdDev,
+		"final_wei_mean":     meanPrice.String(),
+		"chauvenet_used":     chauvenetUsed,
+	}).Debug("price stats")
+
 	return meanPrice.String(), nil
 }
 
-func (o *OOOApi) processPriceData(base string, target string, dexName string, pair GraphQlPairContent) string {
-	price := ""
+func (o *OOOApi) processPriceData(base string, target string, dexName string, pair GraphQlPairContent) float64 {
+	price := float64(0)
 
-	// check reserve USD and reject if < $100,000
+	// check reserve USD and reject if < MIN_LIQUIDITY
 	dexRes := pair.ReserveUSD
 	// todo - betterize
 	if dexName == "uniswapv3" {
 		dexRes = pair.TotalValueLockedUSD
 	}
 
-	limit := big.NewFloat(MIN_LIQUIDITY)
+	limit := big.NewFloat(MinLiquidity)
 
 	reserve, err := utils.ParseBigFloat(dexRes)
 
@@ -185,191 +378,96 @@ func (o *OOOApi) processPriceData(base string, target string, dexName string, pa
 		return price
 	}
 
+	priceBf := big.NewFloat(MinLiquidity)
+
 	if base == pair.Token0.Symbol && target == pair.Token1.Symbol {
-		price = pair.Token1Price
+		priceBf, err = utils.ParseBigFloat(pair.Token1Price)
+	} else {
+		priceBf, err = utils.ParseBigFloat(pair.Token0Price)
 	}
-	if base == pair.Token1.Symbol && target == pair.Token0.Symbol {
-		price = pair.Token0Price
+
+	if err != nil {
+		o.logger.WithFields(logrus.Fields{
+			"package":  "ooo_api",
+			"function": "processPriceData",
+			"action":   "utils.ParseBigFloat",
+			"dex":      dexName,
+			"base":     base,
+			"target":   target,
+			"price":    price,
+		}).Error(err)
+		return price
 	}
+
+	price, _ = priceBf.Float64()
 
 	return price
 }
 
-func (o *OOOApi) getPrice(base string, target string, api map[string]string) string {
+func (o *OOOApi) getPairPricesFromDex(base string, target string, api map[string]string, currentBlock uint64) []float64 {
 
-	hasData := false
-	price := ""
-	var pair GraphQlPairContent
+	var prices []float64
 	// check DB for pair contract address
 	dbPairRes, _ := o.db.FindByDexPairName(base, target, api["name"])
-	if dbPairRes.ID != 0 && dbPairRes.HasPair {
-		// pair address is known for this dex. Query directly
-		pair = o.getKnownPairPrice(dbPairRes.ContractAddress, api)
-		price = o.processPriceData(base, target, api["name"], pair)
-		hasData = true
+
+	if dbPairRes.ID != 0 {
+		pairPricesRes := o.getRecentPairPrices(dbPairRes.ContractAddress, api, currentBlock)
+		price0 := o.processPriceData(base, target, api["name"], pairPricesRes.P0)
+		prices = append(prices, price0)
+		price1 := o.processPriceData(base, target, api["name"], pairPricesRes.P1)
+		prices = append(prices, price1)
+		price2 := o.processPriceData(base, target, api["name"], pairPricesRes.P2)
+		prices = append(prices, price2)
+		price3 := o.processPriceData(base, target, api["name"], pairPricesRes.P3)
+		prices = append(prices, price3)
+		price4 := o.processPriceData(base, target, api["name"], pairPricesRes.P4)
+		prices = append(prices, price4)
+		price5 := o.processPriceData(base, target, api["name"], pairPricesRes.P5)
+		prices = append(prices, price5)
+		price6 := o.processPriceData(base, target, api["name"], pairPricesRes.P6)
+		prices = append(prices, price6)
+		price7 := o.processPriceData(base, target, api["name"], pairPricesRes.P7)
+		prices = append(prices, price7)
+		price8 := o.processPriceData(base, target, api["name"], pairPricesRes.P8)
+		prices = append(prices, price8)
+		price9 := o.processPriceData(base, target, api["name"], pairPricesRes.P9)
+		prices = append(prices, price9)
 	} else {
-		// only run if there's currently no entry in the DB
-		// otherwise skip, and let the crawler try to update
-		// pair data
-		// todo - implement timed crawler...
-		// todo - clean up and put in its own function
-		if dbPairRes.ID == 0 || (dbPairRes.LastCheckDate > 0 && uint64(time.Now().Unix())-dbPairRes.LastCheckDate > 3600) {
-			t0 := ""
-			t1 := ""
-			// check db for tokens
-			dbT0Res, _ := o.db.FindByDexTokenSymbol(base, api["name"])
-			if dbT0Res.ID != 0 && dbT0Res.TokenContractsId != 0 {
-				t0, _ = o.db.FindTokenAddressByRowId(dbT0Res.TokenContractsId)
-			} else {
-				t0 = o.getToken(api, base)
-				// record in DB
-				if t0 != "" {
-					t0Id, _ := o.db.FindOrInsertNewTokenContract(base, t0, api["chain"])
-					_ = o.db.UpdateOrInsertNewDexToken(base, t0Id.ID, api["name"])
-				}
-			}
-			dbT1Res, _ := o.db.FindByDexTokenSymbol(target, api["name"])
-			if dbT1Res.ID != 0 && dbT1Res.TokenContractsId != 0 {
-				t1, _ = o.db.FindTokenAddressByRowId(dbT1Res.TokenContractsId)
-			} else {
-				t1 = o.getToken(api, target)
-				// record in DB
-				if t1 != "" {
-					t1Id, _ := o.db.FindOrInsertNewTokenContract(target, t1, api["chain"])
-					_ = o.db.UpdateOrInsertNewDexToken(target, t1Id.ID, api["name"])
-				}
-			}
-			if t0 != "" && t1 != "" {
-				pair, hasData = o.getNewPairPrice(t0, t1, base, target, api)
-				// record in DB
-				if hasData {
-					_ = o.db.UpdateOrInsertNewDexPair(pair.Token0.Symbol, pair.Token1.Symbol, pair.Id, api["name"])
-				} else {
-					_ = o.db.UpdateOrInsertNewDexPair(base, target, "", api["name"])
-				}
-
-				price = o.processPriceData(base, target, api["name"], pair)
-			}
-		}
-	}
-
-	if hasData {
-		o.logger.WithFields(logrus.Fields{
-			"package":       "ooo_api",
-			"function":      "getNewPairPrice",
-			"action":        "result",
-			"url":           api["url"],
-			"base":          base,
-			"target":        target,
-			"pair":          pair.Id,
-			"token0_symbol": pair.Token0.Symbol,
-			"token1_symbol": pair.Token1.Symbol,
-			"token0_id":     pair.Token0.Id,
-			"token1_id":     pair.Token1.Id,
-			"token_0_price": pair.Token0Price,
-			"token_1_price": pair.Token1Price,
-			"price":         price,
-		}).Debug()
-
-		return price
-	}
-
-	return ""
-}
-
-func (o *OOOApi) getKnownPairPrice(pairAddress string, api map[string]string) GraphQlPairContent {
-	o.logger.WithFields(logrus.Fields{
-		"package":      "ooo_api",
-		"function":     "getKnownPairPrice",
-		"dex":          api["name"],
-		"url":          api["url"],
-		"pair_address": pairAddress,
-	}).Debug()
-
-	query := generateKnownPairQuery(pairAddress, api["pair_endpoint"], api["pairs_order_by"])
-
-	var decodedResponse GraphQlPairResponse
-
-	o.runQuery(query, api["url"], &decodedResponse)
-
-	// todo - betterize
-	if api["name"] == "uniswapv3" {
-		return decodedResponse.Data.Pool
-	}
-	return decodedResponse.Data.Pair
-}
-
-func (o *OOOApi) getNewPairPrice(t0 string, t1 string, base string, target string, api map[string]string) (GraphQlPairContent, bool) {
-
-	o.logger.WithFields(logrus.Fields{
-		"package":  "ooo_api",
-		"function": "getNewPairPrice",
-		"dex":      api["name"],
-		"url":      api["url"],
-		"t0":       t0,
-		"t1":       t1,
-		"base":     base,
-		"target":   target,
-	}).Debug()
-
-	query := generateNewPairQuery(t0, t1, api["pairs_endpoint"], api["pairs_order_by"])
-
-	var decodedResponse GraphQlPairsResponse
-
-	o.runQuery(query, api["url"], &decodedResponse)
-
-	if len(decodedResponse.Data.Pairs) == 0 && len(decodedResponse.Data.Pools) == 0 {
 		o.logger.WithFields(logrus.Fields{
 			"package":  "ooo_api",
-			"function": "getNewPairPrice",
+			"function": "getPairPricesFromDex",
 			"dex":      api["name"],
-			"url":      api["url"],
 			"base":     base,
 			"target":   target,
-		}).Warn("pair not found")
-		return GraphQlPairContent{}, false
+		}).Error("pair not found in database for this dex")
 	}
 
-	if len(decodedResponse.Data.Pairs) > 0 {
-		return decodedResponse.Data.Pairs[0], true
-	}
-
-	if len(decodedResponse.Data.Pools) > 0 {
-		return decodedResponse.Data.Pools[0], true
-	}
-
-	return GraphQlPairContent{}, false
+	return prices
 }
 
-// getToken will attempt to get the token address for a symbol
-func (o *OOOApi) getToken(api map[string]string, symbol string) string {
-
+func (o *OOOApi) getRecentPairPrices(pairAddress string, api map[string]string, currentBlock uint64) GraphQlAliasedPairPrices {
 	o.logger.WithFields(logrus.Fields{
-		"package":  "ooo_api",
-		"function": "getToken",
-		"dex":      api["name"],
-		"url":      api["url"],
-		"symbol":   symbol,
+		"package":       "ooo_api",
+		"function":      "getKnownPairPrice",
+		"dex":           api["name"],
+		"url":           api["url"],
+		"pair_address":  pairAddress,
+		"current_block": currentBlock,
 	}).Debug()
 
-	query := generateTokenQuery(symbol, api["tokens_endpoint"], api["token_order_by"])
+	blocksPerMin, err := strconv.Atoi(api["blocks_in_one_min"])
+	if err != nil {
+		blocksPerMin = 10
+	}
 
-	var decodedResponse GraphQlTokenResponse
+	query := generatePairPricesQuery(pairAddress, api["pair_endpoint"], api["pairs_order_by"], uint64(blocksPerMin), currentBlock)
+
+	var decodedResponse GraphQlPairPricesResponse
 
 	o.runQuery(query, api["url"], &decodedResponse)
 
-	if len(decodedResponse.Data.Tokens) == 0 {
-		o.logger.WithFields(logrus.Fields{
-			"package":  "ooo_api",
-			"function": "getToken",
-			"dex":      api["name"],
-			"url":      api["url"],
-			"symbol":   symbol,
-		}).Warn("token not found")
-		return ""
-	}
+	return decodedResponse.Data
 
-	return decodedResponse.Data.Tokens[0].Id
 }
 
 // runQuery will run the subgraph query
@@ -453,6 +551,61 @@ func generateTokenQuery(symbol string, tokensEndpoint string, tokenOrderBy strin
 	return jsonData
 }
 
+func generatePairsListQuery(pairEndpoint, pairOrderBy, txCount string, skip uint64) map[string]string {
+
+	txCountFilter := ""
+	if txCount != "" {
+		txCountFilter = fmt.Sprintf(`txCount_gt: "%d"`, MinTxCount)
+	}
+	skipFilter := ""
+	if skip > 0 {
+		skipFilter = fmt.Sprintf(`skip: %d,`, skip)
+	}
+
+	jsonData := map[string]string{
+		"query": fmt.Sprintf(`
+            {
+	            %s(
+	                first: 1000,
+                    %s
+	                orderBy: %s,
+	                orderDirection: desc,
+                    where :
+                     {
+                          %s_gt: "%d",
+                          %s
+                     }
+	            ) 
+                {
+                     id
+	                 %s
+	                 volumeUSD
+	                 %s
+	                 untrackedVolumeUSD
+	                 token0Price
+	                 token1Price
+	                 __typename
+                     token0 {
+	                     id
+	                     symbol
+	                     name
+	                     decimals
+	                     __typename
+	                 }
+	                 token1 {
+	                     id
+                         symbol 
+                         name 
+                         decimals
+                         __typename
+	                 }
+	            }
+	        }`, pairEndpoint, skipFilter, pairOrderBy, pairOrderBy, MinLiquidity, txCountFilter, pairOrderBy, txCount),
+	}
+
+	return jsonData
+}
+
 // generateNewPairQuery uses a fuzzy token query to get the top pair by txCount
 func generateNewPairQuery(t0 string, t1 string, pairEndpoint string, pairOrderBy string) map[string]string {
 	jsonData := map[string]string{
@@ -485,7 +638,7 @@ func generateNewPairQuery(t0 string, t1 string, pairEndpoint string, pairOrderBy
                      %s
                  }
             }
-        `, pairEndpoint, pairOrderBy, t0, t1, t0, t1, pairOrderBy, MIN_LIQUIDITY, pairOrderBy),
+        `, pairEndpoint, pairOrderBy, t0, t1, t0, t1, pairOrderBy, MinLiquidity, pairOrderBy),
 	}
 
 	return jsonData
@@ -513,6 +666,84 @@ func generateKnownPairQuery(pairAddress string, pairEndpoint string, pairOrderBy
                 }
 	        }
         `, pairEndpoint, pairAddress, pairOrderBy),
+	}
+
+	return jsonData
+}
+
+func generatePairPricesQuery(pairAddress string, pairEndpoint string, pairOrderBy string, blocksPerMin, currentBlock uint64) map[string]string {
+
+	baseQuery := fmt.Sprintf(`
+id
+	                token0 {
+                         id
+                         name
+                         symbol
+                    }
+                    token1 {
+                         id
+                         name
+                         symbol
+                    }
+                    token0Price
+                    token1Price
+                    %s`, pairOrderBy)
+
+	p0Q := fmt.Sprintf(`%s(id: "%s") {
+                     %s
+                }`, pairEndpoint, pairAddress, baseQuery)
+
+	p1Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-blocksPerMin, baseQuery)
+
+	p2Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*2), baseQuery)
+
+	p3Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*3), baseQuery)
+
+	p4Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*4), baseQuery)
+
+	p5Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*5), baseQuery)
+
+	p6Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*6), baseQuery)
+
+	p7Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*7), baseQuery)
+
+	p8Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*8), baseQuery)
+
+	p9Q := fmt.Sprintf(`%s(id: "%s", block: { number: %d }) {
+                     %s
+                }`, pairEndpoint, pairAddress, currentBlock-(blocksPerMin*9), baseQuery)
+
+	jsonData := map[string]string{
+		"query": fmt.Sprintf(`
+            {
+	            p0: %s,
+                p1: %s,
+                p2: %s,
+                p3: %s,
+                p4: %s,
+                p5: %s,
+                p6: %s,
+                p7: %s,
+                p8: %s,
+                p9: %s
+	        }
+        `, p0Q, p1Q, p2Q, p3Q, p4Q, p5Q, p6Q, p7Q, p8Q, p9Q),
 	}
 
 	return jsonData

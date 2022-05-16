@@ -47,6 +47,10 @@ func NewService(ctx context.Context, logger *logrus.Logger, oraclePrivateKey []b
 	contractAddress := common.HexToAddress(viper.GetString(config.ChainContractAddress))
 	client, err := ethclient.Dial(viper.GetString(config.ChainEthWsHost))
 
+	if err != nil {
+		return nil, err
+	}
+
 	var pollInterval = time.Duration(30)
 	checkDuration := viper.GetInt64(config.JobsCheckDuration)
 	if checkDuration != 0 {
@@ -62,7 +66,11 @@ func NewService(ctx context.Context, logger *logrus.Logger, oraclePrivateKey []b
 		return nil, err
 	}
 
-	oooApi := ooo_api.NewApi(db, logger)
+	oooApi, err := ooo_api.NewApi(ctx, db, logger)
+
+	if err != nil {
+		return nil, err
+	}
 
 	oooRouterService, err := chain.NewOoORouter(ctx, logger, client, oooRouterInstance, contractAddress, oraclePrivateKey, db, oooApi)
 
@@ -102,7 +110,10 @@ func (s *Service) Run() {
 	}(s)
 
 	// update supported pairs from the Finchains API
-	s.oooApi.UpdateSupportedPairs()
+	go func(s *Service) {
+		s.oooApi.UpdateSupportedPairs()
+		s.oooApi.UpdateDexTokensAndPairs()
+	}(s)
 
 	// pick up from the last block we know about to process
 	// any historical events missed. This will run and complete
@@ -121,6 +132,7 @@ func (s *Service) Run() {
 		case <-s.updatePairsTicker.C:
 			go func(s *Service) {
 				s.oooApi.UpdateSupportedPairs()
+				s.oooApi.UpdateDexTokensAndPairs()
 			}(s)
 		case t := <-s.analyticsTasks:
 			s.analyticsTasksResp <- s.ProcessAnalyticsTask(t)

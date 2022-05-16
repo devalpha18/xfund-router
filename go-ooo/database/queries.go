@@ -91,7 +91,9 @@ func (d *DB) FindByDexPairName(base string, target string, dexName string) (mode
 	pair := fmt.Sprintf("%s-%s", base, target)
 	pairRev := fmt.Sprintf("%s-%s", target, base)
 	result := models.DexPairs{}
-	err := d.Where("(pair = ? OR pair = ?) AND dex_name = ?", pair, pairRev, dexName).First(&result).Error
+	err := d.Where(
+		"(pair = ? OR pair = ?) AND dex_name = ?", pair, pairRev, dexName,
+	).Order("reserve_usd desc").First(&result).Error
 	return result, err
 }
 
@@ -105,6 +107,12 @@ func (d *DB) FindByDexTokenSymbol(symbol string, dexName string) (models.DexToke
 	return result, err
 }
 
+func (d *DB) FindByDexTokenAll(symbol string, dexName string, tokenContractsId uint) (models.DexTokens, error) {
+	result := models.DexTokens{}
+	err := d.Where("token_symbol = ? AND dex_name = ? AND token_contracts_id = ?", symbol, dexName, tokenContractsId).First(&result).Error
+	return result, err
+}
+
 /*
   TokenContracts queries
 */
@@ -115,8 +123,24 @@ func (d *DB) FindByTokenAndAddress(symbol string, address string) (models.TokenC
 	return result, err
 }
 
+func (d *DB) FindByTokenAll(symbol string, address string, chain string) (models.TokenContracts, error) {
+	result := models.TokenContracts{}
+	err := d.Where("token_symbol = ? AND contract_address = ? AND chain = ?", symbol, address, chain).First(&result).Error
+	return result, err
+}
+
 func (d *DB) FindTokenAddressByRowId(id uint) (string, error) {
 	result := models.TokenContracts{}
 	err := d.Where("id = ?", id).First(&result).Error
 	return result.ContractAddress, err
+}
+
+/*
+ VersionInfo queries
+*/
+
+func (d *DB) getCurrentDbSchemaVersion() (models.VersionInfo, error) {
+	result := models.VersionInfo{}
+	err := d.Where("version_type = ?", models.VERSION_TYPE_DB_SCHEMA).First(&result).Error
+	return result, err
 }

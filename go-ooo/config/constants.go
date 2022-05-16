@@ -29,3 +29,14 @@ const DatabaseDatabase = "database.database"
 const PrometheusPort = "prometheus.port"
 
 const LogLevel = "log.level"
+
+// SubChainEthHttpRpc only used to get the latest block number
+const SubChainEthHttpRpc = "subchain.eth_http_rpc"
+
+// SubChainPolygonHttpRpc only used to get the latest block number
+const SubChainPolygonHttpRpc = "subchain.polygon_http_rpc"
+
+// SubChainBcsHttpRpc only used to get the latest block number
+const SubChainBcsHttpRpc = "subchain.bsc_http_rpc"
+
+const SubChainXdaiHttpRpc = "subchain.xdai_http_rpc"

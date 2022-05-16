@@ -4,10 +4,10 @@ import "gorm.io/gorm"
 
 type DexTokens struct {
 	gorm.Model
-	DexName          string `gorm:"index:idx_dex_tokens_token_symbol;index:idx_dex_tokens_name"`
+	DexName          string `gorm:"index:idx_dex_tokens_token_symbol;index:idx_dex_tokens_name;index:idx_dex_tokens_dex_chain"`
 	TokenSymbol      string `gorm:"index:idx_dex_tokens_token_symbol;index:idx_dex_tokens_symbol"`
 	TokenContractsId uint   `gorm:"index:idx_dex_tokens_tokenid_check_date;index:idx_dex_tokens_tokenid"`
-	LastCheckDate    uint64 `gorm:"index:idx_dex_tokens_tokenid_check_date"`
+	Chain            string `gorm:"index:idx_dex_tokens_chain;index:idx_dex_tokens_dex_chain"`
 }
 
 func (DexTokens) TableName() string {
@@ -22,6 +22,6 @@ func (d *DexTokens) GetTokenContractsId() uint {
 	return d.TokenContractsId
 }
 
-func (d *DexTokens) GetLastCheckDate() uint64 {
-	return d.LastCheckDate
+func (d *DexTokens) GetChain() string {
+	return d.Chain
 }
