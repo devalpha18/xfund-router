@@ -1,14 +1,15 @@
 package ooo_api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go-ooo/config"
 	"go-ooo/database"
-	"go-ooo/types"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
@@ -22,17 +23,47 @@ type OOOApi struct {
 	client  *http.Client
 	db      *database.DB
 	logger  *logrus.Logger
+	ctx     context.Context
+
+	// Only used to grab the latest block numbers for Ad-Hoc
+	// queries, so we can query historical data in subgraphs
+	subchainEthClient     *ethclient.Client
+	subchainPolygonClient *ethclient.Client
+	subchainBscClient     *ethclient.Client
 }
 
-func NewApi(db *database.DB, logger *logrus.Logger) *OOOApi {
+func NewApi(ctx context.Context, db *database.DB, logger *logrus.Logger) (*OOOApi, error) {
+
+	subchainEthClient, err := ethclient.Dial(viper.GetString(config.SubChainEthHttpRpc))
+
+	if err != nil {
+		return nil, err
+	}
+
+	subchainPolygonClient, err := ethclient.Dial(viper.GetString(config.SubChainPolygonHttpRpc))
+
+	if err != nil {
+		return nil, err
+	}
+
+	subchainBscClient, err := ethclient.Dial(viper.GetString(config.SubChainBcsHttpRpc))
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &OOOApi{
 		baseURL: viper.GetString(config.JobsOooApiUrl),
 		client: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		db:     db,
-		logger: logger,
-	}
+		db:                    db,
+		logger:                logger,
+		ctx:                   ctx,
+		subchainEthClient:     subchainEthClient,
+		subchainPolygonClient: subchainPolygonClient,
+		subchainBscClient:     subchainBscClient,
+	}, nil
 }
 
 // Request Format BASE.TARGET.TYPE.SUBTYPE[[.SUPP1][.SUPP2][.SUPP3]]
@@ -140,7 +171,7 @@ func (o *OOOApi) QueryFinchainsEndpoint(endpoint string, requestId string) (stri
 		return "", err
 	}
 
-	var result types.OoOAPIPriceQueryResult
+	var result OoOAPIPriceQueryResult
 
 	err = json.Unmarshal(body, &result)
 	if err != nil {
@@ -185,7 +216,7 @@ func (o *OOOApi) UpdateSupportedPairs() {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	var result []types.OoOAPIPairsResult
+	var result []OoOAPIPairsResult
 
 	err = json.Unmarshal(body, &result)
 	if err != nil {
