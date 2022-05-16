@@ -30,6 +30,7 @@ type OOOApi struct {
 	subchainEthClient     *ethclient.Client
 	subchainPolygonClient *ethclient.Client
 	subchainBscClient     *ethclient.Client
+	subchainXdaiClient    *ethclient.Client
 }
 
 func NewApi(ctx context.Context, db *database.DB, logger *logrus.Logger) (*OOOApi, error) {
@@ -52,6 +53,12 @@ func NewApi(ctx context.Context, db *database.DB, logger *logrus.Logger) (*OOOAp
 		return nil, err
 	}
 
+	subchainXdaiClient, err := ethclient.Dial(viper.GetString(config.SubChainXdaiHttpRpc))
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &OOOApi{
 		baseURL: viper.GetString(config.JobsOooApiUrl),
 		client: &http.Client{
@@ -63,6 +70,7 @@ func NewApi(ctx context.Context, db *database.DB, logger *logrus.Logger) (*OOOAp
 		subchainEthClient:     subchainEthClient,
 		subchainPolygonClient: subchainPolygonClient,
 		subchainBscClient:     subchainBscClient,
+		subchainXdaiClient:    subchainXdaiClient,
 	}, nil
 }
 

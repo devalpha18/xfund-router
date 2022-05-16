@@ -38,3 +38,5 @@ const SubChainPolygonHttpRpc = "subchain.polygon_http_rpc"
 
 // SubChainBcsHttpRpc only used to get the latest block number
 const SubChainBcsHttpRpc = "subchain.bsc_http_rpc"
+
+const SubChainXdaiHttpRpc = "subchain.xdai_http_rpc"

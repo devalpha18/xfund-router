@@ -17,11 +17,11 @@ import (
 
 // MinLiquidity ToDo - make configurable in config.toml
 // MinLiquidity - min liquidity a pair should have for the DEX pair search
-const MinLiquidity = 50000
+const MinLiquidity = 30000
 
 // MinTxCount ToDo - make configurable in config.toml
 // MinTxCount - min tx count a pair should have for the DEX pair search
-const MinTxCount = 500
+const MinTxCount = 250
 
 // currently supported DEXs for ad-hoc queries
 func getQlApis() []map[string]string {
@@ -98,6 +98,18 @@ func getQlApis() []map[string]string {
 			"chain":             "bsc",
 			"blocks_in_one_min": "20",
 		},
+		{
+			"name":              "honeyswap",
+			"url":               "https://api.thegraph.com/subgraphs/name/1hive/honeyswap-xdai",
+			"pairs_endpoint":    "pairs",
+			"pair_endpoint":     "pair",
+			"tokens_endpoint":   "tokens",
+			"token_order_by":    "txCount",
+			"pairs_order_by":    "reserveUSD",
+			"tx_count":          "txCount",
+			"chain":             "xdai",
+			"blocks_in_one_min": "12",
+		},
 	}
 }
 
@@ -128,6 +140,8 @@ func (o *OOOApi) getCurrentBlockNumForChain(chain string) (uint64, error) {
 		return o.subchainPolygonClient.BlockNumber(o.ctx)
 	case "bsc":
 		return o.subchainBscClient.BlockNumber(o.ctx)
+	case "xdai":
+		return o.subchainXdaiClient.BlockNumber(o.ctx)
 	}
 
 	return 0, nil
