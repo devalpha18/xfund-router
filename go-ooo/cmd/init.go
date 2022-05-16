@@ -106,6 +106,10 @@ Examples:
 
 			viper.SetDefault(config.LogLevel, "info")
 
+			viper.SetDefault(config.SubChainEthHttpRpc, "")
+			viper.SetDefault(config.SubChainPolygonHttpRpc, "")
+			viper.SetDefault(config.SubChainBcsHttpRpc, "")
+
 			err = viper.SafeWriteConfigAs(viper.ConfigFileUsed())
 			if err != nil {
 				panic(err)
