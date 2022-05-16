@@ -8,11 +8,12 @@ type DexPairs struct {
 	gorm.Model
 	DexName         string `gorm:"index:idx_dex_pair;index:idx_dex_pair_dex_name"`
 	Pair            string `gorm:"index:idx_dex_pair;index:idx_dex_pair_pair"`
-	T0              string `gorm:"index"`
-	T1              string `gorm:"index"`
+	T0DexTokenId    uint   `gorm:"index:idx_dex_pair_t0;index:idx_dex_pair_t0_t1"`
+	T1DexTokenId    uint   `gorm:"index:idx_dex_pair_t1;index:idx_dex_pair_t0_t1"`
+	T0Symbol        string `gorm:"index"`
+	T1Symbol        string `gorm:"index"`
 	ContractAddress string `gorm:"index"`
-	HasPair         bool   `gorm:"index:idx_checked_has_pair;index:idx_has_pair"`
-	LastCheckDate   uint64 `gorm:"index:idx_checked_has_pair;index:idx_pair_last_check_date"`
+	ReserveUsd      float64
 }
 
 func (DexPairs) TableName() string {
@@ -27,22 +28,14 @@ func (d *DexPairs) GetPair() string {
 	return d.Pair
 }
 
-func (d *DexPairs) GetBase() string {
-	return d.T0
+func (d *DexPairs) GetT0DexTokenId() uint {
+	return d.T0DexTokenId
 }
 
-func (d *DexPairs) GetTarget() string {
-	return d.T1
+func (d *DexPairs) GetT1DexTokenId() uint {
+	return d.T1DexTokenId
 }
 
 func (d *DexPairs) GetContractAddress() string {
 	return d.ContractAddress
-}
-
-func (d *DexPairs) GetHasPair() bool {
-	return d.HasPair
-}
-
-func (d *DexPairs) GetLastCheckDate() uint64 {
-	return d.LastCheckDate
 }
