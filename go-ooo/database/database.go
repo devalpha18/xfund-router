@@ -73,6 +73,7 @@ func NewPostgresDb(logger logger.Interface) (*DB, error) {
 }
 
 func (d *DB) Migrate() (err error) {
+	// migrate models
 	err = d.AutoMigrate(
 		&models.DataRequests{},
 		&models.FailedFulfilment{},
@@ -80,7 +81,12 @@ func (d *DB) Migrate() (err error) {
 		&models.SupportedPairs{},
 		&models.DexTokens{},
 		&models.DexPairs{},
-		&models.TokenContracts{})
+		&models.TokenContracts{},
+		&models.VersionInfo{},
+	)
+
+	// post-model data migration
+	d.MigrateV0ToV1()
 
 	return
 }
