@@ -161,7 +161,7 @@ for requesting and waiting for data. This script can be called using `docker exe
 docker exec -it ooo_dev_env /root/xfund-router/request.sh <BASE> <TARGET> <TYPE> [SUBTYPE] [SUPP1] [SUPP2]
 ```
 
-For example:
+For example querying Finchains tracked data:
 
 ```bash
 docker exec -it ooo_dev_env /root/xfund-router/request.sh BTC GBP PR AVC 1H
@@ -169,6 +169,12 @@ docker exec -it ooo_dev_env /root/xfund-router/request.sh BTC GBP PR AVC 1H
 
 This will request data using the OoO endpoint `BTC.GBP.PR.AVC.1H`, which is the mean GBP price of Bitcoin for the
 past hour, using the Chauvenet Criterion to remove statistical outliers.
+
+Or and Ad-Hoc request:
+
+```bash
+docker exec -it ooo_dev_env /root/xfund-router/request.sh BONE WETH AD
+```
 
 See the [OoO API Guide](docs/guide/ooo_api.md) for more information on endpoint construction.
 
