@@ -38,6 +38,17 @@ module.exports = {
       gasPrice: 100000000000,
       skipDryRun: true,
     },
+    goerli: {
+      provider: () =>
+        new HDWalletProvider({
+          privateKeys: [ETH_PKEY_RINKEBY],
+          providerOrUrl: `https://goerli.infura.io/v3/${INFURA_PROJECT_ID_RINKEBY}`,
+        }),
+      network_id: "5",
+      gas: 10000000,
+      gasPrice: 2000000000,
+      skipDryRun: true,
+    },
     mainnet: {
       provider: () =>
         new HDWalletProvider({
