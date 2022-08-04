@@ -36,6 +36,11 @@ module.exports = function (deployer, network) {
       // Router
       deployer.deploy(Router, "0x245330351344f9301690d5d8de2a07f5f32e1149")
       break
+    case "goerli":
+    case "goerli-fork":
+      // Router
+      deployer.deploy(Router, "0xb07C72acF3D7A5E9dA28C56af6F93862f8cc8196")
+      break
     case "mainnet":
     case "mainnet-fork":
       // Router

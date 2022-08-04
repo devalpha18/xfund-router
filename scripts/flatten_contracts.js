@@ -10,6 +10,10 @@ const contractsToFlatten = [
     path: "contracts/dev",
     fileName: "BlockhashStore.sol",
   },
+  {
+    path: "contracts/mocks",
+    fileName: "MockToken.sol",
+  },
 ]
 
 contractsToFlatten.forEach(async (c) => {
